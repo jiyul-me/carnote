@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="두 차종의 월 유지비를 나란히 비교 — 자동차세 + 연료비 + 보험 + 감가. 브랜드 상관없이 비교할 수 있는 총소유비용(TCO) 계산기">
+  <meta name="theme-color" content="#1a56db">
+  <title>자동차 유지비 비교(TCO) — 자동차세·연료비·감가까지 | 카노트</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🚗%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/content.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="topbar-title" href="index.html">🚗 카노트</a>
+    <nav class="topbar-right topbar-nav">
+      <a href="tax/index.html">자동차세</a>
+      <a href="tco.html">유지비 비교</a>
+    </nav>
+  </header>
+  <main class="content">
+    <h1>자동차 유지비 비교 (TCO)</h1>
+    <p class="lede">두 차를 나란히 놓고 월 유지비를 비교해요 — 자동차세 + 연료비 + 보험 + 감가.
+      브랜드가 달라도 비교할 수 있어요. <strong>차값은 제조사 공식 견적기에서 뽑은 금액</strong>을 그대로 넣어주세요.</p>
+
+    <div class="tco-grid" id="tco-cars"></div>
+
+    <h2>공통 조건</h2>
+    <div class="card">
+      <div class="field-row">
+        <div class="field"><label for="common-km">연간 주행거리(km)</label>
+          <input id="common-km" type="number" min="0" value="12000" inputmode="numeric"></div>
+        <div class="field"><label for="common-years">보유 예정(년)</label>
+          <input id="common-years" type="number" min="1" max="15" value="5" inputmode="numeric"></div>
+      </div>
+      <div class="field-row" id="fuel-prices"></div>
+      <p class="notice">연료 단가는 직접 수정할 수 있어요 (실시간 시세를 쓰지 않아요).</p>
+    </div>
+
+    <h2>월 유지비 비교</h2>
+    <p class="tco-headline" id="tco-headline" style="display:none;"></p>
+    <div id="tco-bars"></div>
+    <div class="table-wrap"><table class="data tco-result" id="tco-result"></table></div>
+    <p class="notice" id="tco-note">두 차 모두 정보를 입력하면 비교가 시작돼요.</p>
+
+    <div class="sources">
+      <p>자동차세는 <a href="https://www.law.go.kr/법령/지방세법/제127조" target="_blank" rel="noopener">지방세법 제127조</a> 기준(신차 첫해),
+        감가는 자체 추정 곡선을 적용한 참고값입니다. 실제 시세·보험료와 다를 수 있어요.
+        보험료는 각자 견적 금액을 입력해 주세요 — 여기서는 산출하지 않습니다.</p>
+      <p>계산이 끝났다면 <a href="index.html">내 차 수첩</a>에서 소모품·검사 일정도 챙겨보세요.</p>
+    </div>
+  </main>
+  <footer class="foot"><p>카노트 (베타) — 모든 계산은 브라우저 안에서만 이뤄집니다.</p></footer>
+  <script src="js/tco.js"></script>
+</body>
+</html>

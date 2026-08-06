@@ -1,0 +1,4 @@
+# 임시 주소(github.io) 운영 중 — 검색 색인은 정식 도메인 확정 후 시작한다.
+# 도메인 연결 시 이 파일을 "Allow" + Sitemap 줄로 교체할 것 (출시 전 체크리스트 참고)
+User-agent: *
+Disallow: /

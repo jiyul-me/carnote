@@ -1,0 +1,8 @@
+# 사업 전략 문서는 로컬에만 (public 저장소 비공개 유지)
+CLAUDE.md
+
+# macOS
+.DS_Store
+
+# 실수로 생긴 빈 파일
+carproject

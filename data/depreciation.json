@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-04",
+  "method": "retention-curve",
+  "description": "신차가 대비 잔존율 곡선. 인덱스 = 차령(년). 연 중간은 선형 보간. 곡선 종료(15년차) 이후는 마지막 값에서 매년 afterCurveYearlyDrop씩 감소하며 minRetention을 하한으로 함 — retention(age) = max(minRetention, 0.21 - afterCurveYearlyDrop × (age - 15))",
+  "disclaimerText": "자체 감가 모델 기반 추정치입니다. 실제 시세는 주행거리·사고 이력·옵션·시장 상황에 따라 크게 다를 수 있습니다.",
+  "retentionByAge": [
+    1.0, 0.8, 0.72, 0.65, 0.58, 0.52, 0.47, 0.43, 0.39, 0.35,
+    0.32, 0.29, 0.27, 0.25, 0.23, 0.21
+  ],
+  "minRetention": 0.1,
+  "afterCurveYearlyDrop": 0.01,
+  "note": "국산 승용 평균 감가 통념 기준의 자체 곡선(첫해 -20%, 이후 체감). UI에는 반드시 '추정치'로 명시 (CLAUDE.md). 추후 제보 데이터가 쌓이면 보정"
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-04",
+  "regularInspection": {
+    "vehicleClass": "passenger-nonbusiness",
+    "vehicleClassLabel": "비사업용 승용",
+    "firstInspectionAfterYears": 4,
+    "intervalYears": 2,
+    "windowBeforeDays": 90,
+    "windowAfterDays": 31,
+    "rule": "신차는 최초 등록일로부터 4년 후 첫 검사, 이후 2년마다. 유효기간 만료일 전 90일부터 후 31일까지 수검 가능(기간 내 적합판정 시 만료일에 받은 것으로 간주 — 2025-01-01 시행규칙 개정으로 앞쪽 기간 31일→90일 확대)",
+    "note": "수도권 등 대기관리권역은 정기검사 대신 종합검사(배출가스 정밀검사 포함) 대상이나 주기는 동일. 전기차는 배출가스 검사 면제"
+  },
+  "penalty": {
+    "label": "검사 지연 과태료",
+    "within30DaysKrw": 40000,
+    "per3DaysAfterKrw": 20000,
+    "maxKrw": 600000,
+    "note": "만료 후 30일 이내 4만원, 이후 3일마다 2만원 가산, 최대 60만원. 배포 전 자동차관리법 시행령 최신 기준 확인"
+  },
+  "sources": [
+    {
+      "label": "자동차관리법 제43조(자동차검사)",
+      "url": "https://www.law.go.kr/법령/자동차관리법/제43조"
+    },
+    {
+      "label": "한국교통안전공단 사이버검사소",
+      "url": "https://www.cyberts.kr"
+    }
+  ]
+}
