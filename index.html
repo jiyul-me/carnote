@@ -24,7 +24,28 @@
 
   <main id="app" aria-live="polite">
     <p class="loading">불러오는 중…</p>
+    <noscript>
+      <div class="hero">
+        <div class="emoji">🚗</div>
+        <h1>내 차 수첩, 카노트</h1>
+        <p>수첩 기능은 자바스크립트가 켜져 있어야 동작해요.<br>
+          아래 소개를 읽어보시고, 자바스크립트를 켠 뒤 다시 방문해 주세요.</p>
+      </div>
+    </noscript>
   </main>
+
+  <section class="content" style="padding-top:0;">
+    <h2>카노트는 이런 서비스예요</h2>
+    <p>카노트는 <strong>내 차 관리 수첩</strong>입니다. 차를 등록하면 엔진오일·타이어·브레이크 같은
+      소모품의 교체 시기를 주행거리와 날짜 기준으로 계산해 알려주고, 놓치면 과태료가 나오는
+      <strong>자동차 검사 D-day</strong>와 보험 만기도 함께 챙겨드려요. 교체 예정일은 .ics 파일로 내려받아
+      폰 캘린더에 알림으로 심을 수 있습니다.</p>
+    <p>입력한 모든 기록은 <strong>이용자의 브라우저에만 저장</strong>됩니다. 서버로 전송되지 않고,
+      회원가입도 없어요. 기기를 바꿀 때는 JSON 백업으로 옮기면 됩니다.</p>
+    <p>수첩 외에도 <a href="tax/index.html">차종별 자동차세</a>(인기 차종의 연식별 세액·연납 할인),
+      <a href="tax/calculator.html">자동차세 계산기</a>,
+      두 차의 월 유지비를 나란히 비교하는 <a href="tco.html">유지비 비교(TCO)</a>를 무료로 쓸 수 있습니다.</p>
+  </section>
 
   <footer class="foot">
     <p>카노트 (베타) — 모든 기록은 이 브라우저에만 저장됩니다. <button type="button" class="linklike" data-action="go-settings">백업하기</button></p>
