@@ -84,6 +84,26 @@
     toastTimer = setTimeout(function () { el.remove(); }, action ? 5000 : 2200);
   }
 
+  // ---------- 인앱 브라우저 안내 (TASKS #11) ----------
+  // 카톡·네이버앱 등의 인앱 브라우저는 localStorage가 격리돼 기록이 사라져 보인다
+
+  function inAppBrowser() {
+    return /KAKAOTALK|NAVER\(inApp|Instagram|FBAV|FBAN|Line\//i.test(navigator.userAgent || '');
+  }
+
+  function inAppBanner() {
+    if (!inAppBrowser()) return '';
+    try { if (sessionStorage.getItem('carnote:inapp-dismissed')) return ''; } catch (e) { /* 무시 */ }
+    var openLink = '';
+    if (/Android/i.test(navigator.userAgent)) {
+      var url = location.href.replace(/^https?:\/\//, '');
+      openLink = ' <a class="linklike" href="intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end">Chrome으로 열기</a>';
+    }
+    return '<div class="card" style="border-color:var(--warn);"><p class="notice" style="margin:0;color:var(--warn);">' +
+      '메신저 안 브라우저에서는 기록이 따로 저장돼요. Chrome/Safari로 열면 기록이 유지됩니다.' + openLink +
+      ' <button type="button" class="linklike" data-action="dismiss-inapp" style="color:var(--text-dim);">닫기</button></p></div>';
+  }
+
   // ---------- .ics 캘린더 내보내기 (TASKS #1) ----------
   // 웹 푸시가 없는 구조라 "알림"은 사용자 폰 캘린더에 심는다
 
@@ -196,7 +216,7 @@
     var today = todayISO();
     var monthlyKm = D.monthlyKmEstimate(car, doc.records, doc.fuelLogs);
     var odo = D.latestOdometer(car);
-    var html = '';
+    var html = inAppBanner();
 
     // 백업 유도: 기록이 쌓였는데 마지막 백업 후 30일 넘음 (iOS Safari 등 자동 삭제 대비)
     if (!demoMode && doc.records.length >= 5 &&
@@ -736,6 +756,11 @@
         go('dashboard', { carId: null });
         break;
       }
+
+      case 'dismiss-inapp':
+        try { sessionStorage.setItem('carnote:inapp-dismissed', '1'); } catch (e2) { /* 무시 */ }
+        render();
+        break;
 
       case 'export-ics':
         downloadIcs(calendarEvents(car), 'carnote-calendar.ics');
