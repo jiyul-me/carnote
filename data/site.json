@@ -1,5 +1,6 @@
 {
   "siteName": "차일지",
   "baseUrl": "https://chailji.com",
+  "ga4MeasurementId": "G-E0QK8ZX077",
   "note": "정식 도메인. baseUrl은 sitemap·robots Sitemap 줄·canonical/og·.ics DESCRIPTION·표 이미지 워터마크 등 모든 URL 표기의 단일 출처 — 도메인이 바뀌면 여기만 고치고 build.py 재실행. CNAME 파일은 GitHub Pages 도메인 연결용이므로 건드리지 않는다"
 }

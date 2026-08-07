@@ -91,6 +91,7 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="{css_prefix}css/style.css">
   <link rel="stylesheet" href="{css_prefix}css/content.css">
+  <script src="{css_prefix}js/analytics.js" defer></script>
 </head>
 <body>
   <header class="topbar">
