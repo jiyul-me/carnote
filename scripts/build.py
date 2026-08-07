@@ -173,6 +173,18 @@ def sources_block(rates):
     )
 
 
+def table_img_script(v, site, this_year):
+    base = site.get("baseUrl", "").rstrip("/")
+    watermark = base.replace("https://", "").replace("http://", "") if base else site["siteName"]
+    return (
+        TABLE_IMG_SCRIPT
+        .replace("__TITLE__", f"{v['name']} 자동차세")
+        .replace("__META__", f"{v['displacementCc']:,}cc · {this_year}년 세율 기준 · 연납은 1월 신청 기준")
+        .replace("__WATERMARK__", watermark)
+        .replace("__SLUG__", v["slug"])
+    )
+
+
 def vehicle_page(v, rates, site, this_year):
     cc = v["displacementCc"]
     name = v["name"]
@@ -235,6 +247,7 @@ def vehicle_page(v, rates, site, this_year):
 <script>
 (function () {{
   var rows = {json.dumps({str(a): {"annual": tax_for(cc, a, rates)["annual"], "pay": prepay(tax_for(cc, a, rates)["annual"], rates)["pay"]} for a in range(1, 14)}, ensure_ascii=False)};
+  window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {{
     var card = document.getElementById('year-result-card');
@@ -270,6 +283,8 @@ def vehicle_page(v, rates, site, this_year):
 </div>
 {picker}
 {table}
+<button type="button" class="btn secondary" id="save-table-img" style="margin-top:10px;">표를 이미지로 저장 (공유용)</button>
+{table_img_script(v, site, this_year)}
 {notebook_cta(v)}
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요.</p>
@@ -284,6 +299,57 @@ def vehicle_page(v, rates, site, this_year):
         f"연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다."
     )
     return page(site, title, desc, body)
+
+
+TABLE_IMG_SCRIPT = """<script>
+(function () {
+  var btn = document.getElementById('save-table-img');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var rows = window.__TAX_ROWS__ || {};
+    var scale = 2, W = 720, rowH = 42, headH = 96, footH = 54;
+    var ages = Object.keys(rows);
+    var H = headH + rowH * (ages.length + 1) + footH;
+    var cv = document.createElement('canvas');
+    cv.width = W * scale; cv.height = H * scale;
+    var ctx = cv.getContext('2d');
+    ctx.scale(scale, scale);
+    var font = '-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1b2430'; ctx.font = '700 26px ' + font;
+    ctx.fillText('__TITLE__', 24, 42);
+    ctx.fillStyle = '#66707d'; ctx.font = '14px ' + font;
+    ctx.fillText('__META__', 24, 68);
+    var y = headH;
+    ctx.fillStyle = '#f0f3f8'; ctx.fillRect(0, y - 28, W, rowH);
+    ctx.fillStyle = '#66707d'; ctx.font = '700 14px ' + font;
+    ctx.fillText('차령', 24, y);
+    ctx.textAlign = 'right';
+    ctx.fillText('연세액', 440, y);
+    ctx.fillText('1월 연납 시', 690, y);
+    ctx.textAlign = 'left';
+    ages.forEach(function (age, i) {
+      y += rowH;
+      if (i % 2 === 1) { ctx.fillStyle = '#f7f9fc'; ctx.fillRect(0, y - 28, W, rowH); }
+      ctx.fillStyle = '#1b2430'; ctx.font = '15px ' + font;
+      ctx.fillText(age + '년차' + (age === '13' ? ' 이상' : ''), 24, y);
+      ctx.textAlign = 'right'; ctx.font = '600 15px ' + font;
+      ctx.fillText(won(rows[age].annual), 440, y);
+      ctx.fillText(won(rows[age].pay), 690, y);
+      ctx.textAlign = 'left';
+    });
+    ctx.fillStyle = '#9aa4b2'; ctx.font = '13px ' + font;
+    ctx.textAlign = 'right';
+    ctx.fillText('__WATERMARK__', W - 24, H - 22);
+    ctx.textAlign = 'left';
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = '__SLUG__-tax.png';
+    a.click();
+  });
+})();
+</script>"""
 
 
 CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>

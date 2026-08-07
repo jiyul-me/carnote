@@ -38,6 +38,7 @@
 <script>
 (function () {
   var rows = {"1": {"annual": 287560, "pay": 274390}, "2": {"annual": 287560, "pay": 274390}, "3": {"annual": 273180, "pay": 260660}, "4": {"annual": 258800, "pay": 246940}, "5": {"annual": 244420, "pay": 233220}, "6": {"annual": 230040, "pay": 219500}, "7": {"annual": 215670, "pay": 205790}, "8": {"annual": 201290, "pay": 192070}, "9": {"annual": 186900, "pay": 178340}, "10": {"annual": 172530, "pay": 164630}, "11": {"annual": 158150, "pay": 150910}, "12": {"annual": 143780, "pay": 137200}, "13": {"annual": 143780, "pay": 137200}};
+  window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {
     var card = document.getElementById('year-result-card');
@@ -63,6 +64,56 @@
 })();
 </script>
 <div class="table-wrap"><table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody><tr id="age-1"><td>1년차 (신차)<span style="color:var(--text-dim);font-size:12px;"> · 2026년 등록</span></td><td>0%</td><td>287,560원</td><td>274,390원</td></tr><tr id="age-2"><td>2년차<span style="color:var(--text-dim);font-size:12px;"> · 2025년 등록</span></td><td>0%</td><td>287,560원</td><td>274,390원</td></tr><tr id="age-3"><td>3년차<span style="color:var(--text-dim);font-size:12px;"> · 2024년 등록</span></td><td>5%</td><td>273,180원</td><td>260,660원</td></tr><tr id="age-4"><td>4년차<span style="color:var(--text-dim);font-size:12px;"> · 2023년 등록</span></td><td>10%</td><td>258,800원</td><td>246,940원</td></tr><tr id="age-5"><td>5년차<span style="color:var(--text-dim);font-size:12px;"> · 2022년 등록</span></td><td>15%</td><td>244,420원</td><td>233,220원</td></tr><tr id="age-6"><td>6년차<span style="color:var(--text-dim);font-size:12px;"> · 2021년 등록</span></td><td>20%</td><td>230,040원</td><td>219,500원</td></tr><tr id="age-7"><td>7년차<span style="color:var(--text-dim);font-size:12px;"> · 2020년 등록</span></td><td>25%</td><td>215,670원</td><td>205,790원</td></tr><tr id="age-8"><td>8년차<span style="color:var(--text-dim);font-size:12px;"> · 2019년 등록</span></td><td>30%</td><td>201,290원</td><td>192,070원</td></tr><tr id="age-9"><td>9년차<span style="color:var(--text-dim);font-size:12px;"> · 2018년 등록</span></td><td>35%</td><td>186,900원</td><td>178,340원</td></tr><tr id="age-10"><td>10년차<span style="color:var(--text-dim);font-size:12px;"> · 2017년 등록</span></td><td>40%</td><td>172,530원</td><td>164,630원</td></tr><tr id="age-11"><td>11년차<span style="color:var(--text-dim);font-size:12px;"> · 2016년 등록</span></td><td>45%</td><td>158,150원</td><td>150,910원</td></tr><tr id="age-12"><td>12년차<span style="color:var(--text-dim);font-size:12px;"> · 2015년 등록</span></td><td>50%</td><td>143,780원</td><td>137,200원</td></tr><tr id="age-13"><td>13년차 이상<span style="color:var(--text-dim);font-size:12px;"> · 2014년 등록</span></td><td>50%</td><td>143,780원</td><td>137,200원</td></tr></tbody></table></div>
+<button type="button" class="btn secondary" id="save-table-img" style="margin-top:10px;">표를 이미지로 저장 (공유용)</button>
+<script>
+(function () {
+  var btn = document.getElementById('save-table-img');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var rows = window.__TAX_ROWS__ || {};
+    var scale = 2, W = 720, rowH = 42, headH = 96, footH = 54;
+    var ages = Object.keys(rows);
+    var H = headH + rowH * (ages.length + 1) + footH;
+    var cv = document.createElement('canvas');
+    cv.width = W * scale; cv.height = H * scale;
+    var ctx = cv.getContext('2d');
+    ctx.scale(scale, scale);
+    var font = '-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1b2430'; ctx.font = '700 26px ' + font;
+    ctx.fillText('아반떼 하이브리드 자동차세', 24, 42);
+    ctx.fillStyle = '#66707d'; ctx.font = '14px ' + font;
+    ctx.fillText('1,580cc · 2026년 세율 기준 · 연납은 1월 신청 기준', 24, 68);
+    var y = headH;
+    ctx.fillStyle = '#f0f3f8'; ctx.fillRect(0, y - 28, W, rowH);
+    ctx.fillStyle = '#66707d'; ctx.font = '700 14px ' + font;
+    ctx.fillText('차령', 24, y);
+    ctx.textAlign = 'right';
+    ctx.fillText('연세액', 440, y);
+    ctx.fillText('1월 연납 시', 690, y);
+    ctx.textAlign = 'left';
+    ages.forEach(function (age, i) {
+      y += rowH;
+      if (i % 2 === 1) { ctx.fillStyle = '#f7f9fc'; ctx.fillRect(0, y - 28, W, rowH); }
+      ctx.fillStyle = '#1b2430'; ctx.font = '15px ' + font;
+      ctx.fillText(age + '년차' + (age === '13' ? ' 이상' : ''), 24, y);
+      ctx.textAlign = 'right'; ctx.font = '600 15px ' + font;
+      ctx.fillText(won(rows[age].annual), 440, y);
+      ctx.fillText(won(rows[age].pay), 690, y);
+      ctx.textAlign = 'left';
+    });
+    ctx.fillStyle = '#9aa4b2'; ctx.font = '13px ' + font;
+    ctx.textAlign = 'right';
+    ctx.fillText('jiyul-me.github.io/carnote', W - 24, H - 22);
+    ctx.textAlign = 'left';
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = 'avante-hybrid-tax.png';
+    a.click();
+  });
+})();
+</script>
 <div class="card" style="border-color:var(--brand);margin:18px 0;">
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
