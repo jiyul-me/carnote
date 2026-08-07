@@ -221,7 +221,7 @@
       return '<div class="hero">' +
         '<h1>내 차 수첩을 시작해요</h1>' +
         '<p>소모품 교체 주기와 자동차 검사 일정을<br>한눈에 챙겨 드릴게요.</p>' +
-        '<button type="button" class="btn" data-action="new-car" style="width:auto;padding:13px 28px;">내 차 등록하기</button>' +
+        '<button type="button" class="btn" data-action="new-car" style="width:auto;padding:0 28px;">내 차 등록하기</button>' +
         '<p style="margin-top:14px;"><a class="linklike" href="?demo=1">등록 없이 둘러보기</a></p>' +
         '</div>';
     }
