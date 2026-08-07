@@ -8,7 +8,7 @@
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
   var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '—' };
 
-  var data = { parts: null, inspection: null, depreciation: null, vehicles: null, site: null }; // /data/*.json
+  var data = { parts: null, inspection: null, depreciation: null, vehicles: null, site: null, affiliate: null }; // /data/*.json
   var doc = null;              // 저장 문서
   var demoMode = false;        // ?demo=1 — 저장하지 않는 시연용
   // carId = 대시보드에서 보고 있는 차, editingCarId = 차 폼이 편집 중인 차(null = 신규).
@@ -82,6 +82,21 @@
     document.body.appendChild(el);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { el.remove(); }, action ? 5000 : 2200);
+  }
+
+  // ---------- 쿠팡파트너스 슬롯 (TASKS #12) ----------
+  // data/affiliate.json의 links에 URL이 있을 때만 렌더. 링크 값은 가입 후 사용자가 채운다
+
+  function affiliateSlot(part) {
+    var aff = data.affiliate;
+    var url = aff && aff.links && aff.links[part.id];
+    if (!url) return '';
+    var label = part.shopKeyword || part.name;
+    return '<div class="card">' +
+      '<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;" href="' + esc(url) + '" target="_blank" rel="sponsored noopener">' +
+      '🛒 ' + esc(label) + ' 쿠팡에서 보기</a>' +
+      '<p class="notice">' + esc(aff.disclosure) + '</p>' +
+    '</div>';
   }
 
   // ---------- 인앱 브라우저 안내 (TASKS #11) ----------
@@ -514,6 +529,7 @@
         ((st.dueDate || st.predictedDate) ?
           '<button type="button" class="btn small secondary" style="margin-top:10px;" data-action="export-ics-part" data-id="' + part.id + '">📅 캘린더에 추가</button>' : '') +
       '</div>' +
+      affiliateSlot(part) +
       '<div class="card"><h2>기록 추가</h2>' +
       '<form id="record-form">' +
         '<div class="field-row">' +
@@ -855,7 +871,7 @@
   });
 
   function init() {
-    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json', 'data/site.json'].map(function (u) {
+    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json', 'data/site.json', 'data/affiliate.json'].map(function (u) {
       return fetch(u).then(function (r) {
         if (!r.ok) throw new Error(u + ' 로드 실패(' + r.status + ')');
         return r.json();
@@ -866,6 +882,7 @@
       data.depreciation = res[2];
       data.vehicles = res[3].vehicles.filter(function (v) { return v.status === 'active'; });
       data.site = res[4];
+      data.affiliate = res[5];
       demoMode = /[?&]demo=1/.test(location.search);
       if (demoMode) {
         window.__DEMO_PARTS__ = data.parts;
