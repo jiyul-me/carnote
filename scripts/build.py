@@ -96,6 +96,58 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
 """
 
 
+def jsonld_block(v, rates, site, this_year):
+    """FAQPage + BreadcrumbList 구조화 데이터 (TASKS #9)."""
+    base = site.get("baseUrl", "").rstrip("/")
+    page_url = f"{base}/tax/{v['slug']}.html" if base else ""
+    name = v["name"]
+    if v["fuelType"] == "ev":
+        ev = rates["displacement"]["ev"]
+        annual = ev["annualTotalKrw"]
+        faqs = [
+            (f"{name} 자동차세는 얼마인가요?",
+             f"전기차(비영업용 승용)는 배기량이 없어 연 {annual:,}원 정액입니다 (본세 {ev['baseKrw']:,}원 + 지방교육세 {ev['educationTaxKrw']:,}원). 연식과 무관하게 같습니다."),
+            ("1월에 연납하면 얼마나 할인되나요?",
+             f"1월에 연납 신청하면 2~12월분 세액의 {list(rates['prepayDiscount']['rateByYear'].values())[-1]*100:.0f}%를 공제받습니다. 연 {annual:,}원 기준 {prepay(annual, rates)['pay']:,}원을 냅니다."),
+            ("전기차도 차령 경감이 되나요?",
+             "아니요. 차령 경감은 배기량 기준 승용차에 적용되며, 전기차는 정액이라 연식이 지나도 세액이 같습니다."),
+        ]
+    else:
+        t1 = tax_for(v["displacementCc"], 1, rates)
+        t13 = tax_for(v["displacementCc"], 13, rates)
+        p1 = prepay(t1["annual"], rates)
+        faqs = [
+            (f"{name} 자동차세는 얼마인가요?",
+             f"배기량 {v['displacementCc']:,}cc 기준 신차는 연 {t1['annual']:,}원(본세+지방교육세)입니다. 3년차부터 차령 경감이 적용되어 12년 이상이면 연 {t13['annual']:,}원까지 줄어듭니다."),
+            ("1월에 연납하면 얼마나 할인되나요?",
+             f"1월 연납 시 2~12월분 세액의 {p1['rate']*100:.0f}%를 공제받습니다. 신차 기준 연 {t1['annual']:,}원에서 {p1['discount']:,}원을 공제받아 {p1['pay']:,}원을 냅니다."),
+            ("차령 경감은 언제부터 적용되나요?",
+             "최초 등록 후 3년차부터 (차령 − 2) × 5%씩 경감되고, 12년 이상이면 최대 50%가 경감됩니다."),
+        ]
+    faq = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {"@type": "Question", "name": q,
+             "acceptedAnswer": {"@type": "Answer", "text": a}}
+            for q, a in faqs
+        ],
+    }
+    crumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": site["siteName"], "item": f"{base}/" if base else "/"},
+            {"@type": "ListItem", "position": 2, "name": "자동차세", "item": f"{base}/tax/index.html" if base else "/tax/index.html"},
+            {"@type": "ListItem", "position": 3, "name": name, "item": page_url or f"/tax/{v['slug']}.html"},
+        ],
+    }
+    return (
+        '<script type="application/ld+json">' + json.dumps(faq, ensure_ascii=False) + "</script>\n"
+        '<script type="application/ld+json">' + json.dumps(crumbs, ensure_ascii=False) + "</script>"
+    )
+
+
 def notebook_cta(v):
     """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가."""
     params = f"model={v['slug']}&fuel={v['fuelType']}"
@@ -142,7 +194,8 @@ def vehicle_page(v, rates, site, this_year):
 <p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
 {notebook_cta(v)}
 <p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
-{sources_block(rates)}"""
+{sources_block(rates)}
+{jsonld_block(v, rates, site, this_year)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
         desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
         return page(site, title, desc, body)
@@ -222,7 +275,8 @@ def vehicle_page(v, rates, site, this_year):
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
 <p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
-{sources_block(rates)}"""
+{sources_block(rates)}
+{jsonld_block(v, rates, site, this_year)}"""
 
     title = f"{name} 자동차세 — 연 {new_tax['annual']:,}원부터, 연식별 계산표 | {site['siteName']}"
     desc = (
