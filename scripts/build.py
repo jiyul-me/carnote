@@ -113,9 +113,11 @@ def sources_block(rates):
         f'<a href="{esc(s["url"])}" rel="noopener" target="_blank">{esc(s["label"])}</a>'
         for s in rates["sources"]
     )
+    this_year = datetime.date.today().year
     return (
         '<div class="sources"><p>근거 법령·출처: ' + links + "</p>"
-        "<p>세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>"
+        f"<p>{this_year}년 세율 기준 · 최종 확인 {rates['lastVerified']}. "
+        "세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>"
     )
 
 

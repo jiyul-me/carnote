@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-08-04",
+  "lastVerified": "2026-08",
   "verifiedAgainstWetax": false,
   "system": "displacement",
   "note": "system은 현행 배기량 기준. 차량가액 기준 개편 확정 시 'value' 블록을 추가하고 system을 교체한다 (CLAUDE.md 세율 데이터 규칙)",
