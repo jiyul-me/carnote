@@ -1,9 +1,9 @@
-/* 카노트 — 화면·이벤트 (derive.js, storage.js에 의존) */
+/* 차일지 — 화면·이벤트 (derive.js, storage.js에 의존) */
 (function () {
   'use strict';
 
-  var D = window.CarnoteDerive;
-  var S = window.CarnoteStorage;
+  var D = window.ChailjiDerive;
+  var S = window.ChailjiStorage;
 
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
   var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '—' };
@@ -108,7 +108,7 @@
 
   function inAppBanner() {
     if (!inAppBrowser()) return '';
-    try { if (sessionStorage.getItem('carnote:inapp-dismissed')) return ''; } catch (e) { /* 무시 */ }
+    try { if (sessionStorage.getItem('chailji:inapp-dismissed')) return ''; } catch (e) { /* 무시 */ }
     var openLink = '';
     if (/Android/i.test(navigator.userAgent)) {
       var url = location.href.replace(/^https?:\/\//, '');
@@ -126,16 +126,16 @@
     var today = todayISO();
     var monthlyKm = D.monthlyKmEstimate(car, doc.records, doc.fuelLogs);
     var siteUrl = (data.site && data.site.baseUrl) || '';
-    var desc = '카노트에서 확인: ' + siteUrl;
+    var desc = '차일지에서 확인: ' + siteUrl;
     var events = [];
     car.enabledPartIds.map(partById).filter(Boolean).forEach(function (p) {
       var st = D.partStatus(p, car, doc.records, doc.settings, today, monthlyKm);
       var due = st.dueDate || st.predictedDate;
       if (!due || due < today) return; // 이미 지난 일정은 제외 (지남 항목은 앱에서 표시)
       events.push({
-        uid: car.id + '-' + p.id + '@carnote',
+        uid: car.id + '-' + p.id + '@chailji',
         date: due,
-        summary: '카노트 — ' + p.name + ' 교체 시기',
+        summary: '차일지 — ' + p.name + ' 교체 시기',
         description: desc,
         url: siteUrl || undefined
       });
@@ -143,9 +143,9 @@
     var insp = D.inspectionStatus(car, data.inspection.regularInspection, today);
     if (insp && insp.expiryOn >= today) {
       events.push({
-        uid: car.id + '-inspection@carnote',
+        uid: car.id + '-inspection@chailji',
         date: insp.expiryOn,
-        summary: '카노트 — 자동차 검사 만료일',
+        summary: '차일지 — 자동차 검사 만료일',
         description: desc,
         url: siteUrl || undefined
       });
@@ -155,9 +155,9 @@
     var jan16 = year + '-01-16';
     if (jan16 < today) jan16 = (year + 1) + '-01-16';
     events.push({
-      uid: 'tax-prepay@carnote',
+      uid: 'tax-prepay@chailji',
       date: jan16,
-      summary: '카노트 — 자동차세 연납 신청 시작',
+      summary: '차일지 — 자동차세 연납 신청 시작',
       description: desc,
       url: siteUrl || undefined,
       yearlyRepeat: true
@@ -168,7 +168,7 @@
   function downloadIcs(events, filename) {
     if (!events.length) { toast('내보낼 일정이 없어요 — 먼저 기록을 추가해 주세요'); return; }
     var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    var text = window.CarnoteIcs.buildCalendar(events, { stamp: stamp, calName: '카노트' });
+    var text = window.ChailjiIcs.buildCalendar(events, { stamp: stamp, calName: '차일지' });
     var blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -819,19 +819,19 @@
       }
 
       case 'dismiss-inapp':
-        try { sessionStorage.setItem('carnote:inapp-dismissed', '1'); } catch (e2) { /* 무시 */ }
+        try { sessionStorage.setItem('chailji:inapp-dismissed', '1'); } catch (e2) { /* 무시 */ }
         render();
         break;
 
       case 'export-ics':
-        downloadIcs(calendarEvents(car), 'carnote-calendar.ics');
+        downloadIcs(calendarEvents(car), 'chailji-calendar.ics');
         break;
 
       case 'export-ics-part': {
         var partEvents = calendarEvents(car).filter(function (ev) {
           return ev.uid.indexOf('-' + id + '@') !== -1;
         });
-        downloadIcs(partEvents, 'carnote-' + id + '.ics');
+        downloadIcs(partEvents, 'chailji-' + id + '.ics');
         break;
       }
 
@@ -839,7 +839,7 @@
         var blob = new Blob([S.exportJson(doc)], { type: 'application/json' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'carnote-backup-' + todayISO() + '.json';
+        a.download = 'chailji-backup-' + todayISO() + '.json';
         a.click();
         // 즉시 해제하면 Firefox에서 다운로드 시작 전에 URL이 사라질 수 있다
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);

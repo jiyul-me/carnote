@@ -1,8 +1,8 @@
 /* jsc 실행: jsc js/derive.js tests/derive.test.js
- * (DOM 없음 — derive.js는 globalThis.CarnoteDerive로 노출됨) */
+ * (DOM 없음 — derive.js는 globalThis.ChailjiDerive로 노출됨) */
 (function () {
   'use strict';
-  var D = globalThis.CarnoteDerive;
+  var D = globalThis.ChailjiDerive;
   var failures = 0, total = 0;
 
   function eq(actual, expected, label) {

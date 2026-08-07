@@ -1,4 +1,4 @@
-/* 카노트 — .ics(iCalendar) 생성. 순수 함수만, DOM 비의존 — jsc로 테스트 가능.
+/* 차일지 — .ics(iCalendar) 생성. 순수 함수만, DOM 비의존 — jsc로 테스트 가능.
  * RFC 5545 준수 포인트: CRLF 줄바꿈, 75옥텟 라인 폴딩, 텍스트 이스케이프, 종일 일정(VALUE=DATE). */
 (function (global) {
   'use strict';
@@ -73,10 +73,10 @@
     var lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//carnote//ics//KO',
+      'PRODID:-//chailji//ics//KO',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:' + icsEscape(opts.calName || '카노트')
+      'X-WR-CALNAME:' + icsEscape(opts.calName || '차일지')
     ];
     events.forEach(function (ev) {
       lines = lines.concat(veventLines(ev, stamp));
@@ -85,7 +85,7 @@
     return lines.map(fold).join('\r\n') + '\r\n';
   }
 
-  global.CarnoteIcs = {
+  global.ChailjiIcs = {
     icsEscape: icsEscape,
     byteLen: byteLen,
     fold: fold,

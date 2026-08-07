@@ -1,7 +1,7 @@
 /* jsc 실행: jsc js/ics.js tests/ics.test.js */
 (function () {
   'use strict';
-  var I = globalThis.CarnoteIcs;
+  var I = globalThis.ChailjiIcs;
   var failures = 0, total = 0;
   function ok(cond, label) {
     total++;
@@ -17,7 +17,7 @@
   eq(I.byteLen('가'), 3, '한글 1자 = 3옥텟');
 
   // 폴딩: 접힌 각 물리 줄이 75옥텟 이하, 펼치면 원문 복원
-  var long = 'SUMMARY:카노트 — 엔진오일·오일필터 교체 시기 알림입니다 아주 길게 만든 제목으로 폴딩을 검증합니다';
+  var long = 'SUMMARY:차일지 — 엔진오일·오일필터 교체 시기 알림입니다 아주 길게 만든 제목으로 폴딩을 검증합니다';
   var folded = I.fold(long);
   var physical = folded.split('\r\n');
   ok(physical.length > 1, '장문 폴딩 발생');
@@ -32,9 +32,9 @@
 
   // 캘린더 구조
   var ics = I.buildCalendar([
-    { uid: 'a@carnote', date: '2026-09-01', summary: '카노트 — 엔진오일 교체 시기', description: '카노트에서 확인: https://example.test', url: 'https://example.test' },
-    { uid: 'b@carnote', date: '2027-01-16', summary: '자동차세 연납 신청 시작', yearlyRepeat: true }
-  ], { stamp: '20260807T000000Z', calName: '카노트' });
+    { uid: 'a@chailji', date: '2026-09-01', summary: '차일지 — 엔진오일 교체 시기', description: '차일지에서 확인: https://example.test', url: 'https://example.test' },
+    { uid: 'b@chailji', date: '2027-01-16', summary: '자동차세 연납 신청 시작', yearlyRepeat: true }
+  ], { stamp: '20260807T000000Z', calName: '차일지' });
 
   ok(ics.indexOf('BEGIN:VCALENDAR') === 0, 'VCALENDAR 시작');
   ok(/\r\nEND:VCALENDAR\r\n$/.test(ics), 'CRLF + VCALENDAR 종료');

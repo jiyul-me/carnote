@@ -1,4 +1,4 @@
-/* 카노트 — 파생 계산 (순수 함수만, DOM·localStorage 사용 금지)
+/* 차일지 — 파생 계산 (순수 함수만, DOM·localStorage 사용 금지)
  * docs/storage-schema.md의 "파생 데이터" 절 구현.
  * jsc로 단독 실행 가능해야 한다: tests/derive.test.js 참고 */
 (function (global) {
@@ -245,7 +245,7 @@
     return d > 0 ? 'D-' + d : 'D+' + (-d);
   }
 
-  global.CarnoteDerive = {
+  global.ChailjiDerive = {
     parseDate: parseDate, toISO: toISO,
     addDays: addDays, addMonths: addMonths, addYears: addYears,
     diffDays: diffDays, yearsBetween: yearsBetween,

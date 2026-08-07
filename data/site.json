@@ -1,5 +1,5 @@
 {
-  "siteName": "카노트",
-  "baseUrl": "https://jiyul-me.github.io/carnote",
-  "note": "현재 임시 github.io 주소. 도메인 확정 시 여기와 manifest.webmanifest, index.html title, robots.txt를 함께 교체. baseUrl은 sitemap·.ics DESCRIPTION·워터마크 등 모든 URL 표기의 단일 출처"
+  "siteName": "차일지",
+  "baseUrl": "https://chailji.com",
+  "note": "정식 도메인. baseUrl은 sitemap·robots Sitemap 줄·canonical/og·.ics DESCRIPTION·표 이미지 워터마크 등 모든 URL 표기의 단일 출처 — 도메인이 바뀌면 여기만 고치고 build.py 재실행. CNAME 파일은 GitHub Pages 도메인 연결용이므로 건드리지 않는다"
 }

@@ -2,7 +2,7 @@
 
 MVP는 로그인 없이 브라우저 로컬 저장. 데이터량이 작으므로(텍스트 기록뿐) **localStorage에 단일 JSON 문서**로 저장한다. 사진 첨부·대용량 기능이 생기면 그때 IndexedDB로 이전한다.
 
-- 저장 키: `carnote:v1`
+- 저장 키: `chailji:v1`
 - 최상위에 `schemaVersion`을 두고, 구조가 바뀌면 로드 시점에 마이그레이션 함수를 순차 적용한다 (`v1 → v2 → …`)
 - 쓰기는 항상 문서 전체를 직렬화해서 저장 (부분 쓰기 없음 — 단순함 우선)
 - **내보내기/가져오기(JSON 파일)를 MVP에 포함한다.** 로컬 저장은 브라우저 데이터 삭제로 유실되므로 백업 수단이 리텐션 보험이다. 추후 계정 동기화가 생기면 이 내보내기 포맷이 그대로 이관 포맷이 된다.
@@ -10,7 +10,7 @@ MVP는 로그인 없이 브라우저 로컬 저장. 데이터량이 작으므로
 ## 타입 정의
 
 ```typescript
-interface CarnoteDocument {
+interface ChailjiDocument {
   schemaVersion: 1;
   cars: Car[];
   records: MaintenanceRecord[];
@@ -94,8 +94,8 @@ interface Settings {
 ## 마이그레이션 정책
 
 1. 로드 시 `schemaVersion` 확인 → 현재 버전보다 낮으면 마이그레이션 체인 적용 → 저장
-2. 마이그레이션 직전 원본을 `carnote:backup:v<version>` 키에 1회 백업
-3. 파싱 실패(손상) 시: 손상 원본을 `carnote:v1:corrupt`에 보존 → 백업 키 복구 시도(최신 버전부터) → 모두 실패하면 빈 문서로 시작
+2. 마이그레이션 직전 원본을 `chailji:backup:v<version>` 키에 1회 백업
+3. 파싱 실패(손상) 시: 손상 원본을 `chailji:v1:corrupt`에 보존 → 백업 키 복구 시도(최신 버전부터) → 모두 실패하면 빈 문서로 시작
 
 ## 외부 입력 정규화 (보안)
 

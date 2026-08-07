@@ -2,7 +2,7 @@
  * 기대값은 scripts/build.py 산출값과의 동일성(패리티) 검증 — build.py 스팟 체크에서 확인된 수치 */
 (function () {
   'use strict';
-  var T = globalThis.CarnoteTax;
+  var T = globalThis.ChailjiTax;
   var failures = 0, total = 0;
   function eq(a, b, label) {
     total++;

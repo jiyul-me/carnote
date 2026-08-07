@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""카노트 — 차종별 자동차세 정적 페이지 + sitemap 생성기.
+"""차일지 — 차종별 자동차세 정적 페이지 + sitemap 생성기.
 
 이 머신에는 node가 없으므로 정적 생성은 Python으로 한다 (CLAUDE.md 기술 방향).
 세율·차종 등 모든 수치는 data/*.json에서 읽는다 — 여기 하드코딩 금지.
@@ -62,8 +62,22 @@ def esc(s):
     return html.escape(str(s), quote=True)
 
 
+def page_canonical(site, path):
+    base = site.get("baseUrl", "").rstrip("/")
+    return f"{base}/{path}" if base else None
+
+
 def page(site, title, description, body, css_prefix="../", canonical=None):
-    canonical_tag = f'<link rel="canonical" href="{esc(canonical)}">\n  ' if canonical else ""
+    canonical_tag = ""
+    if canonical:
+        canonical_tag = (
+            f'<link rel="canonical" href="{esc(canonical)}">\n  '
+            f'<meta property="og:type" content="website">\n  '
+            f'<meta property="og:site_name" content="{esc(site["siteName"])}">\n  '
+            f'<meta property="og:title" content="{esc(title)}">\n  '
+            f'<meta property="og:description" content="{esc(description)}">\n  '
+            f'<meta property="og:url" content="{esc(canonical)}">\n  '
+        )
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -72,7 +86,7 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
   <meta name="description" content="{esc(description)}">
   <meta name="theme-color" content="#FFFFFF">
   {canonical_tag}<title>{esc(title)}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E카%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E차%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="{css_prefix}css/style.css">
@@ -210,7 +224,7 @@ def vehicle_page(v, rates, site, this_year):
 {jsonld_block(v, rates, site, this_year)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
         desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
-        return page(site, title, desc, body)
+        return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
 
     new_tax = tax_for(cc, 1, rates)
     new_prepay = prepay(new_tax["annual"], rates)
@@ -294,7 +308,7 @@ def vehicle_page(v, rates, site, this_year):
         f"{name}({cc:,}cc) 자동차세는 신차 기준 연 {new_tax['annual']:,}원. "
         f"연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다."
     )
-    return page(site, title, desc, body)
+    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
 
 
 TABLE_IMG_SCRIPT = """<script>
@@ -357,7 +371,7 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
   function won(n) { return n.toLocaleString('ko-KR') + '원'; }
   function render() {
     if (!rates) return;
-    var T = window.CarnoteTax;
+    var T = window.ChailjiTax;
     var ev = $('calc-ev').checked;
     var cc = Number($('calc-cc').value);
     var card = $('calc-result');
@@ -438,7 +452,7 @@ def calculator_page(rates, site, this_year):
 {CALC_SCRIPT.replace("__THIS_YEAR__", str(this_year))}"""
     title = f"자동차세 계산기 — 배기량·연식으로 바로 계산 | {site['siteName']}"
     desc = "배기량(cc)과 등록 연도만 넣으면 자동차세 연세액·1월 연납 할인액을 계산합니다. 차령 경감·전기차 정액 반영."
-    return page(site, title, desc, body)
+    return page(site, title, desc, body, canonical=page_canonical(site, "tax/calculator.html"))
 
 
 def index_page(vehicles, rates, site):
@@ -477,7 +491,7 @@ def index_page(vehicles, rates, site):
 {sources_block(rates)}"""
     title = f"차종별 자동차세 계산 — 연식별 세액·연납 할인 | {site['siteName']}"
     desc = "아반떼·그랜저·쏘렌토 등 인기 차종의 자동차세를 연식별로 계산. cc당 세율, 차령 경감, 연납 할인까지."
-    return page(site, title, desc, body)
+    return page(site, title, desc, body, canonical=page_canonical(site, "tax/index.html"))
 
 
 def build_sitemap(site, slugs):

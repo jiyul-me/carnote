@@ -1,4 +1,4 @@
-/* 카노트 — 자동차세 계산 (비영업용 승용). 순수 함수, DOM 비의존 — jsc 테스트 가능.
+/* 차일지 — 자동차세 계산 (비영업용 승용). 순수 함수, DOM 비의존 — jsc 테스트 가능.
  * scripts/build.py의 tax_for/prepay와 동일 규칙이어야 한다 (절사 포함).
  * 세율은 호출자가 data/tax-rates.json을 읽어 넘긴다 — 여기 하드코딩 금지. */
 (function (global) {
@@ -37,5 +37,5 @@
     return { year: year, rate: rate, discount: discount, pay: annual - discount };
   }
 
-  global.CarnoteTax = { floor10: floor10, taxFor: taxFor, evTax: evTax, prepay: prepay };
+  global.ChailjiTax = { floor10: floor10, taxFor: taxFor, evTax: evTax, prepay: prepay };
 })(typeof window !== 'undefined' ? window : globalThis);

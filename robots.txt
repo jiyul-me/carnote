@@ -1,6 +1,6 @@
-# 임시 주소(github.io) 운영 중 — 검색 색인은 정식 도메인 확정 후 시작한다.
-# 도메인 연결 시 아래 Disallow 줄만 삭제 (Sitemap은 build.py가 site.json baseUrl로 생성).
+# 정식 도메인(chailji.com) 운영 중 — 색인 허용.
+# Sitemap 줄은 build.py가 data/site.json의 baseUrl로 동기화한다.
 User-agent: *
-Disallow: /
+Allow: /
 
-Sitemap: https://jiyul-me.github.io/carnote/sitemap.xml
+Sitemap: https://chailji.com/sitemap.xml

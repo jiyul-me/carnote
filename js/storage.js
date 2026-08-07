@@ -1,10 +1,10 @@
-/* 카노트 — localStorage 단일 문서 저장 (docs/storage-schema.md 구현)
+/* 차일지 — localStorage 단일 문서 저장 (docs/storage-schema.md 구현)
  * DOM 비의존. localStorage가 없는 환경(jsc)에서는 인메모리로 동작한다. */
 (function (global) {
   'use strict';
 
-  var KEY = 'carnote:v1';
-  var BACKUP_PREFIX = 'carnote:backup:v'; // 마이그레이션 직전 1회 백업 (docs/storage-schema.md)
+  var KEY = 'chailji:v1';
+  var BACKUP_PREFIX = 'chailji:backup:v'; // 마이그레이션 직전 1회 백업 (docs/storage-schema.md)
   var CURRENT_VERSION = 1;
 
   // v(n) → v(n+1) 마이그레이션 함수를 버전 키로 등록. 로드 시 순차 적용
@@ -185,12 +185,12 @@
     } catch (e) {
       return { error: 'JSON 형식이 아닙니다' };
     }
-    if (!isValidDoc(doc)) return { error: '카노트 백업 파일이 아닙니다' };
+    if (!isValidDoc(doc)) return { error: '차일지 백업 파일이 아닙니다' };
     if (doc.schemaVersion > CURRENT_VERSION) return { error: '더 새로운 버전의 백업입니다. 앱을 업데이트한 뒤 가져와 주세요' };
     return { doc: migrate(sanitizeDoc(doc)) };
   }
 
-  global.CarnoteStorage = {
+  global.ChailjiStorage = {
     KEY: KEY,
     CURRENT_VERSION: CURRENT_VERSION,
     uuid: uuid,

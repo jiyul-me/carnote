@@ -1,7 +1,7 @@
 /* jsc 실행: jsc js/storage.js tests/storage.test.js (localStorage 없음 → 인메모리 폴백) */
 (function () {
   'use strict';
-  var S = globalThis.CarnoteStorage;
+  var S = globalThis.ChailjiStorage;
   var failures = 0, total = 0;
   function ok(cond, label) {
     total++;

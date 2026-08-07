@@ -1,4 +1,4 @@
-/* 카노트 — 콘텐츠 페이지(자동차세·계산기·TCO·법적). style.css 토큰 위에 얹는다.
+/* 차일지 — 콘텐츠 페이지(자동차세·계산기·TCO·법적). style.css 토큰 위에 얹는다.
  * DESIGN.md: 숫자가 주인공, 헤어라인만, 그림자·이모지 금지 */
 .content { max-width: 640px; margin: 0 auto; padding: 16px 20px 48px; }
 .content h1 { font-size: 20px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.01em; }

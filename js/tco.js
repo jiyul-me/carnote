@@ -1,4 +1,4 @@
-/* 카노트 — TCO(총소유비용) 비교기.
+/* 차일지 — TCO(총소유비용) 비교기.
  * 세율·차종·감가는 전부 data/*.json에서 읽는다 (하드코딩 금지).
  * 차값은 사용자 입력(제조사 견적기 금액), 보험료도 사용자 입력 — 산출하지 않는다(규제 영역). */
 (function () {
@@ -20,9 +20,9 @@
 
   // 자동차세 (비영업용 승용, 신차 첫해 기준) — js/tax-calc.js 공용 모듈 사용
   function annualTax(fuelType, cc) {
-    if (fuelType === 'ev') return window.CarnoteTax.evTax(data.rates);
+    if (fuelType === 'ev') return window.ChailjiTax.evTax(data.rates);
     if (cc == null) return null;
-    return window.CarnoteTax.taxFor(data.rates, cc, 1).annual;
+    return window.ChailjiTax.taxFor(data.rates, cc, 1).annual;
   }
 
   function retentionAt(ageYears) {
