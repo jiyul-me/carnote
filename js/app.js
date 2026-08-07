@@ -8,7 +8,7 @@
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
   var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '—' };
 
-  var data = { parts: null, inspection: null, depreciation: null, vehicles: null }; // /data/*.json
+  var data = { parts: null, inspection: null, depreciation: null, vehicles: null, site: null }; // /data/*.json
   var doc = null;              // 저장 문서
   var demoMode = false;        // ?demo=1 — 저장하지 않는 시연용
   // carId = 대시보드에서 보고 있는 차, editingCarId = 차 폼이 편집 중인 차(null = 신규).
@@ -81,6 +81,65 @@
     document.body.appendChild(el);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { el.remove(); }, action ? 5000 : 2200);
+  }
+
+  // ---------- .ics 캘린더 내보내기 (TASKS #1) ----------
+  // 웹 푸시가 없는 구조라 "알림"은 사용자 폰 캘린더에 심는다
+
+  function calendarEvents(car) {
+    var today = todayISO();
+    var monthlyKm = D.monthlyKmEstimate(car, doc.records, doc.fuelLogs);
+    var siteUrl = (data.site && data.site.baseUrl) || '';
+    var desc = '카노트에서 확인: ' + siteUrl;
+    var events = [];
+    car.enabledPartIds.map(partById).filter(Boolean).forEach(function (p) {
+      var st = D.partStatus(p, car, doc.records, doc.settings, today, monthlyKm);
+      var due = st.dueDate || st.predictedDate;
+      if (!due || due < today) return; // 이미 지난 일정은 제외 (지남 항목은 앱에서 표시)
+      events.push({
+        uid: car.id + '-' + p.id + '@carnote',
+        date: due,
+        summary: '카노트 — ' + p.name + ' 교체 시기',
+        description: desc,
+        url: siteUrl || undefined
+      });
+    });
+    var insp = D.inspectionStatus(car, data.inspection.regularInspection, today);
+    if (insp && insp.expiryOn >= today) {
+      events.push({
+        uid: car.id + '-inspection@carnote',
+        date: insp.expiryOn,
+        summary: '카노트 — 자동차 검사 만료일',
+        description: desc,
+        url: siteUrl || undefined
+      });
+    }
+    // 자동차세 연납 신청 시작(매년 1/16 경) — 매년 반복
+    var year = Number(today.slice(0, 4));
+    var jan16 = year + '-01-16';
+    if (jan16 < today) jan16 = (year + 1) + '-01-16';
+    events.push({
+      uid: 'tax-prepay@carnote',
+      date: jan16,
+      summary: '카노트 — 자동차세 연납 신청 시작',
+      description: desc,
+      url: siteUrl || undefined,
+      yearlyRepeat: true
+    });
+    return events;
+  }
+
+  function downloadIcs(events, filename) {
+    if (!events.length) { toast('내보낼 일정이 없어요 — 먼저 기록을 추가해 주세요'); return; }
+    var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    var text = window.CarnoteIcs.buildCalendar(events, { stamp: stamp, calName: '카노트' });
+    var blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    toast('캘린더 파일을 받았어요 — 열면 일정·알림이 등록돼요');
   }
 
   // 기록이 append했던 주행거리 관측 롤백 (기록 삭제·실행 취소 공용)
@@ -205,7 +264,9 @@
       '<div class="card" style="padding:2px 12px;"><ul class="part-list">' +
       rows.map(function (r) { return partRow(r.part, r.st); }).join('') +
       '</ul></div>' +
-      '<p class="notice">항목 켜고 끄기는 <button type="button" class="linklike" data-action="go-settings">설정</button>에서.</p>';
+      '<p class="notice">항목 켜고 끄기는 <button type="button" class="linklike" data-action="go-settings">설정</button>에서.</p>' +
+      '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">📅 전체 일정을 폰 캘린더로 (.ics)</button>' +
+      '<p class="notice">교체 예정일·검사 만료일·연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>';
 
     return html;
   }
@@ -416,6 +477,8 @@
       '<h1>' + esc(part.name) + ' <span class="badge ' + st.state + '">' + STATE_LABELS[st.state] + '</span></h1>' +
       '<div class="card"><h2>주기</h2><div>' + meta.join(' 또는 ') + (price ? ' · ' + price : '') + '</div>' +
         (part.note ? '<p class="notice">' + esc(part.note) + '</p>' : '') +
+        ((st.dueDate || st.predictedDate) ?
+          '<button type="button" class="btn small secondary" style="margin-top:10px;" data-action="export-ics-part" data-id="' + part.id + '">📅 캘린더에 추가</button>' : '') +
       '</div>' +
       '<div class="card"><h2>기록 추가</h2>' +
       '<form id="record-form">' +
@@ -660,6 +723,18 @@
         break;
       }
 
+      case 'export-ics':
+        downloadIcs(calendarEvents(car), 'carnote-calendar.ics');
+        break;
+
+      case 'export-ics-part': {
+        var partEvents = calendarEvents(car).filter(function (ev) {
+          return ev.uid.indexOf('-' + id + '@') !== -1;
+        });
+        downloadIcs(partEvents, 'carnote-' + id + '.ics');
+        break;
+      }
+
       case 'export': {
         var blob = new Blob([S.exportJson(doc)], { type: 'application/json' });
         var a = document.createElement('a');
@@ -741,7 +816,7 @@
   });
 
   function init() {
-    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json'].map(function (u) {
+    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json', 'data/site.json'].map(function (u) {
       return fetch(u).then(function (r) {
         if (!r.ok) throw new Error(u + ' 로드 실패(' + r.status + ')');
         return r.json();
@@ -751,6 +826,7 @@
       data.inspection = res[1];
       data.depreciation = res[2];
       data.vehicles = res[3].vehicles.filter(function (v) { return v.status === 'active'; });
+      data.site = res[4];
       demoMode = /[?&]demo=1/.test(location.search);
       if (demoMode) {
         window.__DEMO_PARTS__ = data.parts;
