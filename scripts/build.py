@@ -9,6 +9,7 @@
 """
 import json
 import html
+import re
 import datetime
 from pathlib import Path
 
@@ -266,13 +267,25 @@ def build_sitemap(site, slugs):
         print("· site.json baseUrl이 비어 있어 sitemap.xml 생성을 건너뜁니다 (도메인 확정 후 재실행)")
         return
     today = datetime.date.today().isoformat()
-    urls = [f"{base}/", f"{base}/tco.html", f"{base}/tax/index.html"] + [
-        f"{base}/tax/{s}.html" for s in slugs
-    ]
+    urls = [
+        f"{base}/",
+        f"{base}/tco.html",
+        f"{base}/privacy.html",
+        f"{base}/terms.html",
+        f"{base}/tax/index.html",
+    ] + [f"{base}/tax/{s}.html" for s in slugs]
     items = "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>" for u in urls)
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
     (ROOT / "sitemap.xml").write_text(xml, encoding="utf-8")
     print(f"· sitemap.xml ({len(urls)}개 URL)")
+    # robots.txt의 Sitemap 줄을 baseUrl 기준으로 동기화 (URL 단일 출처 규칙)
+    robots = ROOT / "robots.txt"
+    if robots.exists():
+        txt = robots.read_text(encoding="utf-8")
+        new = re.sub(r"(?m)^Sitemap: .*$", f"Sitemap: {base}/sitemap.xml", txt)
+        if new != txt:
+            robots.write_text(new, encoding="utf-8")
+            print("· robots.txt Sitemap 줄 동기화")
 
 
 def main():
