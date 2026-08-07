@@ -88,6 +88,7 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
   </main>
   <footer class="foot">
     <p>{esc(site["siteName"])} (베타) — 계산 결과는 참고용이며, 실제 고지 세액은 위택스에서 확인하세요.</p>
+    <p><a href="{css_prefix}privacy.html">개인정보처리방침</a> · <a href="{css_prefix}terms.html">이용약관</a></p>
   </footer>
 </body>
 </html>
