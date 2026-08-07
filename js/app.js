@@ -12,8 +12,9 @@
   var doc = null;              // 저장 문서
   var demoMode = false;        // ?demo=1 — 저장하지 않는 시연용
   // carId = 대시보드에서 보고 있는 차, editingCarId = 차 폼이 편집 중인 차(null = 신규).
-  // 분리해 두어야 '+ 차 추가' 후 취소해도 보던 차로 돌아온다
-  var state = { view: 'dashboard', carId: null, partId: null, editingCarId: null };
+  // 분리해 두어야 '+ 차 추가' 후 취소해도 보던 차로 돌아온다.
+  // prefill = 세금 페이지에서 넘어온 차종·배기량·연식 (TASKS #2)
+  var state = { view: 'dashboard', carId: null, partId: null, editingCarId: null, prefill: null };
   var $app = document.getElementById('app');
 
   // ---------- 유틸 ----------
@@ -173,6 +174,7 @@
     state.view = view;
     state.partId = extra && extra.partId !== undefined ? extra.partId : null;
     state.editingCarId = extra && extra.editingCarId !== undefined ? extra.editingCarId : null;
+    if (view !== 'car-form') state.prefill = null; // 프리필은 등록 폼을 떠나면 소멸
     if (extra && extra.carId !== undefined) state.carId = extra.carId;
     render();
   }
@@ -351,7 +353,13 @@
   function renderCarForm() {
     var car = state.editingCarId ? carById(state.editingCarId) : null;
     var isNew = !car;
-    var c = car || {};
+    var pre = (isNew && state.prefill) ? state.prefill : null;
+    var c = car || (pre ? {
+      modelName: pre.modelName,
+      fuelType: pre.fuelType,
+      displacementCc: pre.displacementCc,
+      firstRegisteredOn: pre.year ? pre.year + '-01-01' : null
+    } : {});
     return '<div class="form-view">' +
       (doc.cars.length ? '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' : '') +
       '<h1>' + (isNew ? '내 차 등록' : '차 정보 수정') + '</h1>' +
@@ -375,7 +383,8 @@
       '</div>' +
       '<div class="field"><label for="f-reg">최초 등록일 *</label>' +
         '<input id="f-reg" name="firstRegisteredOn" type="date" required value="' + esc(c.firstRegisteredOn) + '">' +
-        '<div class="hint">자동차등록증 기준. 검사 주기·감가 계산에 쓰여요</div></div>' +
+        '<div class="hint">자동차등록증 기준. 검사 주기·감가 계산에 쓰여요' +
+        (pre && pre.year ? ' · 연식 기준 1월 1일로 채워뒀어요 — 실제 등록일로 수정해 주세요' : '') + '</div></div>' +
       (isNew ?
         '<div class="field"><label for="f-odo">현재 주행거리(km) *</label>' +
         '<input id="f-odo" name="odometerKm" type="number" min="0" inputmode="numeric" required placeholder="예: 45000"></div>' : '') +
@@ -447,6 +456,11 @@
     car.updatedAt = now;
 
     persist();
+    if (state.prefill) {
+      // 프리필 등록 완료 — 주소의 파라미터 제거 (스펙: 등록 완료 후 replaceState)
+      state.prefill = null;
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* file:// 등 */ }
+    }
     toast(isNew ? '등록했어요' : '저장했어요');
     go('dashboard', { carId: car.id });
   }
@@ -838,6 +852,27 @@
           navigator.storage.persist().catch(function () {});
         }
       }
+      // 세금 페이지에서 온 프리필 파라미터 (TASKS #2)
+      var qs = new URLSearchParams(location.search);
+      if (!demoMode && (qs.get('model') || qs.get('cc'))) {
+        var slug = qs.get('model');
+        var pv = slug ? data.vehicles.filter(function (v) { return v.slug === slug; })[0] : null;
+        var prefill = {
+          modelName: pv ? pv.name : (slug || ''),
+          fuelType: qs.get('fuel') || (pv ? pv.fuelType : null) || 'gasoline',
+          displacementCc: numOrNull(qs.get('cc')) || (pv ? pv.displacementCc : null),
+          year: /^\d{4}$/.test(qs.get('year') || '') ? qs.get('year') : null
+        };
+        if (!doc.cars.length || confirm('이미 등록된 차가 있어요. 이 차를 새로 추가 등록할까요?')) {
+          state.prefill = prefill;
+          state.view = 'car-form';
+          state.editingCarId = null;
+          render();
+          return;
+        }
+        try { history.replaceState(null, '', location.pathname); } catch (e) { /* 무시 */ }
+      }
+
       // 첫 방문도 대시보드(hero 온보딩)로 — 가치 제안 없이 폼에 착지시키지 않는다
       state.view = 'dashboard';
       render();

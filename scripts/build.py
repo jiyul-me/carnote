@@ -94,6 +94,18 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
 """
 
 
+def notebook_cta(v):
+    """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가."""
+    params = f"model={v['slug']}&fuel={v['fuelType']}"
+    if v["displacementCc"]:
+        params += f"&cc={v['displacementCc']}"
+    return f"""<div class="card" style="border-color:var(--brand);margin:18px 0;">
+  <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
+  <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
+  <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?{params}">이 차로 수첩 시작하기</a>
+</div>"""
+
+
 def sources_block(rates):
     links = " · ".join(
         f'<a href="{esc(s["url"])}" rel="noopener" target="_blank">{esc(s["label"])}</a>'
@@ -124,7 +136,8 @@ def vehicle_page(v, rates, site, this_year):
 </div>
 <h2>계산 방법</h2>
 <p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
-<p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요. 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
+{notebook_cta(v)}
+<p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
 {sources_block(rates)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
         desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
@@ -181,6 +194,11 @@ def vehicle_page(v, rates, site, this_year):
       row.classList.add('hl');
       row.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
     }}
+    var cta = document.getElementById('start-notebook');
+    if (cta) {{
+      var base = cta.getAttribute('href').split('&year=')[0];
+      cta.setAttribute('href', sel.value ? base + '&year=' + sel.value : base);
+    }}
   }});
 }})();
 </script>"""
@@ -195,6 +213,7 @@ def vehicle_page(v, rates, site, this_year):
 </div>
 {picker}
 {table}
+{notebook_cta(v)}
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
