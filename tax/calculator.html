@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="배기량(cc)과 등록 연도만 넣으면 자동차세 연세액·1월 연납 할인액을 계산합니다. 차령 경감·전기차 정액 반영.">
+  <meta name="theme-color" content="#1a56db">
+  <title>자동차세 계산기 — 배기량·연식으로 바로 계산 | 카노트</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🚗%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/content.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="topbar-title" href="../index.html">🚗 카노트</a>
+    <nav class="topbar-right topbar-nav">
+      <a href="../tax/index.html">자동차세</a>
+      <a href="../tco.html">유지비 비교</a>
+    </nav>
+  </header>
+  <main class="content">
+<p class="crumb"><a href="index.html">자동차세 계산</a> › 계산기</p>
+<h1>자동차세 계산기</h1>
+<p class="lede">배기량(cc)과 등록 연도만 넣으면 자동차세와 1월 연납액을 바로 계산해요. 비영업용 승용 기준.</p>
+<div class="card">
+  <div class="field-row">
+    <div class="field"><label for="calc-cc">배기량(cc)</label>
+      <input id="calc-cc" type="number" min="0" inputmode="numeric" placeholder="예: 1998"></div>
+    <div class="field"><label for="calc-year">등록 연도</label>
+      <select id="calc-year"><option value="">선택 안 함 (신차 기준)</option><option value="2026">2026년</option><option value="2025">2025년</option><option value="2024">2024년</option><option value="2023">2023년</option><option value="2022">2022년</option><option value="2021">2021년</option><option value="2020">2020년</option><option value="2019">2019년</option><option value="2018">2018년</option><option value="2017">2017년</option><option value="2016">2016년</option><option value="2015">2015년</option><option value="2014">2014년</option><option value="2013">2013년</option></select></div>
+  </div>
+  <label class="toggle-row" style="border:none;padding-bottom:0;"><span>전기차예요 (배기량 없음 — 정액)</span><input type="checkbox" id="calc-ev" style="width:20px;height:20px;"></label>
+  <p class="notice">배기량은 자동차등록증에서 확인할 수 있어요.</p>
+</div>
+<div class="card year-result-card" id="calc-result" hidden>
+  <div class="label" id="cr-label"></div>
+  <div class="amount" id="cr-amount"></div>
+  <div class="label" id="cr-prepay"></div>
+</div>
+<div class="table-wrap" id="calc-table"></div>
+<h2>세율표</h2>
+<div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody><tr><td>~1,000cc</td><td>80원/cc</td></tr><tr><td>~1,600cc</td><td>140원/cc</td></tr><tr><td>1,600cc 초과</td><td>200원/cc</td></tr>
+<tr><td>전기차</td><td>연 130,000원 고정</td></tr></tbody></table></div>
+<p>여기에 지방교육세 30%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.
+  내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
+<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
+<script src="../js/tax-calc.js"></script>
+<script>
+(function () {
+  var rates = null;
+  fetch('../data/tax-rates.json').then(function (r) { return r.json(); }).then(function (j) { rates = j; render(); });
+  function $(id) { return document.getElementById(id); }
+  function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+  function render() {
+    if (!rates) return;
+    var T = window.CarnoteTax;
+    var ev = $('calc-ev').checked;
+    var cc = Number($('calc-cc').value);
+    var card = $('calc-result');
+    var tableWrap = $('calc-table');
+    $('calc-cc').disabled = ev;
+    if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; return; }
+    var yearSel = $('calc-year').value;
+    var thisYear = 2026;
+    var age = yearSel ? Math.min(13, Math.max(1, thisYear - Number(yearSel) + 1)) : 1;
+    var annual, label;
+    if (ev) {
+      annual = T.evTax(rates);
+      label = '전기차 정액 (연식 무관)';
+      tableWrap.innerHTML = '';
+    } else {
+      cc = Math.round(cc);
+      var t = T.taxFor(rates, cc, age);
+      annual = t.annual;
+      label = cc.toLocaleString('ko-KR') + 'cc · ' +
+        (yearSel ? yearSel + '년 등록 · ' + age + '년차' + (age === 13 ? ' 이상' : '') : '신차 기준') +
+        (t.discountRate ? ' · ' + Math.round(t.discountRate * 100) + '% 경감' : '');
+      var rows = '';
+      for (var a = 1; a <= 13; a++) {
+        var ta = T.taxFor(rates, cc, a);
+        var pa = T.prepay(rates, ta.annual);
+        rows += '<tr' + (yearSel && a === age ? ' class="hl"' : '') + '><td>' + a + '년차' + (a === 13 ? ' 이상' : '') +
+          '</td><td>' + Math.round(ta.discountRate * 100) + '%</td><td>' + won(ta.annual) + '</td><td>' + won(pa.pay) + '</td></tr>';
+      }
+      tableWrap.innerHTML = '<table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+    var p = T.prepay(rates, annual);
+    $('cr-label').textContent = label;
+    $('cr-amount').textContent = '연 ' + won(annual);
+    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)';
+    card.hidden = false;
+  }
+  document.addEventListener('input', render);
+  document.addEventListener('change', render);
+})();
+</script>
+  </main>
+  <footer class="foot">
+    <p>카노트 (베타) — 계산 결과는 참고용이며, 실제 고지 세액은 위택스에서 확인하세요.</p>
+    <p><a href="../privacy.html">개인정보처리방침</a> · <a href="../terms.html">이용약관</a></p>
+  </footer>
+</body>
+</html>

@@ -230,6 +230,99 @@ def vehicle_page(v, rates, site, this_year):
     return page(site, title, desc, body)
 
 
+CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
+<script>
+(function () {
+  var rates = null;
+  fetch('../data/tax-rates.json').then(function (r) { return r.json(); }).then(function (j) { rates = j; render(); });
+  function $(id) { return document.getElementById(id); }
+  function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+  function render() {
+    if (!rates) return;
+    var T = window.CarnoteTax;
+    var ev = $('calc-ev').checked;
+    var cc = Number($('calc-cc').value);
+    var card = $('calc-result');
+    var tableWrap = $('calc-table');
+    $('calc-cc').disabled = ev;
+    if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; return; }
+    var yearSel = $('calc-year').value;
+    var thisYear = __THIS_YEAR__;
+    var age = yearSel ? Math.min(13, Math.max(1, thisYear - Number(yearSel) + 1)) : 1;
+    var annual, label;
+    if (ev) {
+      annual = T.evTax(rates);
+      label = '전기차 정액 (연식 무관)';
+      tableWrap.innerHTML = '';
+    } else {
+      cc = Math.round(cc);
+      var t = T.taxFor(rates, cc, age);
+      annual = t.annual;
+      label = cc.toLocaleString('ko-KR') + 'cc · ' +
+        (yearSel ? yearSel + '년 등록 · ' + age + '년차' + (age === 13 ? ' 이상' : '') : '신차 기준') +
+        (t.discountRate ? ' · ' + Math.round(t.discountRate * 100) + '% 경감' : '');
+      var rows = '';
+      for (var a = 1; a <= 13; a++) {
+        var ta = T.taxFor(rates, cc, a);
+        var pa = T.prepay(rates, ta.annual);
+        rows += '<tr' + (yearSel && a === age ? ' class="hl"' : '') + '><td>' + a + '년차' + (a === 13 ? ' 이상' : '') +
+          '</td><td>' + Math.round(ta.discountRate * 100) + '%</td><td>' + won(ta.annual) + '</td><td>' + won(pa.pay) + '</td></tr>';
+      }
+      tableWrap.innerHTML = '<table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+    var p = T.prepay(rates, annual);
+    $('cr-label').textContent = label;
+    $('cr-amount').textContent = '연 ' + won(annual);
+    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)';
+    card.hidden = false;
+  }
+  document.addEventListener('input', render);
+  document.addEventListener('change', render);
+})();
+</script>"""
+
+
+def calculator_page(rates, site, this_year):
+    year_options = "".join(
+        f'<option value="{y}">{y}년</option>' for y in range(this_year, this_year - 14, -1)
+    )
+    d = rates["displacement"]
+    bracket_rows = "".join(
+        f"<tr><td>{'~' + format(b['maxCc'], ',') + 'cc' if b['maxCc'] else format(d['brackets'][i-1]['maxCc'], ',') + 'cc 초과'}</td>"
+        f"<td>{b['wonPerCc']}원/cc</td></tr>"
+        for i, b in enumerate(d["brackets"])
+    )
+    body = f"""<p class="crumb"><a href="index.html">자동차세 계산</a> › 계산기</p>
+<h1>자동차세 계산기</h1>
+<p class="lede">배기량(cc)과 등록 연도만 넣으면 자동차세와 1월 연납액을 바로 계산해요. 비영업용 승용 기준.</p>
+<div class="card">
+  <div class="field-row">
+    <div class="field"><label for="calc-cc">배기량(cc)</label>
+      <input id="calc-cc" type="number" min="0" inputmode="numeric" placeholder="예: 1998"></div>
+    <div class="field"><label for="calc-year">등록 연도</label>
+      <select id="calc-year"><option value="">선택 안 함 (신차 기준)</option>{year_options}</select></div>
+  </div>
+  <label class="toggle-row" style="border:none;padding-bottom:0;"><span>전기차예요 (배기량 없음 — 정액)</span><input type="checkbox" id="calc-ev" style="width:20px;height:20px;"></label>
+  <p class="notice">배기량은 자동차등록증에서 확인할 수 있어요.</p>
+</div>
+<div class="card year-result-card" id="calc-result" hidden>
+  <div class="label" id="cr-label"></div>
+  <div class="amount" id="cr-amount"></div>
+  <div class="label" id="cr-prepay"></div>
+</div>
+<div class="table-wrap" id="calc-table"></div>
+<h2>세율표</h2>
+<div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
+<tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
+<p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.
+  내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
+{sources_block(rates)}
+{CALC_SCRIPT.replace("__THIS_YEAR__", str(this_year))}"""
+    title = f"자동차세 계산기 — 배기량·연식으로 바로 계산 | {site['siteName']}"
+    desc = "배기량(cc)과 등록 연도만 넣으면 자동차세 연세액·1월 연납 할인액을 계산합니다. 차령 경감·전기차 정액 반영."
+    return page(site, title, desc, body)
+
+
 def index_page(vehicles, rates, site):
     by_brand = {}
     for v in vehicles:
@@ -254,7 +347,7 @@ def index_page(vehicles, rates, site):
 <tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.</p>
 {"".join(sections)}
-<p style="margin-top:24px;">찾는 차종이 없나요? <a href="../tco.html">유지비 비교</a>에서 배기량을 직접 입력해 계산할 수 있어요.</p>
+<p style="margin-top:24px;">찾는 차종이 없나요? <a href="calculator.html">자동차세 계산기</a>에서 배기량만 넣으면 바로 계산할 수 있어요.</p>
 {sources_block(rates)}"""
     title = f"차종별 자동차세 계산 — 연식별 세액·연납 할인 | {site['siteName']}"
     desc = "아반떼·그랜저·쏘렌토 등 인기 차종의 자동차세를 연식별로 계산. cc당 세율, 차령 경감, 연납 할인까지."
@@ -273,6 +366,7 @@ def build_sitemap(site, slugs):
         f"{base}/privacy.html",
         f"{base}/terms.html",
         f"{base}/tax/index.html",
+        f"{base}/tax/calculator.html",
     ] + [f"{base}/tax/{s}.html" for s in slugs]
     items = "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>" for u in urls)
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
@@ -301,7 +395,8 @@ def main():
         out.write_text(vehicle_page(v, rates, site, this_year), encoding="utf-8")
         slugs.append(v["slug"])
     (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site), encoding="utf-8")
-    print(f"· tax/ 페이지 {len(slugs)}개 + index 생성")
+    (OUT_DIR / "calculator.html").write_text(calculator_page(rates, site, this_year), encoding="utf-8")
+    print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
     build_sitemap(site, slugs)
 
 

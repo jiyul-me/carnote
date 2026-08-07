@@ -18,20 +18,11 @@
   }
   function won(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
 
-  function floor10(x) { return Math.floor(x / 10) * 10; }
-
-  // 자동차세 (비영업용 승용, 신차 첫해 기준) — scripts/build.py와 동일 규칙
+  // 자동차세 (비영업용 승용, 신차 첫해 기준) — js/tax-calc.js 공용 모듈 사용
   function annualTax(fuelType, cc) {
-    var d = data.rates.displacement;
-    if (fuelType === 'ev') return d.ev.annualTotalKrw;
+    if (fuelType === 'ev') return window.CarnoteTax.evTax(data.rates);
     if (cc == null) return null;
-    var per = null;
-    for (var i = 0; i < d.brackets.length; i++) {
-      var b = d.brackets[i];
-      if (b.maxCc == null || cc <= b.maxCc) { per = b.wonPerCc; break; }
-    }
-    var base = floor10(cc * per);
-    return base + floor10(base * d.educationTaxRate);
+    return window.CarnoteTax.taxFor(data.rates, cc, 1).annual;
   }
 
   function retentionAt(ageYears) {
