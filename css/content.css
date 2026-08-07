@@ -1,59 +1,88 @@
-/* 카노트 — 콘텐츠 페이지(자동차세·TCO) 공용. style.css 위에 얹는다 */
-.content { max-width: 720px; margin: 0 auto; padding: 16px 16px 48px; }
-.content h1 { font-size: 24px; margin: 8px 0 4px; }
-.content h2 { font-size: 18px; margin: 28px 0 10px; }
+/* 카노트 — 콘텐츠 페이지(자동차세·계산기·TCO·법적). style.css 토큰 위에 얹는다.
+ * DESIGN.md: 숫자가 주인공, 헤어라인만, 그림자·이모지 금지 */
+.content { max-width: 640px; margin: 0 auto; padding: 16px 20px 48px; }
+.content h1 { font-size: 20px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.01em; }
+.content h2 { font-size: 15px; font-weight: 700; margin: 32px 0 8px; }
 .content p { margin: 8px 0; }
-.content .lede { color: var(--text-dim); margin-bottom: 20px; }
+.content .lede { color: var(--ink-secondary); margin-bottom: 16px; }
 
-.tax-summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
-.tax-summary .card { flex: 1; min-width: 150px; margin: 0; }
-.tax-summary .amount { font-size: 22px; font-weight: 800; }
-.tax-summary .label { font-size: 12.5px; color: var(--text-dim); }
+.crumb { font-size: 12px; color: var(--ink-muted); margin: 0 0 4px; }
+.crumb a { color: var(--ink-muted); text-decoration: none; }
 
+/* ---------- 세금 페이지 히어로 ---------- */
+.tax-caption { font-size: 12px; color: var(--ink-muted); margin: 0 0 16px; }
+.tax-hero {
+  font-size: 30px; font-weight: 700; letter-spacing: -0.02em;
+  white-space: nowrap; margin: 8px 0 4px;
+}
+.prepay-line { font-size: 15px; color: var(--ink-secondary); margin: 0 0 20px; }
+.prepay-line .accent { color: var(--accent); font-weight: 600; }
+
+/* ---------- 표 ---------- */
 .table-wrap { overflow-x: auto; }
-table.data {
-  width: 100%; border-collapse: collapse; font-size: 14px;
-  background: var(--card); border-radius: var(--radius); overflow: hidden;
+table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.data th, table.data td {
+  padding: 10px 8px; text-align: right;
+  border-bottom: 0.5px solid var(--border);
 }
-table.data th, table.data td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); }
-table.data th:first-child, table.data td:first-child { text-align: left; }
-table.data thead th { background: var(--bg); color: var(--text-dim); font-size: 12.5px; }
-table.data tr.hl { background: var(--brand-soft); font-weight: 700; }
+table.data th:first-child, table.data td:first-child { text-align: left; padding-left: 0; }
+table.data th:last-child, table.data td:last-child { padding-right: 0; }
+table.data thead th {
+  font-size: 12px; font-weight: 500; color: var(--ink-muted);
+  border-bottom: 1px solid var(--border);
+}
+table.data tr.hl td { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+table.data tr.hl td:first-child { border-radius: 6px 0 0 6px; padding-left: 8px; }
+table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px; }
 
-.year-picker { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; flex-wrap: wrap; }
+/* ---------- 연식 선택 ---------- */
+.year-picker { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; flex-wrap: wrap; }
+.year-picker label { font-size: 12px; color: var(--ink-muted); }
 .year-picker select {
-  padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--card); color: var(--text); font-size: 15px;
+  height: 48px; padding: 0 12px; border: 0.5px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--ink); font-size: 16px; font-family: inherit;
 }
-.year-result-card { border-color: var(--brand); margin: 0 0 14px; }
-.year-result-card .amount { font-size: 22px; font-weight: 800; }
-.year-result-card .label { font-size: 12.5px; color: var(--text-dim); }
+.year-picker select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.year-result-card { margin: 12px 0; }
+.year-result-card .amount { font-size: 20px; font-weight: 700; }
+.year-result-card .label { font-size: 12px; color: var(--ink-muted); }
 
-.model-list { list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 16px; }
-.model-list li { margin: 0 0 8px; break-inside: avoid; }
-.model-list a { color: var(--brand); text-decoration: none; }
-.model-list a:hover { text-decoration: underline; }
-.brand-title { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
+/* ---------- 허브(차종 목록) ---------- */
+.brand-title { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 24px 0 4px; }
+.hub-list { list-style: none; margin: 0; padding: 0; }
+.hub-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 0.5px solid var(--border);
+  color: var(--ink); text-decoration: none; font-size: 15px;
+}
+.hub-list li:last-child .hub-row { border-bottom: none; }
+.hub-row .hub-price { color: var(--ink-secondary); font-size: 14px; white-space: nowrap; }
+@media (hover: hover) { .hub-row:hover { background: var(--surface); } }
 
-.sources { font-size: 12.5px; color: var(--text-dim); border-top: 1px solid var(--line); margin-top: 28px; padding-top: 12px; }
-.sources a { color: var(--text-dim); }
-.crumb { font-size: 13px; margin-bottom: 4px; }
-.crumb a { color: var(--brand); text-decoration: none; }
+.tax-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.tax-summary .card { flex: 1; min-width: 150px; margin: 0; }
+.tax-summary .amount { font-size: 20px; font-weight: 700; }
+.tax-summary .label { font-size: 12px; color: var(--ink-muted); }
 
-/* TCO */
+.sources { font-size: 12px; color: var(--ink-muted); border-top: 0.5px solid var(--border); margin-top: 32px; padding-top: 12px; }
+.sources a { color: var(--ink-muted); }
+
+/* ---------- TCO ---------- */
 .tco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 540px) { .tco-grid { grid-template-columns: 1fr; } }
-.tco-result td.win { color: var(--ok); font-weight: 700; }
+@media (max-width: 560px) { .tco-grid { grid-template-columns: 1fr; } }
+.tco-result td.win { color: var(--accent); font-weight: 600; }
 
-.tco-headline { font-size: 16.5px; margin: 4px 0 12px; }
-.tco-bars { margin: 4px 0 18px; }
-.tco-bar-row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
-.tco-bar-label { width: 60px; flex-shrink: 0; font-size: 12.5px; color: var(--text-dim); text-align: right; }
+.tco-headline { margin: 4px 0 12px; }
+.tco-headline .tax-hero { margin: 0; }
+.tco-headline .sub { font-size: 14px; color: var(--ink-secondary); }
+.tco-bars { margin: 4px 0 20px; }
+.tco-bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.tco-bar-label { width: 56px; flex-shrink: 0; font-size: 12px; color: var(--ink-muted); text-align: right; }
 .tco-bar-track { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.tco-bar { height: 9px; border-radius: 4px; min-width: 0; }
-.tco-bar.a { background: var(--brand); }
-.tco-bar.b { background: var(--warn); }
-.tco-legend { font-size: 12.5px; color: var(--text-dim); margin-top: 8px; text-align: right; }
-.tco-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin: 0 4px 0 10px; vertical-align: baseline; }
-.tco-legend .dot.a { background: var(--brand); }
-.tco-legend .dot.b { background: var(--warn); }
+.tco-bar { height: 4px; border-radius: 2px; min-width: 0; background: var(--surface); }
+.tco-bar.a { background: var(--accent); }
+.tco-bar.b { background: var(--ink-muted); }
+.tco-legend { font-size: 12px; color: var(--ink-muted); margin-top: 8px; text-align: right; }
+.tco-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin: 0 4px 0 12px; vertical-align: baseline; }
+.tco-legend .dot.a { background: var(--accent); }
+.tco-legend .dot.b { background: var(--ink-muted); }

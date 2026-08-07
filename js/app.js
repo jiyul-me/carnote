@@ -94,7 +94,7 @@
     var label = part.shopKeyword || part.name;
     return '<div class="card">' +
       '<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;" href="' + esc(url) + '" target="_blank" rel="sponsored noopener">' +
-      '🛒 ' + esc(label) + ' 쿠팡에서 보기</a>' +
+      esc(label) + ' 쿠팡에서 보기</a>' +
       '<p class="notice">' + esc(aff.disclosure) + '</p>' +
     '</div>';
   }
@@ -114,9 +114,9 @@
       var url = location.href.replace(/^https?:\/\//, '');
       openLink = ' <a class="linklike" href="intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end">Chrome으로 열기</a>';
     }
-    return '<div class="card" style="border-color:var(--warn);"><p class="notice" style="margin:0;color:var(--warn);">' +
+    return '<div class="card" style="border-color:var(--warning);"><p class="notice" style="margin:0;color:var(--warning);">' +
       '메신저 안 브라우저에서는 기록이 따로 저장돼요. Chrome/Safari로 열면 기록이 유지됩니다.' + openLink +
-      ' <button type="button" class="linklike" data-action="dismiss-inapp" style="color:var(--text-dim);">닫기</button></p></div>';
+      ' <button type="button" class="linklike" data-action="dismiss-inapp" style="color:var(--ink-muted);">닫기</button></p></div>';
   }
 
   // ---------- .ics 캘린더 내보내기 (TASKS #1) ----------
@@ -219,7 +219,6 @@
   function renderDashboard() {
     if (!doc.cars.length) {
       return '<div class="hero">' +
-        '<div class="emoji">🚗</div>' +
         '<h1>내 차 수첩을 시작해요</h1>' +
         '<p>소모품 교체 주기와 자동차 검사 일정을<br>한눈에 챙겨 드릴게요.</p>' +
         '<button type="button" class="btn" data-action="new-car" style="width:auto;padding:13px 28px;">내 차 등록하기</button>' +
@@ -236,7 +235,7 @@
     // 백업 유도: 기록이 쌓였는데 마지막 백업 후 30일 넘음 (iOS Safari 등 자동 삭제 대비)
     if (!demoMode && doc.records.length >= 5 &&
         (!doc.settings.lastExportAt || D.diffDays(doc.settings.lastExportAt.slice(0, 10), today) > 30)) {
-      html += '<div class="card" style="border-color:var(--warn);"><p class="notice" style="margin:0;color:var(--warn);">' +
+      html += '<div class="card" style="border-color:var(--warning);"><p class="notice" style="margin:0;color:var(--warning);">' +
         '기록이 쌓이고 있어요 — 브라우저 데이터가 지워지면 복구할 수 없으니 ' +
         '<button type="button" class="linklike" data-action="go-settings">JSON 백업</button>을 받아두세요.</p></div>';
     }
@@ -247,15 +246,15 @@
         return '<button type="button" class="chip' + (c.id === car.id ? ' active' : '') + '" data-action="switch-car" data-id="' + c.id + '">' +
           esc(c.nickname || c.modelName) + '</button>';
       }).join('') +
-      '<button type="button" class="chip dim" data-action="new-car">+ 차 추가</button></div>';
+      '<button type="button" class="chip" data-action="new-car">+ 차 추가</button></div>';
     }
 
-    // 차 요약 카드
+    // 내 차 카드 — 주행거리가 이 페이지의 히어로 숫자
     var insp = D.inspectionStatus(car, data.inspection.regularInspection, today);
     var insur = D.insuranceStatus(car, today);
     html += '<div class="card">' +
       '<div class="car-head">' +
-        '<div><h2 class="car-name" style="color:var(--text)">' + esc(car.nickname || car.modelName) + '</h2>' +
+        '<div><h2 class="car-name">' + esc(car.nickname || car.modelName) + '</h2>' +
         '<p class="car-sub">' + esc(FUEL_LABELS[car.fuelType] || car.fuelType) +
           (car.displacementCc ? ' · ' + car.displacementCc.toLocaleString('ko-KR') + 'cc' : '') +
           ' · ' + fmtDate(car.firstRegisteredOn) + ' 등록</p></div>' +
@@ -266,9 +265,16 @@
         '<button type="button" class="btn small secondary" data-action="odo-form">갱신</button>' +
       '</div>' +
       '<div id="odo-editor"></div>' +
-      '<div class="chips">' + inspectionChip(insp) + insuranceChip(insur) + '</div>' +
       yearlySpendLine(car, today) +
+    '</div>';
+
+    // 다가오는 일정 — 검사·보험·임박/지남 소모품 + 캘린더 내보내기
+    html += '<div class="card"><h2>다가오는 일정</h2><ul class="sched-list">' +
+      scheduleRows(car, insp, insur, today, monthlyKm) +
+      '</ul>' +
       inspectionNotices(insp) +
+      '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
+      '<p class="notice">교체 예정일·검사 만료일·연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
     '</div>';
 
     // 감가 카드
@@ -297,22 +303,53 @@
       html += '<p class="notice">주행거리를 한 번 더 입력하면 km 주기 항목의 "약 N월경" 예측이 시작돼요.</p>';
     }
 
-    html += '<p class="section-title">소모품 (' + rows.length + ')</p>' +
-      '<div class="card" style="padding:2px 12px;"><ul class="part-list">' +
+    html += '<p class="section-title">소모품 상태 (' + rows.length + ')</p>' +
+      '<div class="card" style="padding:4px 20px;"><ul class="part-list">' +
       rows.map(function (r) { return partRow(r.part, r.st); }).join('') +
       '</ul></div>' +
-      '<p class="notice">항목 켜고 끄기는 <button type="button" class="linklike" data-action="go-settings">설정</button>에서.</p>' +
-      '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">📅 전체 일정을 폰 캘린더로 (.ics)</button>' +
-      '<p class="notice">교체 예정일·검사 만료일·연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>';
+      '<p class="notice">항목 켜고 끄기는 <button type="button" class="linklike" data-action="go-settings">설정</button>에서.</p>';
 
     return html;
   }
 
-  function inspectionChip(insp) {
-    if (!insp) return '';
-    var cls = insp.dDay < 0 ? 'danger' : (insp.inWindow ? 'warn' : 'ok');
-    return '<button type="button" class="chip ' + cls + '" data-action="edit-car" title="검사일 수정">검사 ' +
-      D.formatDday(insp.dDay) + ' · ' + fmtDate(insp.expiryOn) + '까지</button>';
+  // D-day 배지 (DESIGN: 초과=danger, D-14 이하=warning, 여유=텍스트만)
+  function ddayBadge(d) {
+    var cls = d < 0 ? ' b-danger' : (d <= 14 ? ' b-warn' : '');
+    return '<span class="dday' + cls + '">' + D.formatDday(d) + '</span>';
+  }
+
+  // 다가오는 일정 행: 검사·보험 + 임박/지남 소모품
+  function scheduleRows(car, insp, insur, today, monthlyKm) {
+    var rows = [];
+    if (insp) {
+      rows.push('<li><button type="button" class="sched-row" data-action="edit-car">' +
+        '<span class="sched-main"><span class="sched-name">자동차 검사</span>' +
+        '<div class="sched-sub">' + fmtDate(insp.expiryOn) + '까지' + (insp.estimated ? ' · 추정' : '') + '</div></span>' +
+        ddayBadge(insp.dDay) + '</button></li>');
+    }
+    if (insur) {
+      rows.push('<li><button type="button" class="sched-row" data-action="edit-car">' +
+        '<span class="sched-main"><span class="sched-name">보험 만기</span>' +
+        '<div class="sched-sub">' + fmtDate(insur.expiresOn) + '</div></span>' +
+        ddayBadge(insur.dDay) + '</button></li>');
+    } else {
+      rows.push('<li><button type="button" class="sched-row" data-action="edit-car">' +
+        '<span class="sched-main"><span class="sched-name">보험 만기</span>' +
+        '<div class="sched-sub">만기일을 등록하면 함께 챙겨드려요</div></span>' +
+        '<span class="dday">등록</span></button></li>');
+    }
+    car.enabledPartIds.map(partById).filter(Boolean).forEach(function (p) {
+      var st = D.partStatus(p, car, doc.records, doc.settings, today, monthlyKm);
+      if (st.state !== 'overdue' && st.state !== 'soon') return;
+      var due = st.dueDate || st.predictedDate;
+      rows.push('<li><button type="button" class="sched-row" data-action="open-part" data-id="' + p.id + '">' +
+        '<span class="sched-main"><span class="sched-name">' + esc(p.name) + '</span>' +
+        '<div class="sched-sub">' + (st.state === 'overdue' ? '교체 시기 지남' : '교체 시기 임박') +
+        (due ? ' · ' + fmtDate(due) : '') + '</div></span>' +
+        '<span class="dday ' + (st.state === 'overdue' ? 'b-danger' : 'b-warn') + '">' +
+        (st.state === 'overdue' ? '지남' : '임박') + '</span></button></li>');
+    });
+    return rows.join('');
   }
 
   // 기록이 쌓이는 보람이 보이게 — 올해 정비 건수·비용 합계 한 줄
@@ -333,7 +370,7 @@
         D.formatKrw(p.within30DaysKrw) + ', 이후 3일마다 ' + D.formatKrw(p.per3DaysAfterKrw) +
         ' 가산 (최대 ' + D.formatKrw(p.maxKrw) + ')</p>';
     } else if (insp.inWindow) {
-      out += '<p class="notice" style="color:var(--warn);">지금 검사 받을 수 있어요 (' +
+      out += '<p class="notice" style="color:var(--warning);">지금 검사 받을 수 있어요 (' +
         fmtDate(insp.windowStart) + ' ~ ' + fmtDate(insp.windowEnd) + ')</p>';
     }
     if (insp.estimated) {
@@ -342,13 +379,17 @@
     return out;
   }
 
-  function insuranceChip(insur) {
-    if (!insur) {
-      return '<button type="button" class="chip dim" data-action="edit-car">+ 보험 만기 등록</button>';
+  // 소모품 사용 진행률 (0~1) — km·날짜 중 더 많이 지난 쪽
+  function partProgress(part, st) {
+    if (!st.lastRecord) return null;
+    var r = null;
+    if (part.intervalKm != null && st.remainingKm != null) {
+      r = Math.max(r || 0, 1 - st.remainingKm / part.intervalKm);
     }
-    var cls = insur.dDay < 0 ? 'danger' : (insur.dDay <= doc.settings.reminderLeadDays ? 'warn' : 'ok');
-    return '<button type="button" class="chip ' + cls + '" data-action="edit-car" title="보험 만기일 수정">보험 ' +
-      D.formatDday(insur.dDay) + ' · ' + fmtDate(insur.expiresOn) + '</button>';
+    if (part.intervalMonths != null && st.remainingDays != null) {
+      r = Math.max(r || 0, 1 - st.remainingDays / (part.intervalMonths * 30.44));
+    }
+    return r == null ? null : Math.min(1, Math.max(0, r));
   }
 
   function partRow(part, st) {
@@ -374,10 +415,14 @@
     var quick = (st.state === 'overdue' || st.state === 'soon')
       ? '<button type="button" class="quick-btn" data-action="quick-record" data-id="' + part.id + '">완료</button>'
       : '';
+    var prog = partProgress(part, st);
+    var progressBar = prog != null
+      ? '<div class="progress"><div class="progress-fill" style="width:' + (prog * 100).toFixed(0) + '%;"></div></div>'
+      : '';
     return '<li><div class="part-row">' +
       '<button type="button" class="part-row-main" data-action="open-part" data-id="' + part.id + '">' +
       '<span class="part-main"><span class="part-name">' + esc(part.name) + '</span>' +
-      '<div class="part-sub">' + sub + '</div></span>' +
+      '<div class="part-sub">' + sub + '</div>' + progressBar + '</span>' +
       '<span class="badge ' + st.state + '">' + STATE_LABELS[st.state] + '</span>' +
       '</button>' + quick +
     '</div></li>';
@@ -527,7 +572,7 @@
       '<div class="card"><h2>주기</h2><div>' + meta.join(' 또는 ') + (price ? ' · ' + price : '') + '</div>' +
         (part.note ? '<p class="notice">' + esc(part.note) + '</p>' : '') +
         ((st.dueDate || st.predictedDate) ?
-          '<button type="button" class="btn small secondary" style="margin-top:10px;" data-action="export-ics-part" data-id="' + part.id + '">📅 캘린더에 추가</button>' : '') +
+          '<button type="button" class="btn small secondary" style="margin-top:10px;" data-action="export-ics-part" data-id="' + part.id + '">캘린더에 추가</button>' : '') +
       '</div>' +
       affiliateSlot(part) +
       '<div class="card"><h2>기록 추가</h2>' +
@@ -932,7 +977,7 @@
         document.body.appendChild(dbg);
       }
     }).catch(function (err) {
-      $app.innerHTML = '<div class="hero"><div class="emoji">⚠️</div><h1>데이터를 불러오지 못했어요</h1>' +
+      $app.innerHTML = '<div class="hero"><h1>데이터를 불러오지 못했어요</h1>' +
         '<p>' + esc(err.message) + '<br>로컬에서는 <code>python3 -m http.server</code>로 열어주세요.</p></div>';
     });
   }

@@ -70,15 +70,17 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="{esc(description)}">
-  <meta name="theme-color" content="#1a56db">
+  <meta name="theme-color" content="#FFFFFF">
   {canonical_tag}<title>{esc(title)}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🚗%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E카%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="{css_prefix}css/style.css">
   <link rel="stylesheet" href="{css_prefix}css/content.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="topbar-title" href="{css_prefix}index.html">🚗 {esc(site["siteName"])}</a>
+    <a class="topbar-title" href="{css_prefix}index.html">{esc(site["siteName"])}</a>
     <nav class="topbar-right topbar-nav">
       <a href="{css_prefix}tax/index.html">자동차세</a>
       <a href="{css_prefix}tco.html">유지비 비교</a>
@@ -153,7 +155,7 @@ def notebook_cta(v):
     params = f"model={v['slug']}&fuel={v['fuelType']}"
     if v["displacementCc"]:
         params += f"&cc={v['displacementCc']}"
-    return f"""<div class="card" style="border-color:var(--brand);margin:18px 0;">
+    return f"""<div class="card" style="border-color:var(--accent);margin:18px 0;">
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
   <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?{params}">이 차로 수첩 시작하기</a>
@@ -197,16 +199,14 @@ def vehicle_page(v, rates, site, this_year):
         pp = prepay(annual, rates)
         body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
-<p class="lede">전기차(비영업용 승용)는 배기량이 없어 자동차세가 <strong>연 {won(annual)} 고정</strong>입니다 (본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])}). 연식과 무관하게 같아요.</p>
-<div class="tax-summary">
-  <div class="card"><div class="label">연세액</div><div class="amount">{won(annual)}</div></div>
-  <div class="card"><div class="label">1월 연납 시 ({esc(pp["year"])}년 공제율 {pp["rate"]*100:.0f}%)</div><div class="amount">{won(pp["pay"])}</div><div class="label">{won(pp["discount"])} 할인</div></div>
-</div>
-<h2>계산 방법</h2>
-<p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
+<p class="tax-caption">전기 · 비영업용 승용 · 연식 무관 정액</p>
+<div class="tax-hero">연 {annual:,}원</div>
+<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인</p>
 {notebook_cta(v)}
-<p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
 {sources_block(rates)}
+<h2>계산 방법</h2>
+<p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액(본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])})이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
+<p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
 {jsonld_block(v, rates, site, this_year)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
         desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
@@ -222,7 +222,7 @@ def vehicle_page(v, rates, site, this_year):
         label = f"{age}년차" + (" (신차)" if age == 1 else "") + (" 이상" if age == 13 else "")
         reg_year = this_year - age + 1
         rows.append(
-            f'<tr id="age-{age}"><td>{label}<span style="color:var(--text-dim);font-size:12px;"> · {reg_year}년 등록</span></td>'
+            f'<tr id="age-{age}"><td>{label}<span style="color:var(--ink-muted);font-size:12px;"> · {reg_year}년 등록</span></td>'
             f"<td>{t['discountRate']*100:.0f}%</td><td>{won(t['annual'])}</td><td>{won(p['pay'])}</td></tr>"
         )
     table = (
@@ -235,14 +235,10 @@ def vehicle_page(v, rates, site, this_year):
     year_options = "".join(
         f'<option value="{y}">{y}년</option>' for y in range(this_year, this_year - 14, -1)
     )
+    # DESIGN.md: 히어로 금액·연납 한 줄이 연식 선택에 반응한다 (별도 결과 카드 없음)
     picker = f"""<div class="year-picker">
-  <label for="reg-year">우리 차 등록 연도:</label>
-  <select id="reg-year"><option value="">선택</option>{year_options}</select>
-</div>
-<div class="card year-result-card" id="year-result-card" hidden>
-  <div class="label" id="yr-label"></div>
-  <div class="amount" id="yr-amount"></div>
-  <div class="label" id="yr-prepay"></div>
+  <label for="reg-year">우리 차 등록 연도</label>
+  <select id="reg-year"><option value="">선택 (신차 기준)</option>{year_options}</select>
 </div>
 <script>
 (function () {{
@@ -250,19 +246,20 @@ def vehicle_page(v, rates, site, this_year):
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {{
-    var card = document.getElementById('year-result-card');
     document.querySelectorAll('tr.hl').forEach(function (r) {{ r.classList.remove('hl'); }});
-    if (!sel.value) {{ card.hidden = true; return; }}
-    var age = Math.min(13, Math.max(1, {this_year} - Number(sel.value) + 1));
+    var age = sel.value ? Math.min(13, Math.max(1, {this_year} - Number(sel.value) + 1)) : 1;
     var d = rows[String(age)];
-    document.getElementById('yr-label').textContent = sel.value + '년 등록 · ' + age + '년차' + (age === 13 ? ' 이상' : '');
-    document.getElementById('yr-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
-    document.getElementById('yr-prepay').textContent = '1월 연납 시 ' + d.pay.toLocaleString('ko-KR') + '원';
-    card.hidden = false;
-    var row = document.getElementById('age-' + age);
-    if (row) {{
-      row.classList.add('hl');
-      row.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
+    document.getElementById('hero-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
+    document.getElementById('prepay-line').innerHTML = '1월 연납 시 <span class="accent">' +
+      d.pay.toLocaleString('ko-KR') + '원</span> · ' + (d.annual - d.pay).toLocaleString('ko-KR') + '원 할인';
+    document.getElementById('tax-caption').textContent = '__CAPTION__ · ' +
+      (sel.value ? sel.value + '년 등록 (' + age + '년차) 기준' : '신차 기준');
+    if (sel.value) {{
+      var row = document.getElementById('age-' + age);
+      if (row) {{
+        row.classList.add('hl');
+        row.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
+      }}
     }}
     var cta = document.getElementById('start-notebook');
     if (cta) {{
@@ -271,26 +268,25 @@ def vehicle_page(v, rates, site, this_year):
     }}
   }});
 }})();
-</script>"""
+</script>""".replace("__CAPTION__", f"{esc(fuel)} · {cc:,}cc · 비영업용 승용")
 
     aging = rates["displacement"]["agingDiscount"]
+    # DESIGN.md 페이지 순서 고정: 브레드크럼 → 제목 → 히어로 금액 → 연납 한 줄 → 연식 select → 표 → primary CTA → 기준일 캡션
     body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
-<p class="lede">{esc(name)}({esc(fuel)}, 배기량 {cc:,}cc)의 자동차세를 연식별로 계산했습니다. 비영업용 승용 기준이며, 3년차부터 차령 경감이 적용돼 해마다 줄어들어요.</p>
-<div class="tax-summary">
-  <div class="card"><div class="label">신차 기준 연세액</div><div class="amount">{won(new_tax["annual"])}</div><div class="label">본세 {won(new_tax["base"])} + 교육세 {won(new_tax["edu"])}</div></div>
-  <div class="card"><div class="label">1월 연납 시 ({esc(new_prepay["year"])}년 공제율 {new_prepay["rate"]*100:.0f}%)</div><div class="amount">{won(new_prepay["pay"])}</div><div class="label">{won(new_prepay["discount"])} 할인</div></div>
-</div>
+<p class="tax-caption" id="tax-caption">{esc(fuel)} · {cc:,}cc · 비영업용 승용 · 신차 기준</p>
+<div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
+<p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인</p>
 {picker}
 {table}
-<button type="button" class="btn secondary" id="save-table-img" style="margin-top:10px;">표를 이미지로 저장 (공유용)</button>
+<button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
 {table_img_script(v, site, this_year)}
 {notebook_cta(v)}
+{sources_block(rates)}
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
 <p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
-{sources_block(rates)}
 {jsonld_block(v, rates, site, this_year)}"""
 
     title = f"{name} 자동차세 — 연 {new_tax['annual']:,}원부터, 연식별 계산표 | {site['siteName']}"
@@ -450,12 +446,19 @@ def index_page(vehicles, rates, site):
     for v in vehicles:
         by_brand.setdefault(v["brand"], []).append(v)
 
+    def new_car_annual(v):
+        if v["fuelType"] == "ev":
+            return rates["displacement"]["ev"]["annualTotalKrw"]
+        return tax_for(v["displacementCc"], 1, rates)["annual"]
+
     sections = []
     for brand, items in by_brand.items():
         links = "".join(
-            f'<li><a href="{esc(v["slug"])}.html">{esc(v["name"])} 자동차세</a></li>' for v in items
+            f'<li><a class="hub-row" href="{esc(v["slug"])}.html">'
+            f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
+            for v in items
         )
-        sections.append(f'<p class="brand-title">{esc(brand)}</p><ul class="model-list">{links}</ul>')
+        sections.append(f'<p class="brand-title">{esc(brand)}</p><ul class="hub-list">{links}</ul>')
 
     d = rates["displacement"]
     bracket_rows = "".join(
@@ -468,6 +471,7 @@ def index_page(vehicles, rates, site):
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
 <tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.</p>
+<p class="notice">차종 옆 금액은 신차 기준 연세액 — 연식이 오래될수록 줄어들어요.</p>
 {"".join(sections)}
 <p style="margin-top:24px;">찾는 차종이 없나요? <a href="calculator.html">자동차세 계산기</a>에서 배기량만 넣으면 바로 계산할 수 있어요.</p>
 {sources_block(rates)}"""

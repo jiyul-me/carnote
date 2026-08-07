@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="그랜저 하이브리드(1,598cc) 자동차세는 신차 기준 연 290,830원. 연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다.">
-  <meta name="theme-color" content="#1a56db">
+  <meta name="theme-color" content="#FFFFFF">
   <title>그랜저 하이브리드 자동차세 — 연 290,830원부터, 연식별 계산표 | 카노트</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🚗%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E카%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/content.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="topbar-title" href="../index.html">🚗 카노트</a>
+    <a class="topbar-title" href="../index.html">카노트</a>
     <nav class="topbar-right topbar-nav">
       <a href="../tax/index.html">자동차세</a>
       <a href="../tco.html">유지비 비교</a>
@@ -21,19 +23,12 @@
   <main class="content">
 <p class="crumb"><a href="index.html">자동차세 계산</a> › 그랜저 하이브리드</p>
 <h1>그랜저 하이브리드 자동차세</h1>
-<p class="lede">그랜저 하이브리드(하이브리드, 배기량 1,598cc)의 자동차세를 연식별로 계산했습니다. 비영업용 승용 기준이며, 3년차부터 차령 경감이 적용돼 해마다 줄어들어요.</p>
-<div class="tax-summary">
-  <div class="card"><div class="label">신차 기준 연세액</div><div class="amount">290,830원</div><div class="label">본세 223,720원 + 교육세 67,110원</div></div>
-  <div class="card"><div class="label">1월 연납 시 (2026년 공제율 5%)</div><div class="amount">277,510원</div><div class="label">13,320원 할인</div></div>
-</div>
+<p class="tax-caption" id="tax-caption">하이브리드 · 1,598cc · 비영업용 승용 · 신차 기준</p>
+<div class="tax-hero" id="hero-amount">연 290,830원</div>
+<p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">277,510원</span> · 13,320원 할인</p>
 <div class="year-picker">
-  <label for="reg-year">우리 차 등록 연도:</label>
-  <select id="reg-year"><option value="">선택</option><option value="2026">2026년</option><option value="2025">2025년</option><option value="2024">2024년</option><option value="2023">2023년</option><option value="2022">2022년</option><option value="2021">2021년</option><option value="2020">2020년</option><option value="2019">2019년</option><option value="2018">2018년</option><option value="2017">2017년</option><option value="2016">2016년</option><option value="2015">2015년</option><option value="2014">2014년</option><option value="2013">2013년</option></select>
-</div>
-<div class="card year-result-card" id="year-result-card" hidden>
-  <div class="label" id="yr-label"></div>
-  <div class="amount" id="yr-amount"></div>
-  <div class="label" id="yr-prepay"></div>
+  <label for="reg-year">우리 차 등록 연도</label>
+  <select id="reg-year"><option value="">선택 (신차 기준)</option><option value="2026">2026년</option><option value="2025">2025년</option><option value="2024">2024년</option><option value="2023">2023년</option><option value="2022">2022년</option><option value="2021">2021년</option><option value="2020">2020년</option><option value="2019">2019년</option><option value="2018">2018년</option><option value="2017">2017년</option><option value="2016">2016년</option><option value="2015">2015년</option><option value="2014">2014년</option><option value="2013">2013년</option></select>
 </div>
 <script>
 (function () {
@@ -41,19 +36,20 @@
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {
-    var card = document.getElementById('year-result-card');
     document.querySelectorAll('tr.hl').forEach(function (r) { r.classList.remove('hl'); });
-    if (!sel.value) { card.hidden = true; return; }
-    var age = Math.min(13, Math.max(1, 2026 - Number(sel.value) + 1));
+    var age = sel.value ? Math.min(13, Math.max(1, 2026 - Number(sel.value) + 1)) : 1;
     var d = rows[String(age)];
-    document.getElementById('yr-label').textContent = sel.value + '년 등록 · ' + age + '년차' + (age === 13 ? ' 이상' : '');
-    document.getElementById('yr-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
-    document.getElementById('yr-prepay').textContent = '1월 연납 시 ' + d.pay.toLocaleString('ko-KR') + '원';
-    card.hidden = false;
-    var row = document.getElementById('age-' + age);
-    if (row) {
-      row.classList.add('hl');
-      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    document.getElementById('hero-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
+    document.getElementById('prepay-line').innerHTML = '1월 연납 시 <span class="accent">' +
+      d.pay.toLocaleString('ko-KR') + '원</span> · ' + (d.annual - d.pay).toLocaleString('ko-KR') + '원 할인';
+    document.getElementById('tax-caption').textContent = '하이브리드 · 1,598cc · 비영업용 승용 · ' +
+      (sel.value ? sel.value + '년 등록 (' + age + '년차) 기준' : '신차 기준');
+    if (sel.value) {
+      var row = document.getElementById('age-' + age);
+      if (row) {
+        row.classList.add('hl');
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
     var cta = document.getElementById('start-notebook');
     if (cta) {
@@ -63,8 +59,8 @@
   });
 })();
 </script>
-<div class="table-wrap"><table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody><tr id="age-1"><td>1년차 (신차)<span style="color:var(--text-dim);font-size:12px;"> · 2026년 등록</span></td><td>0%</td><td>290,830원</td><td>277,510원</td></tr><tr id="age-2"><td>2년차<span style="color:var(--text-dim);font-size:12px;"> · 2025년 등록</span></td><td>0%</td><td>290,830원</td><td>277,510원</td></tr><tr id="age-3"><td>3년차<span style="color:var(--text-dim);font-size:12px;"> · 2024년 등록</span></td><td>5%</td><td>276,280원</td><td>263,620원</td></tr><tr id="age-4"><td>4년차<span style="color:var(--text-dim);font-size:12px;"> · 2023년 등록</span></td><td>10%</td><td>261,740원</td><td>249,750원</td></tr><tr id="age-5"><td>5년차<span style="color:var(--text-dim);font-size:12px;"> · 2022년 등록</span></td><td>15%</td><td>247,200원</td><td>235,870원</td></tr><tr id="age-6"><td>6년차<span style="color:var(--text-dim);font-size:12px;"> · 2021년 등록</span></td><td>20%</td><td>232,660원</td><td>222,000원</td></tr><tr id="age-7"><td>7년차<span style="color:var(--text-dim);font-size:12px;"> · 2020년 등록</span></td><td>25%</td><td>218,120원</td><td>208,130원</td></tr><tr id="age-8"><td>8년차<span style="color:var(--text-dim);font-size:12px;"> · 2019년 등록</span></td><td>30%</td><td>203,580원</td><td>194,250원</td></tr><tr id="age-9"><td>9년차<span style="color:var(--text-dim);font-size:12px;"> · 2018년 등록</span></td><td>35%</td><td>189,030원</td><td>180,370원</td></tr><tr id="age-10"><td>10년차<span style="color:var(--text-dim);font-size:12px;"> · 2017년 등록</span></td><td>40%</td><td>174,490원</td><td>166,500원</td></tr><tr id="age-11"><td>11년차<span style="color:var(--text-dim);font-size:12px;"> · 2016년 등록</span></td><td>45%</td><td>159,950원</td><td>152,620원</td></tr><tr id="age-12"><td>12년차<span style="color:var(--text-dim);font-size:12px;"> · 2015년 등록</span></td><td>50%</td><td>145,410원</td><td>138,750원</td></tr><tr id="age-13"><td>13년차 이상<span style="color:var(--text-dim);font-size:12px;"> · 2014년 등록</span></td><td>50%</td><td>145,410원</td><td>138,750원</td></tr></tbody></table></div>
-<button type="button" class="btn secondary" id="save-table-img" style="margin-top:10px;">표를 이미지로 저장 (공유용)</button>
+<div class="table-wrap"><table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody><tr id="age-1"><td>1년차 (신차)<span style="color:var(--ink-muted);font-size:12px;"> · 2026년 등록</span></td><td>0%</td><td>290,830원</td><td>277,510원</td></tr><tr id="age-2"><td>2년차<span style="color:var(--ink-muted);font-size:12px;"> · 2025년 등록</span></td><td>0%</td><td>290,830원</td><td>277,510원</td></tr><tr id="age-3"><td>3년차<span style="color:var(--ink-muted);font-size:12px;"> · 2024년 등록</span></td><td>5%</td><td>276,280원</td><td>263,620원</td></tr><tr id="age-4"><td>4년차<span style="color:var(--ink-muted);font-size:12px;"> · 2023년 등록</span></td><td>10%</td><td>261,740원</td><td>249,750원</td></tr><tr id="age-5"><td>5년차<span style="color:var(--ink-muted);font-size:12px;"> · 2022년 등록</span></td><td>15%</td><td>247,200원</td><td>235,870원</td></tr><tr id="age-6"><td>6년차<span style="color:var(--ink-muted);font-size:12px;"> · 2021년 등록</span></td><td>20%</td><td>232,660원</td><td>222,000원</td></tr><tr id="age-7"><td>7년차<span style="color:var(--ink-muted);font-size:12px;"> · 2020년 등록</span></td><td>25%</td><td>218,120원</td><td>208,130원</td></tr><tr id="age-8"><td>8년차<span style="color:var(--ink-muted);font-size:12px;"> · 2019년 등록</span></td><td>30%</td><td>203,580원</td><td>194,250원</td></tr><tr id="age-9"><td>9년차<span style="color:var(--ink-muted);font-size:12px;"> · 2018년 등록</span></td><td>35%</td><td>189,030원</td><td>180,370원</td></tr><tr id="age-10"><td>10년차<span style="color:var(--ink-muted);font-size:12px;"> · 2017년 등록</span></td><td>40%</td><td>174,490원</td><td>166,500원</td></tr><tr id="age-11"><td>11년차<span style="color:var(--ink-muted);font-size:12px;"> · 2016년 등록</span></td><td>45%</td><td>159,950원</td><td>152,620원</td></tr><tr id="age-12"><td>12년차<span style="color:var(--ink-muted);font-size:12px;"> · 2015년 등록</span></td><td>50%</td><td>145,410원</td><td>138,750원</td></tr><tr id="age-13"><td>13년차 이상<span style="color:var(--ink-muted);font-size:12px;"> · 2014년 등록</span></td><td>50%</td><td>145,410원</td><td>138,750원</td></tr></tbody></table></div>
+<button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
 <script>
 (function () {
   var btn = document.getElementById('save-table-img');
@@ -114,16 +110,16 @@
   });
 })();
 </script>
-<div class="card" style="border-color:var(--brand);margin:18px 0;">
+<div class="card" style="border-color:var(--accent);margin:18px 0;">
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
   <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?model=grandeur-hybrid&fuel=hybrid&cc=1598">이 차로 수첩 시작하기</a>
 </div>
+<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>2026년 세율 기준 · 최종 확인 2026-08. 세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액(140원/cc 구간) → 차령 3년차부터 (차령 − 2) × 5% 경감(최대 50%) → 지방교육세 30% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 5%를 공제받아요.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
 <p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
-<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>2026년 세율 기준 · 최종 확인 2026-08. 세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "그랜저 하이브리드 자동차세는 얼마인가요?", "acceptedAnswer": {"@type": "Answer", "text": "배기량 1,598cc 기준 신차는 연 290,830원(본세+지방교육세)입니다. 3년차부터 차령 경감이 적용되어 12년 이상이면 연 145,410원까지 줄어듭니다."}}, {"@type": "Question", "name": "1월에 연납하면 얼마나 할인되나요?", "acceptedAnswer": {"@type": "Answer", "text": "1월 연납 시 2~12월분 세액의 5%를 공제받습니다. 신차 기준 연 290,830원에서 13,320원을 공제받아 277,510원을 냅니다."}}, {"@type": "Question", "name": "차령 경감은 언제부터 적용되나요?", "acceptedAnswer": {"@type": "Answer", "text": "최초 등록 후 3년차부터 (차령 − 2) × 5%씩 경감되고, 12년 이상이면 최대 50%가 경감됩니다."}}]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "카노트", "item": "https://jiyul-me.github.io/carnote/"}, {"@type": "ListItem", "position": 2, "name": "자동차세", "item": "https://jiyul-me.github.io/carnote/tax/index.html"}, {"@type": "ListItem", "position": 3, "name": "그랜저 하이브리드", "item": "https://jiyul-me.github.io/carnote/tax/grandeur-hybrid.html"}]}</script>
   </main>

@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="두 차종의 월 유지비를 나란히 비교 — 자동차세 + 연료비 + 보험 + 감가. 브랜드 상관없이 비교할 수 있는 총소유비용(TCO) 계산기">
-  <meta name="theme-color" content="#1a56db">
+  <meta name="theme-color" content="#FFFFFF">
   <title>자동차 유지비 비교(TCO) — 자동차세·연료비·감가까지 | 카노트</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🚗%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E카%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/content.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="topbar-title" href="index.html">🚗 카노트</a>
+    <a class="topbar-title" href="index.html">카노트</a>
     <nav class="topbar-right topbar-nav">
       <a href="tax/index.html">자동차세</a>
       <a href="tco.html">유지비 비교</a>
@@ -38,7 +40,7 @@
     </div>
 
     <h2>월 유지비 비교</h2>
-    <p class="tco-headline" id="tco-headline" style="display:none;"></p>
+    <div class="tco-headline" id="tco-headline" style="display:none;"></div>
     <div id="tco-bars"></div>
     <div class="table-wrap"><table class="data tco-result" id="tco-result"></table></div>
     <p class="notice" id="tco-note">두 차 모두 정보를 입력하면 비교가 시작돼요.</p>

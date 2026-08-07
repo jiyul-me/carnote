@@ -143,23 +143,24 @@
     var mb = monthly(b, kmPerYear, holdYears, fuelPrices);
 
     function cell(v, other) {
-      if (v == null) return '<td style="color:var(--text-dim);">입력 필요</td>';
+      if (v == null) return '<td style="color:var(--ink-muted);">입력 필요</td>';
       var win = other != null && v < other;
       return '<td' + (win ? ' class="win"' : '') + '>' + won(v) + '</td>';
     }
     function row(label, va, vb, noteTxt) {
-      return '<tr><td>' + label + (noteTxt ? '<div style="font-size:11.5px;color:var(--text-dim);">' + noteTxt + '</div>' : '') + '</td>' +
+      return '<tr><td>' + label + (noteTxt ? '<div style="font-size:11.5px;color:var(--ink-muted);">' + noteTxt + '</div>' : '') + '</td>' +
         cell(va, vb) + cell(vb, va) + '</tr>';
     }
     var totalA = (ma.tax || 0) + (ma.fuel || 0) + (ma.insurance || 0) + (ma.dep || 0);
     var totalB = (mb.tax || 0) + (mb.fuel || 0) + (mb.insurance || 0) + (mb.dep || 0);
 
-    // 결론 한 줄 — 암산 없이 결과부터
+    // 결론부터 — 월 유지비 숫자를 히어로 크기로 (DESIGN.md)
     if (totalA > 0 && totalB > 0 && Math.round(totalA) !== Math.round(totalB)) {
       var cheaper = totalA < totalB ? a : b;
       var diff = Math.abs(totalA - totalB);
-      headline.innerHTML = '<strong>' + cheaper.name + '</strong>이(가) 월 <strong>' + won(diff) + '</strong> 저렴해요' +
-        ' <span style="color:var(--text-dim);">(' + holdYears + '년 보유 시 약 ' + won(diff * 12 * holdYears) + ' 차이)</span>';
+      headline.innerHTML = '<div class="tax-hero">월 ' + won(Math.min(totalA, totalB)) + '</div>' +
+        '<div class="sub"><strong>' + cheaper.name + '</strong> 기준 — 상대보다 월 ' + won(diff) +
+        ' 저렴해요 (' + holdYears + '년 보유 시 약 ' + won(diff * 12 * holdYears) + ' 차이)</div>';
       headline.style.display = '';
     } else {
       headline.style.display = 'none';
