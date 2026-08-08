@@ -587,7 +587,11 @@ def build_sitemap(site, slugs):
 def main():
     site = load("site.json")
     rates = load("tax-rates.json")
-    vehicles = [v for v in load("vehicles.json")["vehicles"] if v["status"] == "active"]
+    all_active = [v for v in load("vehicles.json")["vehicles"] if v["status"] == "active"]
+    # 스켈레톤 가드: 배기량 미확정(null) 차종은 페이지를 만들지 않는다.
+    # 전기차는 배기량 무관 정액이라 이름만 확정되면 생성 대상 (cc 채우면 자동 합류)
+    vehicles = [v for v in all_active if v["fuelType"] == "ev" or v["displacementCc"]]
+    skipped = [v for v in all_active if v not in vehicles]
     this_year = datetime.date.today().year
 
     OUT_DIR.mkdir(exist_ok=True)
@@ -599,6 +603,8 @@ def main():
     (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(calculator_page(rates, site, this_year), encoding="utf-8")
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
+    if skipped:
+        print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
     build_sitemap(site, slugs)
 
 

@@ -209,7 +209,10 @@
         return r.json();
       });
     })).then(function (res) {
-      data.vehicles = res[0].vehicles.filter(function (v) { return v.status === 'active'; });
+      // 배기량 미확정 스켈레톤 제외 (전기차는 정액이라 포함)
+      data.vehicles = res[0].vehicles.filter(function (v) {
+        return v.status === 'active' && (v.fuelType === 'ev' || v.displacementCc != null);
+      });
       data.rates = res[1];
       data.dep = res[2];
       data.site = res[3];
