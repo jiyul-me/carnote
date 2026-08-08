@@ -221,6 +221,22 @@
           '<input id="fp-' + k + '" type="number" min="0" inputmode="numeric" value="' + sitePrices()[k] + '"></div>';
       }).join('');
 
+      // 차종 페이지에서 온 프리필 (?car=slug) — 수첩 프리필과 같은 패턴
+      var carSlug = new URLSearchParams(location.search).get('car');
+      if (carSlug) {
+        var pv = data.vehicles.filter(function (v) { return v.slug === carSlug; })[0];
+        if (pv) {
+          var selA = $('model-a');
+          selA.value = pv.id;
+          var opt = selA.querySelector('option[value="' + pv.id + '"]');
+          if (opt) opt.setAttribute('selected', '');
+          var panelA = selA.closest('[data-side]');
+          panelA.querySelector('[data-role="unit"]').textContent = FUEL_UNIT[pv.fuelType];
+          render();
+        }
+        try { history.replaceState(null, '', location.pathname); } catch (e) { /* 무시 */ }
+      }
+
       document.addEventListener('input', render);
       document.addEventListener('change', function (e) {
         // 차종 선택 변경: 직접 입력 필드 표시 + 연비 단위(L/kWh) 갱신

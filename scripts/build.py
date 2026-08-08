@@ -204,7 +204,8 @@ def notebook_cta(v):
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
   <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?{params}">이 차로 수첩 시작하기</a>
-</div>"""
+</div>
+<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car={v["slug"]}">이 차와 다른 차 유지비 비교하기</a>"""
 
 
 def sources_block(rates):
