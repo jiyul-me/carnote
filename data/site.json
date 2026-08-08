@@ -2,5 +2,8 @@
   "siteName": "차일지",
   "baseUrl": "https://chailji.com",
   "ga4MeasurementId": "G-E0QK8ZX077",
+  "fuelPrices": { "gasoline": 1650, "diesel": 1520, "lpg": 1000, "ev": 350 },
+  "fuelPricesNote": "원/L, 전기는 원/kWh. 차종 페이지 연료비 표기(빌드 시)와 TCO 기본값 공용 — 값 교체 후 build.py 재실행",
+  "fuelCostBasisKm": 15000,
   "note": "정식 도메인. baseUrl은 sitemap·robots Sitemap 줄·canonical/og·.ics DESCRIPTION·표 이미지 워터마크 등 모든 URL 표기의 단일 출처 — 도메인이 바뀌면 여기만 고치고 build.py 재실행. CNAME 파일은 GitHub Pages 도메인 연결용이므로 건드리지 않는다"
 }

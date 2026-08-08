@@ -165,6 +165,36 @@ def jsonld_block(v, rates, site, this_year):
     )
 
 
+def spec_box(v, site):
+    """'한눈에' 미니 박스 (TASKS 개편 B). 연비·주행거리는 null이면 해당 줄 미노출 — 추정 금지."""
+    rows = []
+    if v["displacementCc"]:
+        rows.append(("배기량", f"{v['displacementCc']:,}cc"))
+    rows.append(("연료", FUEL_LABELS.get(v["fuelType"], v["fuelType"])))
+    fe = v.get("fuelEconomy")
+    is_ev = v["fuelType"] == "ev"
+    if fe:
+        rows.append(("공인연비", f"{fe}km/{'kWh' if is_ev else 'L'} (복합)"))
+    if is_ev and v.get("rangeKm"):
+        rows.append(("인증 주행거리", f"{v['rangeKm']:,}km (상온 복합)"))
+    body = "".join(
+        f'<div class="spec-row"><span class="spec-label">{a}</span><span>{b}</span></div>'
+        for a, b in rows
+    )
+    fuel_line = ""
+    prices = site.get("fuelPrices", {})
+    basis_km = site.get("fuelCostBasisKm", 15000)
+    price = prices.get("gasoline" if v["fuelType"] == "hybrid" else v["fuelType"])
+    if fe and price:
+        annual_cost = round(basis_km / fe * price)
+        unit = "원/kWh" if is_ev else "원/L"
+        fuel_line = (
+            f'<div class="spec-fuel">공인연비 기준 연 {basis_km:,}km 주행 시 연료비 약 '
+            f'<strong>{annual_cost:,}원</strong> <span>({price:,}{unit} 기준)</span></div>'
+        )
+    return f'<div class="card spec-box">{body}{fuel_line}</div>'
+
+
 def notebook_cta(v):
     """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가."""
     params = f"model={v['slug']}&fuel={v['fuelType']}"
@@ -217,6 +247,7 @@ def vehicle_page(v, rates, site, this_year):
 <p class="tax-caption">전기 · 비영업용 승용 · 연식 무관 정액</p>
 <div class="tax-hero">연 {annual:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인</p>
+{spec_box(v, site)}
 {notebook_cta(v)}
 {sources_block(rates)}
 <h2>계산 방법</h2>
@@ -292,6 +323,7 @@ def vehicle_page(v, rates, site, this_year):
 <p class="tax-caption" id="tax-caption">{esc(fuel)} · {cc:,}cc · 비영업용 승용 · 신차 기준</p>
 <div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
 <p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인</p>
+{spec_box(v, site)}
 {picker}
 {table}
 <button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>

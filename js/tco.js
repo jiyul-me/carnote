@@ -5,11 +5,11 @@
   'use strict';
 
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
-  // 기본 연료 단가(원) — 사용자가 화면에서 수정 가능. 실시간 시세 미사용
-  var DEFAULT_FUEL_PRICE = { gasoline: 1650, diesel: 1520, lpg: 1000, ev: 350 };
   var FUEL_UNIT = { gasoline: 'L', diesel: 'L', lpg: 'L', hybrid: 'L', ev: 'kWh' };
 
-  var data = { vehicles: null, rates: null, dep: null };
+  // 기본 연료 단가는 data/site.json(fuelPrices)이 단일 출처 — 사용자가 화면에서 수정 가능
+  var data = { vehicles: null, rates: null, dep: null, site: null };
+  function sitePrices() { return (data.site && data.site.fuelPrices) || {}; }
 
   function $(id) { return document.getElementById(id); }
   function num(v) {
@@ -134,9 +134,9 @@
     var kmPerYear = num($('common-km').value) || 12000;
     var holdYears = Math.min(15, Math.max(1, num($('common-years').value) || 5));
     var fuelPrices = {};
-    Object.keys(DEFAULT_FUEL_PRICE).forEach(function (k) {
+    Object.keys(sitePrices()).forEach(function (k) {
       var el = $('fp-' + k);
-      fuelPrices[k] = (el && num(el.value)) || DEFAULT_FUEL_PRICE[k];
+      fuelPrices[k] = (el && num(el.value)) || sitePrices()[k];
     });
 
     var ma = monthly(a, kmPerYear, holdYears, fuelPrices);
@@ -203,7 +203,7 @@
   // ---------- 초기화 ----------
 
   function init() {
-    Promise.all(['data/vehicles.json', 'data/tax-rates.json', 'data/depreciation.json'].map(function (u) {
+    Promise.all(['data/vehicles.json', 'data/tax-rates.json', 'data/depreciation.json', 'data/site.json'].map(function (u) {
       return fetch(u).then(function (r) {
         if (!r.ok) throw new Error(u + ' 로드 실패');
         return r.json();
@@ -212,12 +212,13 @@
       data.vehicles = res[0].vehicles.filter(function (v) { return v.status === 'active'; });
       data.rates = res[1];
       data.dep = res[2];
+      data.site = res[3];
 
       $('tco-cars').innerHTML = carPanel('a') + carPanel('b');
-      $('fuel-prices').innerHTML = Object.keys(DEFAULT_FUEL_PRICE).map(function (k) {
+      $('fuel-prices').innerHTML = Object.keys(sitePrices()).map(function (k) {
         var unit = k === 'ev' ? 'kWh' : 'L';
         return '<div class="field"><label for="fp-' + k + '">' + FUEL_LABELS[k] + '(원/' + unit + ')</label>' +
-          '<input id="fp-' + k + '" type="number" min="0" inputmode="numeric" value="' + DEFAULT_FUEL_PRICE[k] + '"></div>';
+          '<input id="fp-' + k + '" type="number" min="0" inputmode="numeric" value="' + sitePrices()[k] + '"></div>';
       }).join('');
 
       document.addEventListener('input', render);
