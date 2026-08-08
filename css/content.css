@@ -55,9 +55,30 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
   padding: 12px 0; border-bottom: 0.5px solid var(--border);
   color: var(--ink); text-decoration: none; font-size: 15px;
 }
-.hub-list li:last-child .hub-row { border-bottom: none; }
+.hub-list > li:last-child > .hub-row,
+.hub-list > li:last-child > .hub-group:not([open]) > summary.hub-row { border-bottom: none; }
 .hub-row .hub-price { color: var(--ink-secondary); font-size: 14px; white-space: nowrap; }
 @media (hover: hover) { .hub-row:hover { background: var(--surface); } }
+
+/* 모델 그룹 아코디언 — JS 없이 details 기본 동작만 */
+.hub-group > summary.hub-row { list-style: none; cursor: pointer; }
+.hub-group > summary.hub-row::-webkit-details-marker { display: none; }
+.hub-group > summary.hub-row:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px var(--accent-bg); border-radius: 8px;
+}
+.hub-right { display: flex; align-items: center; gap: 8px; }
+.chevron { flex-shrink: 0; color: var(--ink-muted); transition: transform 0.15s ease; }
+.hub-group[open] > summary .chevron { transform: rotate(180deg); }
+.hub-trims {
+  list-style: none; margin: 4px 0 8px; padding: 2px 12px;
+  background: var(--surface); border-radius: 8px;
+}
+.hub-trim {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 0.5px solid var(--border);
+  color: var(--ink); text-decoration: none; font-size: 14px;
+}
+.hub-trims li:last-child .hub-trim { border-bottom: none; }
 
 .tax-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
 .tax-summary .card { flex: 1; min-width: 150px; margin: 0; }

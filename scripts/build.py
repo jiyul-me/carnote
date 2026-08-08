@@ -466,14 +466,42 @@ def index_page(vehicles, rates, site):
             return rates["displacement"]["ev"]["annualTotalKrw"]
         return tax_for(v["displacementCc"], 1, rates)["annual"]
 
+    # 펼침 표시용 단색 라인 chevron (DESIGN: stroke 1.5, currentColor)
+    chevron = (
+        '<svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
+        '<path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" '
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    )
+
+    # 브랜드 → 모델 그룹(modelFamily) → 트림. JS 없이 <details> 기본 동작만 사용 —
+    # 접힌 상태에서도 모든 트림 링크가 HTML에 존재한다 (SEO 크롤링 통로)
     sections = []
     for brand, items in by_brand.items():
-        links = "".join(
-            f'<li><a class="hub-row" href="{esc(v["slug"])}.html">'
-            f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
-            for v in items
-        )
-        sections.append(f'<p class="brand-title">{esc(brand)}</p><ul class="hub-list">{links}</ul>')
+        groups = {}
+        for v in items:
+            groups.setdefault(v["modelFamily"], []).append(v)
+        rows = []
+        for family, trims in groups.items():
+            if len(trims) == 1:
+                v = trims[0]
+                rows.append(
+                    f'<li><a class="hub-row" href="{esc(v["slug"])}.html">'
+                    f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
+                )
+            else:
+                min_tax = min(new_car_annual(v) for v in trims)
+                trim_rows = "".join(
+                    f'<li><a class="hub-trim" href="{esc(v["slug"])}.html">'
+                    f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
+                    for v in trims
+                )
+                rows.append(
+                    f'<li><details class="hub-group"><summary class="hub-row">'
+                    f'<span>{esc(family)}</span>'
+                    f'<span class="hub-right"><span class="hub-price">연 {min_tax:,}원부터</span>{chevron}</span>'
+                    f'</summary><ul class="hub-trims">{trim_rows}</ul></details></li>'
+                )
+        sections.append(f'<p class="brand-title">{esc(brand)}</p><ul class="hub-list">{"".join(rows)}</ul>')
 
     d = rates["displacement"]
     bracket_rows = "".join(
