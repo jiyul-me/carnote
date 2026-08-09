@@ -1,0 +1,994 @@
+{
+ "bmw-g20-320i": {
+  "id": "bmw-g20-320i",
+  "fuelEconomy": 12.2,
+  "rangeKm": null,
+  "basis": "현행 G20 320i, 18인치 휠, 2WD(FR), 자동 8단 — 도심 10.9/고속 14.2",
+  "sources": "BMW코리아 공식(bmw.co.kr), 차이스(chais.co.kr)",
+  "confident": true
+ },
+ "bmw-g60-520i": {
+  "id": "bmw-g60-520i",
+  "fuelEconomy": 12.1,
+  "rangeKm": null,
+  "basis": "19인치 기본 휠, 2WD(FR), 자동 8단 — 도심 11.1/고속 13.7",
+  "sources": "차이스(chais.co.kr), 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "bmw-i4": {
+  "id": "bmw-i4",
+  "fuelEconomy": 4.5,
+  "rangeKm": 420,
+  "basis": "뉴 i4 eDrive40(2025~), 84kWh 배터리, 19인치 휠, 상온 복합 420km — 구형(2022~24) eDrive40은 429km/4.6km/kWh(카눈)",
+  "sources": "BMW그룹코리아 공식 보도자료, 매일신문, 로드테스트미디어",
+  "confident": true
+ },
+ "byd-atto3": {
+  "id": "byd-atto3",
+  "fuelEconomy": 4.7,
+  "rangeKm": 321,
+  "basis": "60.48kWh LFP 배터리, 2WD 단일 사양 — 상온 복합 321km(저온 309km), 도심 5.2/고속 4.3km/kWh",
+  "sources": "전기신문, ZDNet코리아, 나무위키",
+  "confident": true
+ },
+ "rexton-2.2d": {
+  "id": "rexton-2.2d",
+  "fuelEconomy": 10.9,
+  "rangeKm": null,
+  "basis": "현행 뉴 렉스턴(뉴 아레나) 기준, 18인치 휠, 2WD, ISG 미적용, 자동 8단 — 도심 9.5. ISG 적용 20인치 사양은 11.6",
+  "sources": "카눈(carnoon.co.kr), 위키인포 자동차(2023년형 제원)",
+  "confident": true
+ },
+ "actyon-1.5t": {
+  "id": "actyon-1.5t",
+  "fuelEconomy": 11,
+  "rangeKm": null,
+  "basis": "20인치 휠(전 트림 기본, 하위 휠 없음), 2WD, 자동 6단 — 도심 10.0/고속 12.5, 4WD 10.1",
+  "sources": "카눈(carnoon.co.kr), 탑라이더·오토데일리 출시 보도",
+  "confident": true
+ },
+ "korando-1.5t": {
+  "id": "korando-1.5t",
+  "fuelEconomy": 11.3,
+  "rangeKm": null,
+  "basis": "17인치 휠, 2WD, 자동 6단 (C300 가솔린 1.5T)",
+  "sources": "jasonryu.net(출시 제원), 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "torres-1.5t": {
+  "id": "torres-1.5t",
+  "fuelEconomy": 11.2,
+  "rangeKm": null,
+  "basis": "T5 기본 17인치 휠, 2WD, 자동 6단 — 도심 10.2/고속 12.5. 18/20인치는 11.1",
+  "sources": "KGM 공식 가격표, 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "torres-hev": {
+  "id": "torres-hev",
+  "fuelEconomy": 15.3,
+  "rangeKm": null,
+  "basis": "T5 기본 17인치 휠, 2WD, e-DHT(1.83kWh 배터리) — 도심 16.2/고속 14.2. KGM 대표 발표치 15.7은 18인치, 20인치는 15.2",
+  "sources": "KGM 공식 가격표, 카눈(carnoon.co.kr), 나무위키",
+  "confident": true
+ },
+ "torres-evx": {
+  "id": "torres-evx",
+  "fuelEconomy": 5,
+  "rangeKm": 433,
+  "basis": "73.4kWh LFP 배터리, 2WD, 18인치 휠 — 상온 복합 433km(저온 333km), 도심 5.5/고속 4.5km/kWh",
+  "sources": "탑라이더, 카가이, 다나와 자동차 뉴스",
+  "confident": true
+ },
+ "tivoli-1.5t": {
+  "id": "tivoli-1.5t",
+  "fuelEconomy": 12,
+  "rangeKm": null,
+  "basis": "더 뉴 티볼리(현행) 기준, 16인치 휠, 2WD, 자동 6단 — 도심 10.9/고속 13.5. 17/18인치는 11.8",
+  "sources": "카눈(carnoon.co.kr), 다나와 자동차, 카랩",
+  "confident": true
+ },
+ "tivoli-1.6": {
+  "id": "tivoli-1.6",
+  "fuelEconomy": 12,
+  "rangeKm": null,
+  "basis": "16인치 휠, 2WD, 6단 자동 — 1세대 초기형(2015~2017.7) 기준, 도심 10.7/고속 14.0. 2017.7 아머 이후 소폭 하락",
+  "sources": "위키백과(KGM 티볼리), 탑라이더 2015 시승기",
+  "confident": true
+ },
+ "ev3": {
+  "id": "ev3",
+  "fuelEconomy": 5.4,
+  "rangeKm": 501,
+  "basis": "롱레인지 81.4kWh(주력 트림), 17인치 휠, 2WD — 복합전비 5.4km/kWh, 상온 복합 501km",
+  "sources": "기아 공식 제원 페이지, 다나와 자동차, 모터그래프",
+  "confident": true
+ },
+ "ev4": {
+  "id": "ev4",
+  "fuelEconomy": 5.8,
+  "rangeKm": 533,
+  "basis": "롱레인지 81.4kWh(주력 트림), 17인치 휠, 2WD — 복합전비 5.8km/kWh, 상온 복합 533km",
+  "sources": "기아 공식 제원 페이지, 다나와 자동차, ZDNet Korea",
+  "confident": true
+ },
+ "ev6-cv": {
+  "id": "ev6-cv",
+  "fuelEconomy": 5.4,
+  "rangeKm": 502,
+  "basis": "더 뉴 EV6 2026년형 롱레인지 84.0kWh(주력 트림), 19인치 휠, 2WD, 빌트인캠 미적용 — 복합전비 5.4km/kWh, 502km (빌트인캠 적용 시 5.3). 2021~2023 구형은 77.4kWh 475km로 다름",
+  "sources": "다나와 자동차, 겟차, 더드라이브, 기아 공식 제원(주행거리)",
+  "confident": true
+ },
+ "ev9": {
+  "id": "ev9",
+  "fuelEconomy": 4.2,
+  "rangeKm": 501,
+  "basis": "롱레인지 99.8kWh(주력 트림), 19인치 휠, 2WD — 복합전비 4.2km/kWh, 상온 복합 501km",
+  "sources": "기아 공식 제원 페이지, 모터그래프",
+  "confident": true
+ },
+ "k3-bd-1.6": {
+  "id": "k3-bd-1.6",
+  "fuelEconomy": 15.2,
+  "rangeKm": null,
+  "basis": "15인치 휠, 2WD, IVT(무단자동), 1.6 MPI — 도심 13.6/고속 17.7. 올 뉴 K3(2018)·더 뉴 K3(2021 F/L) 동일",
+  "sources": "다나와 자동차(더 뉴 K3 BD), 나무위키, 위키백과",
+  "confident": true
+ },
+ "k5-dl3-2.0": {
+  "id": "k5-dl3-2.0",
+  "fuelEconomy": 12.6,
+  "rangeKm": null,
+  "basis": "16인치 휠, 2WD, 6단 자동 — 더 뉴 K5(2024~) 재인증 기준, 도심 11.2/고속 14.7",
+  "sources": "기아 공식 제원 페이지, 카눈(더 뉴 K5)",
+  "confident": true
+ },
+ "k5-dl3-1.6t": {
+  "id": "k5-dl3-1.6t",
+  "fuelEconomy": 13.7,
+  "rangeKm": null,
+  "basis": "17인치 휠(1.6T 기본 휠), 2WD, 자동 — 더 뉴 K5(2024~) 기준, 도심 12.1/고속 16.1",
+  "sources": "기아 공식 제원 페이지, 카눈(더 뉴 K5 1.6 터보)",
+  "confident": true
+ },
+ "k5-dl3-hev": {
+  "id": "k5-dl3-hev",
+  "fuelEconomy": 19.8,
+  "rangeKm": null,
+  "basis": "16인치 휠, 2WD — 더 뉴 K5 HEV(2024~) 기준, 도심 19.7/고속 19.8. 전기형(2019~2023)은 20.1(16인치)",
+  "sources": "기아 공식 제원 페이지, 카눈(2025년형), 다나와(전기형 20.1 확인)",
+  "confident": true
+ },
+ "k5-tf-2.0-g4kd": {
+  "id": "k5-tf-2.0-g4kd",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "2010~2012 세타2 2.0(G4KD, 165마력) 자동 트림의 신연비 재인증치 교차확인 불가 — 다나와 등은 2013년형 누우 CVVL 값(11.9)만 표기, 해당 연식은 구연비 표기만 확인됨",
+  "sources": "다나와 자동차(K5 TF — 165마력 트림 연비 미기재), 나무위키(연비 미기재)",
+  "confident": false
+ },
+ "k5-tf-2.0-g4nd": {
+  "id": "k5-tf-2.0-g4nd",
+  "fuelEconomy": 11.9,
+  "rangeKm": null,
+  "basis": "16인치 휠, 2WD, 6단 자동, 누우 2.0 CVVL(172마력) — 신연비 기준 도심 10.2/고속 15.1, 2013년형·더 뉴 K5(TF) 동일",
+  "sources": "다나와 자동차(더 뉴 K5 TF), 이데일리·오토뷰 2013년형 출시 보도",
+  "confident": true
+ },
+ "k5-tf-lpg": {
+  "id": "k5-tf-lpg",
+  "fuelEconomy": 9.3,
+  "rangeKm": null,
+  "basis": "더 뉴 K5(TF F/L, 2013.06~2015) 신연비 기준, 2.0 LPi 자동6단·2WD·15~16인치(디럭스·프레스티지 자동 동일 9.3). 2012년식은 구연비 표기(자동 10.5)만 존재",
+  "sources": "다나와 자동차(더 뉴 K5 TF 제원), 한국어 위키백과(기아 K5 제원표)",
+  "confident": true
+ },
+ "k5-dl3-lpg": {
+  "id": "k5-dl3-lpg",
+  "fuelEconomy": 9.7,
+  "rangeKm": null,
+  "basis": "더 뉴 K5(DL3 F/L, 2023~) 16인치(기본 휠, 렌터카 트림)·2WD·자동6단·빌트인캠 기준. 17인치 9.8, 18인치 9.5. 2019~2023 초기형 출시 인증은 10.2",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon 2025년형 LPI 렌터카 제원)",
+  "confident": true
+ },
+ "k7-vg-2.4": {
+  "id": "k7-vg-2.4",
+  "fuelEconomy": 11.3,
+  "rangeKm": null,
+  "basis": "더 뉴 K7(VG F/L, 2012.11~2016) 신연비 기준, 2.4 GDI 17인치(기본 휠)·2WD·자동6단. 2013 이전 초기형(2.4 MPI/GDI)은 구연비 표기",
+  "sources": "다나와 자동차(더 뉴 K7 VG 제원), 한국어 위키백과, 모터그래프(올 뉴 K7 비교 기사)",
+  "confident": true
+ },
+ "k7-vg-3.0": {
+  "id": "k7-vg-3.0",
+  "fuelEconomy": 10.4,
+  "rangeKm": null,
+  "basis": "더 뉴 K7(VG F/L, 2012.11~2016) 신연비 기준, 3.0 GDI 18인치(해당 엔진 단일 휠)·2WD·자동6단",
+  "sources": "다나와 자동차(더 뉴 K7 VG 제원), 한국어 위키백과",
+  "confident": true
+ },
+ "k8-gl3-2.5": {
+  "id": "k8-gl3-2.5",
+  "fuelEconomy": 12,
+  "rangeKm": null,
+  "basis": "기본 휠·2WD·자동8단 기준 — 더 뉴 K8(2024 F/L~) 17인치 12.0, 2021 출시형도 기본 18인치 12.0으로 동일. 상위 휠은 11.3~11.6",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon), 헤럴드경제 2021 출시 기사",
+  "confident": true
+ },
+ "k8-gl3-3.5": {
+  "id": "k8-gl3-3.5",
+  "fuelEconomy": 10.1,
+  "rangeKm": null,
+  "basis": "더 뉴 K8(2024 F/L~) 3.5 가솔린 18인치(기본 휠)·2WD·자동8단 기준. 19~20인치 9.9, AWD 9.0~9.1",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon)",
+  "confident": true
+ },
+ "k8-gl3-hev": {
+  "id": "k8-gl3-hev",
+  "fuelEconomy": 18.1,
+  "rangeKm": null,
+  "basis": "더 뉴 K8(2024 F/L~) 1.6 터보 HEV 17인치(기본 휠)·2WD·자동6단 기준. 2021~2024 구형 인증은 17인치 18.0. 18인치는 17.2",
+  "sources": "기아 공식 제원 페이지, 다나와 자동차(더 뉴 K8 제원), 전자신문 2021 출시 기사(구형 18.0)",
+  "confident": true
+ },
+ "k8-gl3-lpg": {
+  "id": "k8-gl3-lpg",
+  "fuelEconomy": 8,
+  "rangeKm": null,
+  "basis": "더 뉴 K8 LPI 3.5(렌터카·택시 포함) 17인치(기본 휠)·2WD·자동8단 기준. 18인치 7.8. LPG 리터 기준",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon 2026년형 LPG 3.5)",
+  "confident": true
+ },
+ "k9-rj-3.8": {
+  "id": "k9-rj-3.8",
+  "fuelEconomy": 9,
+  "rangeKm": null,
+  "basis": "더 뉴 K9(RJ F/L, 2021~) 3.8 가솔린 18인치(기본 휠)·2WD·자동8단·빌트인캠 미장착 기준. 19인치 8.8, AWD 8.2~8.3",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon 2024년형 가솔린 3.8)",
+  "confident": true
+ },
+ "niro-sg2-hev": {
+  "id": "niro-sg2-hev",
+  "fuelEconomy": 20.2,
+  "rangeKm": null,
+  "basis": "더 뉴 니로(SG2 F/L, 2026년형) 16인치(기본 휠)·2WD·빌트인캠 미장착 기준. 2022 출시 초기 SG2 인증은 16인치 20.8. 18인치는 19.4",
+  "sources": "기아 공식 제원 페이지, 카눈(carnoon 더 뉴 니로 HEV 2026년형), 현대자동차그룹 뉴스",
+  "confident": true
+ },
+ "niro-sg2-ev": {
+  "id": "niro-sg2-ev",
+  "fuelEconomy": 5.3,
+  "rangeKm": 401,
+  "basis": "니로 EV(SG2) 64.8kWh 배터리(전 트림 공통)·17인치 단일 휠·2WD 기준, 상온 복합 401km — 출시(2022)부터 현행(2026년형)까지 동일 인증",
+  "sources": "다나와 자동차(디 올 뉴 니로 EV 제원), 카눈(carnoon), EVPOST(기아 발표 인용)",
+  "confident": true
+ },
+ "ray-tam-1.0": {
+  "id": "ray-tam-1.0",
+  "fuelEconomy": 12.9,
+  "rangeKm": null,
+  "basis": "더 뉴 레이 F/L(2022~) 트렌디·프레스티지 14인치 휠, 2WD, 4AT 기준. 15인치(시그니처·X-Line)는 12.6",
+  "sources": "다나와 자동차, 카눈",
+  "confident": true
+ },
+ "ray-ev": {
+  "id": "ray-ev",
+  "fuelEconomy": 5.1,
+  "rangeKm": 205,
+  "basis": "35.2kWh LFP(CATL) 배터리 단일 사양, 14인치 휠 — 상온 복합 205km(도심 233km)",
+  "sources": "다나와 자동차, 기아 출시 보도자료(오토뷰·모터플렉스)",
+  "confident": true
+ },
+ "morning-ja-1.0": {
+  "id": "morning-ja-1.0",
+  "fuelEconomy": 14.7,
+  "rangeKm": null,
+  "basis": "더 뉴 모닝(2023 F/L~) 14인치 휠, 2WD, 4AT — 14·16인치 동일 14.7. F/L 이전(올 뉴 모닝·모닝 어반)은 15.4~15.7로 상이",
+  "sources": "기아 공식 제원, 다나와 자동차",
+  "confident": true
+ },
+ "morning-ta-1.0": {
+  "id": "morning-ta-1.0",
+  "fuelEconomy": 15.2,
+  "rangeKm": null,
+  "basis": "올 뉴 모닝(TA) 신연비 표기 기준, 2WD, 4AT, 기본 휠(13~14인치) — 트림 공통 15.2 (수동 17.0)",
+  "sources": "다나와 자동차, 엔카 차종 콘텐츠",
+  "confident": true
+ },
+ "mohave-3.0d": {
+  "id": "mohave-3.0d",
+  "fuelEconomy": 9.4,
+  "rangeKm": null,
+  "basis": "모하비 더 마스터(2019~2024) 18인치 휠, 8AT, 5인승 기준 — 4WD 전용 모델(2WD 없음). 7인승은 9.1",
+  "sources": "다나와 자동차, 기아 출시 보도자료(뉴스와이어·현대차그룹)",
+  "confident": true
+ },
+ "bongo3-2.5d": {
+  "id": "bongo3-2.5d",
+  "fuelEconomy": 8.9,
+  "rangeKm": null,
+  "basis": "A2 2.5 디젤(유로6) 1톤 초장축 킹캡 2WD, 5AT 기준 — 수동 6단은 9.6",
+  "sources": "다나와 자동차, 카눈",
+  "confident": true
+ },
+ "seltos-sp2-2.0": {
+  "id": "seltos-sp2-2.0",
+  "fuelEconomy": 12.9,
+  "rangeKm": null,
+  "basis": "더 뉴 셀토스(2022 F/L~, 2.0은 F/L부터 추가) 16인치 휠, 2WD, IVT 기준. 18인치 12.3",
+  "sources": "카눈, 기아 발표 인용 언론(모터그래프·겟차뉴스)",
+  "confident": true
+ },
+ "seltos-sp2-1.6t": {
+  "id": "seltos-sp2-1.6t",
+  "fuelEconomy": 12.8,
+  "rangeKm": null,
+  "basis": "더 뉴 셀토스(2022 F/L~) 16인치 휠, 2WD, 8AT 기준. 18인치 11.8, 초기형(2019~2022)은 7DCT로 별도",
+  "sources": "다나와 자동차, 카눈",
+  "confident": true
+ },
+ "sportage-nq5-1.6t": {
+  "id": "sportage-nq5-1.6t",
+  "fuelEconomy": 12.3,
+  "rangeKm": null,
+  "basis": "더 뉴 스포티지(2025년형 F/L~) 17인치 휠, 2WD, 8AT 기준. 초기형(2021~2024, 7DCT)은 12.5",
+  "sources": "기아 공식 제원, 카눈·시승 보도(카앤모어 등)",
+  "confident": true
+ },
+ "sportage-nq5-hev": {
+  "id": "sportage-nq5-hev",
+  "fuelEconomy": 16.3,
+  "rangeKm": null,
+  "basis": "더 뉴 스포티지(2025년형 F/L~) 17인치 휠, 2WD, 6AT 기준 — 17·18인치 동일 16.3. 초기형은 16.7",
+  "sources": "기아 공식 제원, 다나와 자동차",
+  "confident": true
+ },
+ "sportage-r-2.0d": {
+  "id": "sportage-r-2.0d",
+  "fuelEconomy": 13.8,
+  "rangeKm": null,
+  "basis": "더 뉴 스포티지R(2013 F/L~2015, 신연비 표기) 2.0 디젤 2WD, 6AT, 기본 17인치 휠 — 트림 공통 13.8. F/L 이전 신연비 표기는 14.2로 상이",
+  "sources": "다나와 자동차, 카이즈유",
+  "confident": true
+ },
+ "sorento-mq4-2.5t": {
+  "id": "sorento-mq4-2.5t",
+  "fuelEconomy": 10.8,
+  "rangeKm": null,
+  "basis": "18인치 휠(기본), 2WD, 8단 DCT — 더 뉴 쏘렌토(2023.8~) 기준. 20인치는 10.1",
+  "sources": "기아 공식 제원 페이지, 카눈(2024·2025년형), 탑라이더",
+  "confident": true
+ },
+ "sorento-mq4-hev": {
+  "id": "sorento-mq4-hev",
+  "fuelEconomy": 15.7,
+  "rangeKm": null,
+  "basis": "17인치 휠(기본), 2WD, 5인승 — 더 뉴 쏘렌토(2023.8~) 기준. 전기형(2020~2023)은 15.3(다나와), 빌트인캠 장착 시 15.3",
+  "sources": "기아 공식 제원 페이지, 카눈",
+  "confident": true
+ },
+ "sorento-mq4-2.2d": {
+  "id": "sorento-mq4-2.2d",
+  "fuelEconomy": 14.3,
+  "rangeKm": null,
+  "basis": "18인치 휠(현행 기본), 2WD, 5인승, 8단 습식 DCT — 전기형(2020)·더 뉴 동일 14.3",
+  "sources": "기아 공식 제원 페이지, 카눈/다나와",
+  "confident": true
+ },
+ "sorento-r-2.2d": {
+  "id": "sorento-r-2.2d",
+  "fuelEconomy": 13.8,
+  "rangeKm": null,
+  "basis": "뉴 쏘렌토 R(2012.7~2014) 2.2 e-VGT 2WD AT, 신연비 기준. 초기 쏘렌토R(2009~2012.6)은 구연비 표기만(구연비 16.1). 다나와 라인업 연비 범위 12.4~14.4와 정합",
+  "sources": "기아 출시 보도자료 인용 기사(뉴데일리·머니투데이·KIDD·오토뷰), 다나와",
+  "confident": true
+ },
+ "carnival-ka4-3.5": {
+  "id": "carnival-ka4-3.5",
+  "fuelEconomy": 9,
+  "rangeKm": null,
+  "basis": "9인승, 18인치 휠(기본), 2WD, 8AT — 더 뉴 카니발(2023.11~) 기준(7·9인승, 18·19인치 모두 9.0). 전기형(2020~2023)은 9.1",
+  "sources": "기아 공식 제원 페이지, 카눈",
+  "confident": true
+ },
+ "carnival-ka4-2.2d": {
+  "id": "carnival-ka4-2.2d",
+  "fuelEconomy": 13.1,
+  "rangeKm": null,
+  "basis": "9인승, 18인치 휠, 2WD, 8AT — 표준 바디 기준(하이리무진 11.7). 전기형(2020)·더 뉴 동일 13.1, 2025년 이후 단종",
+  "sources": "카눈(2025년형), 다나와(라인업 연비 범위 상단 13.1), 나무위키",
+  "confident": true
+ },
+ "carnival-yp-2.2d": {
+  "id": "carnival-yp-2.2d",
+  "fuelEconomy": 11.4,
+  "rangeKm": null,
+  "basis": "더 뉴 카니발(YP F/L, 2018~2020) 8AT·2WD, 17~18인치 표준 바디 기준(9인승 19인치 11.3, 하이리무진 10.3). 초기 올 뉴 카니발(2014~2018, 6AT)은 별도 인증치로 이번에 확정하지 못함",
+  "sources": "한국일보 출시 기사(2018.3), 카눈",
+  "confident": true
+ },
+ "carnival-ka4-hev": {
+  "id": "carnival-ka4-hev",
+  "fuelEconomy": 14,
+  "rangeKm": null,
+  "basis": "1.6T HEV 9인승, 18인치 휠(기본), 2WD — 19인치는 13.5",
+  "sources": "기아 공식 제원 페이지, 전자신문·카미유 등 출시 기사",
+  "confident": true
+ },
+ "lexus-es300h": {
+  "id": "lexus-es300h",
+  "fuelEconomy": 17.2,
+  "rangeKm": null,
+  "basis": "7세대(XV70) 현행 리튬이온 배터리 사양, 17인치 휠 기준 — 초기 니켈수소 배터리 사양(2018~)은 17.0",
+  "sources": "나무위키(렉서스 ES), 세계일보·탑라이더 시승기",
+  "confident": true
+ },
+ "qm6-2.0": {
+  "id": "qm6-2.0",
+  "fuelEconomy": 12,
+  "rangeKm": null,
+  "basis": "2.0 GDe 2WD, CVT, 17~18인치 휠 기준 — 뉴/더 뉴 QM6(2019~) 인증치(19인치 11.6). 초기형(2016~2019)은 11.7",
+  "sources": "카눈(2022~2025년형), 나무위키, 다나와(초기형 11.7 확인)",
+  "confident": true
+ },
+ "xm3-1.6": {
+  "id": "xm3-1.6",
+  "fuelEconomy": 13.4,
+  "rangeKm": null,
+  "basis": "1.6 GTe 2WD, CVT, 16·17인치 동일 — 2020~2023년형 기준. 2024년형 GTe 인스파이어는 13.6 표기(아주경제, 단일 출처라 미채택)",
+  "sources": "카눈, 카인포유, 콜카콜차",
+  "confident": true
+ },
+ "xm3-hev": {
+  "id": "xm3-hev",
+  "fuelEconomy": 17.4,
+  "rangeKm": null,
+  "basis": "E-Tech 하이브리드 17인치 휠(기본), 2WD, 1.6 가솔린+듀얼모터. 아르카나로 개명 후에도 동일값(도심 17.5/고속 17.3)",
+  "sources": "다나와 자동차 제원, 다나와 뉴스(시승기), 카이즈유(2025 아르카나 하이브리드), news-wa 기사",
+  "confident": true
+ },
+ "grand-koleos-hev": {
+  "id": "grand-koleos-hev",
+  "fuelEconomy": 15.7,
+  "rangeKm": null,
+  "basis": "테크노(기본 트림) 19인치 휠, 2WD(FF), 1.5T E-Tech 하이브리드. 아이코닉(19인치)·에스프리 알핀(20인치)은 15.0",
+  "sources": "르노코리아 공식 홈페이지, 다나와 자동차 제원, 헤이딜러 블로그",
+  "confident": true
+ },
+ "grand-koleos-gasoline": {
+  "id": "grand-koleos-gasoline",
+  "fuelEconomy": 11.1,
+  "rangeKm": null,
+  "basis": "2.0 터보 2WD 자동, 19인치 휠 기준(19/20인치 동일 11.1, 도심 9.8/고속 13.1). 4WD는 9.8",
+  "sources": "르노코리아 공식 홈페이지, 카눈(carnoon), 차이스(chais)",
+  "confident": true
+ },
+ "benz-w213-e250": {
+  "id": "benz-w213-e250",
+  "fuelEconomy": 10.1,
+  "rangeKm": null,
+  "basis": "W213 F/L(2021~2023) E250 아방가르드·익스클루시브 공통, 2.0 터보(1,991cc) 2WD 자동(도심 9.1/고속 11.7)",
+  "sources": "다나와 자동차 제원, 겟차(getcha)",
+  "confident": true
+ },
+ "spark-m400-1.0": {
+  "id": "spark-m400-1.0",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "연식·사양별 자동(CVT) 값 갈림: 더 넥스트 C-TECH 15.4(다나와)·에코 CVT+ISG 15.7(나무위키), 더 뉴(2018 F/L~) C-TECH 14.4·CVT+ISG 15.0(다나와·카위키) — 기본 자동 사양의 단일 대표값 교차 확정 불가",
+  "sources": "다나와 자동차 제원, 카위키, 나무위키",
+  "confident": false
+ },
+ "spark-m300-1.0": {
+  "id": "spark-m300-1.0",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "자동변속기 복합연비가 연식·변속기별 상이: 2013년형 4AT 14.8(한국GM 블로그, 단일 출처), 2014~15년형 C-TECH CVT 15.3(다나와, 단일 출처), CVT+ISG 16.3(오토뷰) — 2곳 이상 교차 일치하는 단일 값 없음. 2011~12년식은 구연비만 확인됨",
+  "sources": "한국GM 공식 블로그, 다나와 자동차 제원, 오토뷰, 카이즈유",
+  "confident": false
+ },
+ "orlando-2.0d": {
+  "id": "orlando-2.0d",
+  "fuelEconomy": 12,
+  "rangeKm": null,
+  "basis": "2.0 VCDi(163ps) 6단 자동 2WD, 신연비 표시(2014년형~) 기준. 초기 구연비 표기는 14.0 — 신연비 12.0으로 기입. 2.0 디젤은 2015년 1.6 디젤로 대체",
+  "sources": "보배드림 매물 공인연비, 카이즈유(2014년형 연비 범위 상한 12.0), 오토헤럴드/클리앙 인용 기사",
+  "confident": true
+ },
+ "equinox-ev": {
+  "id": "equinox-ev",
+  "fuelEconomy": 4.8,
+  "rangeKm": 483,
+  "basis": "국내 환경부·에너지공단 인증 사양: 86.4kWh(LG에너지솔루션) 배터리, 204ps 싱글모터 FWD, 19인치 휠. 상온 복합 483km(도심 519/고속 439), 복합 전비 4.8km/kWh. 국내 정식 출시는 2025년 철회됨(인증값 기준)",
+  "sources": "카이즈유(전비 4.8), 시사위크(전비·주행거리), 탑라이더·데일리카·나무위키(483km·배터리)",
+  "confident": true
+ },
+ "trax-crossover-1.2t": {
+  "id": "trax-crossover-1.2t",
+  "fuelEconomy": 12.7,
+  "rangeKm": null,
+  "basis": "1.2 E-터보 2WD 6단 자동, 17인치 휠(기본) 기준(도심 11.7/고속 14.3). 18인치 12.3, 19인치 12.0",
+  "sources": "카눈(carnoon), 쉐보레 공식 가격표 PDF 기반 검색 결과, 쉬운자동차(carchza)",
+  "confident": true
+ },
+ "trailblazer-1.35t": {
+  "id": "trailblazer-1.35t",
+  "fuelEconomy": 12.9,
+  "rangeKm": null,
+  "basis": "더 뉴 트레일블레이저(2023 F/L~) 1.35T 2WD CVT, 17인치 휠 기준(도심 12.1/고속 14.0). AWD(9AT)는 11.6. 2020~2022 초기형은 13.2로 확인됨",
+  "sources": "다나와 자동차 제원, 차이스(chais), 카랩 블로그",
+  "confident": true
+ },
+ "g70-ik-2.0t": {
+  "id": "g70-ik-2.0t",
+  "fuelEconomy": 10.7,
+  "rangeKm": null,
+  "basis": "2.0T 2WD 8단 자동, 18인치 휠(어드밴스드·수프림) 기준, 2017~2020년형(도심 9.4/고속 12.8). 19인치 스포츠 패키지는 10.4. F/L(더 뉴 G70) 2.0T 값은 출처 간 불명확해 초기형 기준",
+  "sources": "다나와 자동차 제원(G70 IK), 카위키(2018년형)",
+  "confident": true
+ },
+ "g70-ik-2.5t": {
+  "id": "g70-ik-2.5t",
+  "fuelEconomy": 11.2,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD, 8단 자동 — 더 뉴 G70(2023년형~) 기준, 도심 10.0/고속 13.1 일치 확인",
+  "sources": "카눈(carnoon.co.kr), 네이트뷰 자동차 기사",
+  "confident": true
+ },
+ "g80-rg3-2.5t": {
+  "id": "g80-rg3-2.5t",
+  "fuelEconomy": 10.5,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD — G80 F/L 2026년형 기준, 도심 9.1/고속 13.2 일치 확인",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr), 웹검색 제원 요약",
+  "confident": true
+ },
+ "g80-rg3-3.5t": {
+  "id": "g80-rg3-3.5t",
+  "fuelEconomy": 8.8,
+  "rangeKm": null,
+  "basis": "19인치 휠, 2WD — G80 F/L 현행 기준 (초기형 2020~2023 연식은 9.0 표기 출처 존재)",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "g80-electrified": {
+  "id": "g80-electrified",
+  "fuelEconomy": 4.4,
+  "rangeKm": 475,
+  "basis": "F/L(2025~) 94.5kWh 리튬이온, 듀얼모터 AWD 단일사양, 19인치 휠 — 초기형(87.2kWh)은 427km로 상이",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "g90-rs4-3.5t": {
+  "id": "g90-rs4-3.5t",
+  "fuelEconomy": 9.3,
+  "rangeKm": null,
+  "basis": "19인치 휠, 2WD, 5인승, 3.5T 기본(48V 슈퍼차저 미적용) — 4인승은 9.0, AWD 19인치는 8.5",
+  "sources": "제네시스 공식 제원(행 단위 재확인), 카눈(carnoon.co.kr)",
+  "confident": true
+ },
+ "gv60": {
+  "id": "gv60",
+  "fuelEconomy": 5.1,
+  "rangeKm": 481,
+  "basis": "스탠다드 2WD(주력 트림), 19인치 휠, 84.0kWh — F/L(2025년형~) 기준. 초기형(77.4kWh)은 상이",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr), 현대자동차그룹 뉴스(주행거리 481km)",
+  "confident": true
+ },
+ "gv70-jk-2.5t": {
+  "id": "gv70-jk-2.5t",
+  "fuelEconomy": 10.2,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD — GV70 F/L(2024~) 현행 기준 (초기형 2021~2023은 10.6 표기 출처 존재)",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr, 2026년형), 웹검색 제원 요약",
+  "confident": true
+ },
+ "gv70-jk-3.5t": {
+  "id": "gv70-jk-3.5t",
+  "fuelEconomy": 8.9,
+  "rangeKm": null,
+  "basis": "19인치 휠(3.5T 최소 휠), 2WD — GV70 F/L 현행 기준",
+  "sources": "제네시스 공식 제원, 카눈(carnoon.co.kr, 2026년형)",
+  "confident": true
+ },
+ "gv70-electrified": {
+  "id": "gv70-electrified",
+  "fuelEconomy": 4.5,
+  "rangeKm": 423,
+  "basis": "F/L(2025.1~) 84.0kWh 4세대 배터리, 듀얼모터 AWD 단일사양, 19인치 휠 — 20인치는 4.2/400km, 초기형(77.4kWh)은 400km",
+  "sources": "제네시스 공식 제원, 탑라이더 시승기(공인 전비 명기), 주행거리는 현대차그룹 뉴스·위키백과·모카 등 다수 일치",
+  "confident": true
+ },
+ "gv80-jx-3.5t": {
+  "id": "gv80-jx-3.5t",
+  "fuelEconomy": 8.6,
+  "rangeKm": null,
+  "basis": "20인치 휠(3.5T 최소 휠), 2WD, 5인승, 빌트인캠 미적용 기준",
+  "sources": "제네시스 공식 제원, 제네시스 뉴스룸 출시 보도자료, 오토스케치뉴스, 카눈(8.4~8.6 범위 내 일치)",
+  "confident": true
+ },
+ "gv80-jx-2.5t": {
+  "id": "gv80-jx-2.5t",
+  "fuelEconomy": 9.3,
+  "rangeKm": null,
+  "basis": "19인치 휠, 2WD, 5인승, 빌트인캠 미적용 — GV80 F/L(2024~) 기준. 빌트인캠 적용 시 9.1, 초기형(18인치)은 상이",
+  "sources": "제네시스 공식 제원(행 단위 재확인), 카눈(carnoon.co.kr, 2024·2026년형 동일)",
+  "confident": true
+ },
+ "casper-ax1-1.0": {
+  "id": "casper-ax1-1.0",
+  "fuelEconomy": 14.3,
+  "rangeKm": null,
+  "basis": "1.0 MPI, 15인치 휠, 4단 자동, 2WD — AX1 초기형·더 뉴 캐스퍼(F/L) 동일 표기 확인",
+  "sources": "다나와 자동차, 카눈(carnoon), 현대 캐스퍼 온라인 제원",
+  "confident": true
+ },
+ "casper-electric": {
+  "id": "casper-electric",
+  "fuelEconomy": 5.6,
+  "rangeKm": 315,
+  "basis": "인스퍼레이션(주력 판매 트림), 49kWh NCMA 배터리, 15인치 휠 — 상온 복합. 17인치(크로스·라운지)는 285~295km",
+  "sources": "다나와 자동차(트림별 제원표), 현대 캐스퍼 온라인·카눈",
+  "confident": true
+ },
+ "kona-sx2-2.0": {
+  "id": "kona-sx2-2.0",
+  "fuelEconomy": 13.6,
+  "rangeKm": null,
+  "basis": "기본(최소) 휠, 2WD, 스마트스트림 IVT — 값 13.6은 두 출처 일치하나 휠 표기가 오토뷰 16인치/카눈 17인치로 갈림. 18인치 이상 13.0",
+  "sources": "오토뷰(출시 기사), 카눈(carnoon)",
+  "confident": true
+ },
+ "kona-sx2-1.6t": {
+  "id": "kona-sx2-1.6t",
+  "fuelEconomy": 13,
+  "rangeKm": null,
+  "basis": "17인치 휠(기본), 2WD, 8단 자동 — 18~19인치 12.2",
+  "sources": "카눈(carnoon), 차이스(chais)",
+  "confident": true
+ },
+ "kona-sx2-hev": {
+  "id": "kona-sx2-hev",
+  "fuelEconomy": 19.8,
+  "rangeKm": null,
+  "basis": "17인치 휠(하이브리드 기본), 2WD, 6단 DCT — 18인치 18.1",
+  "sources": "다나와 자동차(제원표), ikkujun 자동차 블로그, 나무위키(18.1~19.8 범위 일치)",
+  "confident": true
+ },
+ "kona-electric": {
+  "id": "kona-electric",
+  "fuelEconomy": 5.5,
+  "rangeKm": 417,
+  "basis": "롱레인지 64.8kWh(주력 판매 사양), 17인치 휠 — 상온 복합. 19인치는 364~368km·4.7~4.8km/kWh",
+  "sources": "다나와 자동차(트림별 제원표), 카이즈유(복합전비 상한 5.5 일치), 네이트뉴스 기사(17인치 417km 인증)",
+  "confident": true
+ },
+ "tucson-nx4-1.6t": {
+  "id": "tucson-nx4-1.6t",
+  "fuelEconomy": 12.5,
+  "rangeKm": null,
+  "basis": "더 뉴 투싼(NX4 F/L, 2024~) 기준: 17인치 휠, 2WD, 7DCT — 2024·2025·2026년형 동일 확인. 초기형(2021~2023)은 별도 인증치라 이 값과 다를 수 있음",
+  "sources": "카눈(carnoon 연식별 제원), 차이스(chais)",
+  "confident": true
+ },
+ "tucson-ix-2.0d": {
+  "id": "tucson-ix-2.0d",
+  "fuelEconomy": 13.8,
+  "rangeKm": null,
+  "basis": "신연비(2013~ 표시 기준, 뉴 투싼ix F/L 표기값): 2.0 e-VGT, 2WD, 자동변속기 (도심 12.4/고속 16.0). 2013년 이전 구연비 표기(15.4 등)와 혼동 주의",
+  "sources": "다나와 자동차(투싼ix LM F/L 제원), 한국경제 2013년 출시 기사",
+  "confident": true
+ },
+ "tucson-nx4-hev": {
+  "id": "tucson-nx4-hev",
+  "fuelEconomy": 16.2,
+  "rangeKm": null,
+  "basis": "17인치 휠(기본), 2WD, 6단 자동 — F/L 기준이며 초기형도 동일 16.2 인증(나무위키 15.8~16.2 범위와 일치). 19인치 14.9",
+  "sources": "다나와 자동차(제원표), 차이스/카위키, 나무위키",
+  "confident": true
+ },
+ "palisade-lx2-3.8": {
+  "id": "palisade-lx2-3.8",
+  "fuelEconomy": 9.6,
+  "rangeKm": null,
+  "basis": "18인치 휠(기본), 2WD, 8단 자동 (LX2 3.8 V6, 2018~2024) — 20인치 9.3",
+  "sources": "탑라이더(출시 연비 공개 기사), 카눈(carnoon, 초기·2024년형)",
+  "confident": true
+ },
+ "palisade-lx3-2.5t": {
+  "id": "palisade-lx3-2.5t",
+  "fuelEconomy": 9.7,
+  "rangeKm": null,
+  "basis": "18인치 휠(기본), 2WD, 8단 자동 (2.5 세타-III 싱글터보 281마력) — 20인치 9.0, 21인치 8.7",
+  "sources": "카눈(carnoon 제원표), 다나와 자동차 뉴스·카앤모어 시승기(9.7 명시), 위키백과/나무위키(2WD 9.7~8.7 범위 일치)",
+  "confident": true
+ },
+ "palisade-lx3-hev": {
+  "id": "palisade-lx3-hev",
+  "fuelEconomy": 14.1,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD, 6단 자동 (익스클루시브 기본 사양) — 2025~ LX3 2.5 터보 HEV. 참고: 2WD 20인치 12.7 / 21인치 12.5, AWD 12.5~11.4",
+  "sources": "카눈(carnoon, 트림별 제원), 나무위키(2WD 14.1~12.5·AWD 12.5~11.4 완전 일치), 카이즈유(범위 11.4~14.1 일치)",
+  "confident": true
+ },
+ "porter2-2.5d": {
+  "id": "porter2-2.5d",
+  "fuelEconomy": 8.8,
+  "rangeKm": null,
+  "basis": "최종 디젤 연식 2023년형(2023-11 LPG 전환·디젤 단종) 초장축 일반캡, 2WD, 자동변속기 — 신연비 기준. 슈퍼캡 AT 동일 8.8, 더블캡 AT 8.7, 기본 MT는 9.5. 일부 요약의 8.9 표기는 동일 사양 도심 8.7·고속 9.1 조합으로 복합 8.8과 같은 데이터로 확인",
+  "sources": "카눈(carnoon, 일반캡·슈퍼캡 AT 8.8), 다나와 자동차(2023년형 일반캡 초장축 AT 8.8), 카이즈유(2023년형 8.6~9.5 범위 정합)",
+  "confident": true
+ },
+ "santafe-mx5-2.5t": {
+  "id": "santafe-mx5-2.5t",
+  "fuelEconomy": 11.0,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD, 8단 DCT (5·6인승 공통. 20인치 10.4, 21인치 10.0, AWD 18인치 10.1)",
+  "sources": "카눈 제원(2024년형 가솔린 2.5T 5인승), 카이즈유 자동차정보",
+  "confident": true
+ },
+ "santafe-mx5-hev": {
+  "id": "santafe-mx5-hev",
+  "fuelEconomy": 15.5,
+  "rangeKm": null,
+  "basis": "18인치 휠, 2WD, 빌트인캠 미적용 (빌트인캠 장착 15.0, 20인치 14.4)",
+  "sources": "카눈 제원(2024년형 HEV 1.6T 2WD), 다나와 자동차 제원, 모터그래프",
+  "confident": true
+ },
+ "staria-us4-2.2d": {
+  "id": "staria-us4-2.2d",
+  "fuelEconomy": 11.3,
+  "rangeKm": null,
+  "basis": "투어러 9인승, 2WD, 17인치 휠, 8단 자동 (18인치 11.0, AWD 10.3, 투어러 11인승 A/T는 10.8)",
+  "sources": "카눈 제원(2024년형 투어러 디젤 2.2 9인승), eacar",
+  "confident": true
+ },
+ "staria-us4-hev": {
+  "id": "staria-us4-hev",
+  "fuelEconomy": 12.6,
+  "rangeKm": null,
+  "basis": "투어러 9인승, 2WD, 17/18인치 동일, 빌트인캠 미적용 (빌트인캠 12.4, 라운지 7인승 12.4, 카고 13.0)",
+  "sources": "다나와 자동차 제원, 카눈 제원(2024년형 투어러 1.6T HEV 9인승)",
+  "confident": true
+ },
+ "staria-us4-lpg": {
+  "id": "staria-us4-lpg",
+  "fuelEconomy": 6.7,
+  "rangeKm": null,
+  "basis": "투어러 9인승, 2WD, 17인치 휠, 8단 자동 (11인승도 6.7, 라운지 9인승 6.5)",
+  "sources": "카눈 제원(2024년형 투어러 LPG 3.5), eacar, 카이즈유",
+  "confident": true
+ },
+ "ioniq5-ne": {
+  "id": "ioniq5-ne",
+  "fuelEconomy": 5.2,
+  "rangeKm": 485,
+  "basis": "84kWh 롱레인지, 19인치 휠, 2WD (2024 F/L 이후. 20인치 N라인 4.7/441km, AWD 4.8/451km)",
+  "sources": "다나와 자동차 아이오닉 5(NE) F/L 제원, 카눈 더 뉴 아이오닉 5 제원",
+  "confident": true
+ },
+ "ioniq6-ce": {
+  "id": "ioniq6-ce",
+  "fuelEconomy": 6.0,
+  "rangeKm": 562,
+  "basis": "84kWh 롱레인지, 18인치 휠, 2WD (2025 F/L 이후. F/L 전 77.4kWh는 전비 동일 6.0·524km)",
+  "sources": "다나와 자동차 아이오닉 6(CE) F/L 제원, 카눈, 현대차그룹 보도자료",
+  "confident": true
+ },
+ "ioniq9-me": {
+  "id": "ioniq9-me",
+  "fuelEconomy": 4.3,
+  "rangeKm": 532,
+  "basis": "110.3kWh, 19인치 휠, 2WD 항속형 (6·7인승 동일. 21인치 4.2/511km)",
+  "sources": "카눈 제원(2025년형 2WD), 다나와 자동차 제원",
+  "confident": true
+ },
+ "tesla-model3": {
+  "id": "tesla-model3",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "출처 간 상충으로 확정 불가 — 복합전비 5.7(다나와·나무위키·카눈 2025년형) vs 5.4(카눈 2026년형·탑라이더 인증값), 주행거리 382km vs 2026 재인증 431km 병존, 배터리 표기도 60/62.1/67.2/72.3kWh 불일치 + 2026 트림 개편 진행 중",
+  "sources": "다나와, 카눈, 나무위키, 탑라이더(2026-05 재인증), 전자신문",
+  "confident": false
+ },
+ "tesla-modely": {
+  "id": "tesla-modely",
+  "fuelEconomy": 5.6,
+  "rangeKm": 400,
+  "basis": "RWD 19인치 휠, 주니퍼(2025~). 배터리 용량 출처 간 상이(70.8 vs 62.5kWh LFP), 스탠다드 트림(411km·5.9) 추가 예정이라 대표 트림 변동 가능",
+  "sources": "다나와 자동차 모델 Y 주니퍼 제원, KB차차차 국내 인증 제원, 스마트리더",
+  "confident": true
+ },
+ "polestar-2": {
+  "id": "polestar-2",
+  "fuelEconomy": 5.1,
+  "rangeKm": 449,
+  "basis": "78kWh 롱레인지 싱글모터, 19인치 휠, 후륜 (2023 F/L 이후. 스탠다드 69kWh 5.2/409km, 듀얼모터 4.3/379km)",
+  "sources": "다나와 자동차 폴스타 2 F/L 제원, 카눈 폴스타 2 F/L 제원",
+  "confident": true
+ },
+ "avante-cn7-1.6": {
+  "id": "avante-cn7-1.6",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "15인치·2WD·IVT 기준값 출처 간 불일치 — 카눈 15.0 vs 차이스 등 15.3. 전기형(2020~2023.03)은 15.4로 또 다름",
+  "sources": "카눈, 차이스, 다나와 자동차, 나무위키",
+  "confident": false
+ },
+ "avante-cn7-hev": {
+  "id": "avante-cn7-hev",
+  "fuelEconomy": 21.1,
+  "rangeKm": null,
+  "basis": "16인치 휠(기본), 2WD, 6DCT — 도심 21.4/고속 20.7. 전기형·F/L 동일값(17인치 19.5, 18인치 18.5)",
+  "sources": "다나와 자동차 제원(CN7·CN7 F/L), 카눈, 현대차 출시 보도자료",
+  "confident": true
+ },
+ "avante-cn7-n": {
+  "id": "avante-cn7-n",
+  "fuelEconomy": 10.4,
+  "rangeKm": null,
+  "basis": "19인치(단일), 2WD, 8DCT — 도심 8.9/고속 12.9. 6단 수동 10.6. 더 뉴 아반떼 N(2023.07~) 기준",
+  "sources": "다나와 자동차 제원, 카눈",
+  "confident": true
+ },
+ "sonata-dn8-2.0": {
+  "id": "sonata-dn8-2.0",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "17인치·2WD·6AT 기준으로도 연식별 인증값 상이 — 2019 출시 13.3, 2020년형 12.9, 2023년형 12.7, 디 엣지 현행 12.6",
+  "sources": "탑라이더, 카위키, 카눈, 다나와 자동차",
+  "confident": false
+ },
+ "sonata-dn8-1.6t": {
+  "id": "sonata-dn8-1.6t",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "센슈어스(2019~2022)는 13.7 확인되나 디 엣지(2023~)가 13.5(카눈)/13.8(카위키) 불일치",
+  "sources": "ZDNet·경향(현대차 출시자료), 다나와 자동차, 카눈, 카위키",
+  "confident": false
+ },
+ "sonata-dn8-hev": {
+  "id": "sonata-dn8-hev",
+  "fuelEconomy": 19.4,
+  "rangeKm": null,
+  "basis": "16인치 휠(기본), 2WD, 6AT — 도심 19.8/고속 18.9, 디 엣지(2023~) 기준. 전기형(2019~2022)은 20.1",
+  "sources": "카눈(2026년형), 다나와 자동차 제원(DN8 F/L), 탑라이더",
+  "confident": true
+ },
+ "venue-1.6": {
+  "id": "venue-1.6",
+  "fuelEconomy": 13.7,
+  "rangeKm": null,
+  "basis": "15인치 휠(기본), 2WD, 스마트스트림 IVT — 도심 12.7/고속 15.2 (17인치 13.3). 2023·2025년형 동일",
+  "sources": "카눈(2023·2025년형), 차이스, 다나와 자동차",
+  "confident": true
+ },
+ "avante-md-1.6": {
+  "id": "avante-md-1.6",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "더 뉴 아반떼 MD(2013.08~2015)는 14.0이나 초기형(2010~2013)은 신연비 13.9 표기·출고 제원은 구연비 16.5. 연식 구간 단일값 확정 불가",
+  "sources": "다나와 자동차 제원, 엔카 중고차 제원",
+  "confident": false
+ },
+ "avante-ad-1.6": {
+  "id": "avante-ad-1.6",
+  "fuelEconomy": 13.7,
+  "rangeKm": null,
+  "basis": "15인치 휠(기본), 2WD, 6단 자동 — 도심 12.0/고속 16.1 (17인치 13.1)",
+  "sources": "다나와 자동차 제원, 헤럴드경제·부산일보 2015 출시 기사, 카이즈유",
+  "confident": true
+ },
+ "avante-ad-fl-1.6": {
+  "id": "avante-ad-fl-1.6",
+  "fuelEconomy": 15.2,
+  "rangeKm": null,
+  "basis": "15인치 휠(기본), 2WD, 스마트스트림 IVT — 도심 13.6/고속 17.7 (6단 수동 14.0)",
+  "sources": "다나와 자동차 제원, 현대차 '더 뉴 아반떼' 출시 보도자료",
+  "confident": true
+ },
+ "sonata-lf-2.0": {
+  "id": "sonata-lf-2.0",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "16인치·2WD·6AT 기준 출처 간 상이 — 12.1(2014 출시 보도·엔카매거진) / 12.6(다나와) / 12.3(뉴 라이즈 2017년형)",
+  "sources": "머니투데이, 엔카매거진, 다나와 자동차 제원, 카이즈유",
+  "confident": false
+ },
+ "grandeur-gn7-2.5": {
+  "id": "grandeur-gn7-2.5",
+  "fuelEconomy": 11.6,
+  "rangeKm": null,
+  "basis": "2026 F/L 기준 · 18인치 휠(기본), 2WD, 자동8단 (F/L 이전 2022.11~2026.04는 11.7. 19인치 11.4, 20인치 11.2)",
+  "sources": "다나와 자동차 제원, 카눈",
+  "confident": true
+ },
+ "grandeur-gn7-3.5": {
+  "id": "grandeur-gn7-3.5",
+  "fuelEconomy": 10.0,
+  "rangeKm": null,
+  "basis": "2026 F/L 기준 · 18인치 휠(기본), 2WD, 자동8단 (F/L 이전은 10.4. AWD 9.5, 19인치 10.1, 20인치 9.7)",
+  "sources": "다나와 자동차 제원, 카눈",
+  "confident": true
+ },
+ "grandeur-gn7-hev": {
+  "id": "grandeur-gn7-hev",
+  "fuelEconomy": 18.4,
+  "rangeKm": null,
+  "basis": "2026 F/L 기준 · 18인치 휠(기본), 2WD, 자동6단 (F/L 이전은 18.0. 19인치 16.7, 20인치 15.7)",
+  "sources": "다나와 자동차 제원, 카눈",
+  "confident": true
+ },
+ "grandeur-gn7-lpg": {
+  "id": "grandeur-gn7-lpg",
+  "fuelEconomy": 7.7,
+  "rangeKm": null,
+  "basis": "2026 F/L 기준 · 18인치 휠(기본), 2WD, 자동8단, LPG 리터 기준 (F/L 이전은 7.8)",
+  "sources": "다나와 자동차 제원, 카눈",
+  "confident": true
+ },
+ "grandeur-hg-2.4": {
+  "id": "grandeur-hg-2.4",
+  "fuelEconomy": 11.3,
+  "rangeKm": null,
+  "basis": "HG240 모던, 17인치 휠, 2WD, 자동6단 — 신연비 기준 도심 9.6/고속 14.4(2013년형). 2011~2012 구연비 표기와 다름",
+  "sources": "다나와 자동차 제원, 카이즈유(CO₂ 155g/km 일치)",
+  "confident": true
+ },
+ "grandeur-hg-3.0": {
+  "id": "grandeur-hg-3.0",
+  "fuelEconomy": 10.4,
+  "rangeKm": null,
+  "basis": "HG300 프리미엄, 18인치 휠, 2WD, 자동6단 — 신연비 기준 도심 8.8/고속 13.2(2015년형). HG330 3.3은 19인치 10.0으로 별개",
+  "sources": "다나와 자동차 제원, 카이즈유",
+  "confident": true
+ },
+ "grandeur-ig-2.4": {
+  "id": "grandeur-ig-2.4",
+  "fuelEconomy": 11.2,
+  "rangeKm": null,
+  "basis": "모던/프리미엄, 17인치 휠, 2WD, 자동6단 — 도심 9.8/고속 13.6(18인치 11.0). 2.4는 2016.11~2019.10에만 존재(이후 2.5로 대체)",
+  "sources": "다나와 자동차 제원, 카이즈유, 카위키",
+  "confident": true
+ },
+ "grandeur-ig-3.3": {
+  "id": "grandeur-ig-3.3",
+  "fuelEconomy": 9.7,
+  "rangeKm": null,
+  "basis": "2WD, 자동8단 — 전기형 셀러브리티 19인치 9.7, 후기형 프리미엄 18인치 9.7로 복합연비 동일. 후기형 캘리그래피 19인치만 9.6",
+  "sources": "다나와 자동차 제원, 카위키",
+  "confident": true
+ },
+ "sonata-yf-2.0-g4kd": {
+  "id": "sonata-yf-2.0-g4kd",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "구연비만 확인됨 — 2009~2011 세타II 자동 표기는 12.8km/L(2011년형 13.0)이며 도심·고속 구분 없는 구연비. 신연비 값 확인 불가",
+  "sources": "다나와 자동차 제원, 나무위키",
+  "confident": false
+ },
+ "sonata-yf-2.0-g4nd": {
+  "id": "sonata-yf-2.0-g4nd",
+  "fuelEconomy": 11.9,
+  "rangeKm": null,
+  "basis": "더 브릴리언트 누우 2.0 CVVL, 16인치 휠, 2WD, 자동6단 — 신연비 도심 10.2/고속 15.1. 수동 12.3, 블루세이버 12.1 별도",
+  "sources": "다나와 자동차 제원, 카이즈유(CO₂ 147g/km 일치)",
+  "confident": true
+ },
+ "sonata-lf-lpg": {
+  "id": "sonata-lf-lpg",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "대표 트림 확정 불가 — LF 시기엔 LPG 승용 일반판매 불가로 기본 트림이 없고, 용도·연식별로 9.1~9.8로 갈림(장애인 9.8, 렌터카 9.6, 택시 9.1~9.4)",
+  "sources": "다나와 자동차 제원",
+  "confident": false
+ },
+ "grandeur-ig-2.5": {
+  "id": "grandeur-ig-2.5",
+  "fuelEconomy": null,
+  "rangeKm": null,
+  "basis": "항목 신설(2026-08-10) — 연비 미조사",
+  "sources": "",
+  "confident": false
+ }
+}
