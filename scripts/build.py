@@ -234,6 +234,9 @@ def spec_box(v, site):
         f'<div class="spec-row"><span class="spec-label">{a}</span><span>{b}</span></div>'
         for a, b in rows
     )
+    # 병합 구간에서 엔진이 바뀐 차종 등, 연비 값의 기준을 밝혀야 오해가 없는 경우
+    if fe and v.get("fuelEconomyNote"):
+        body += f'<div class="spec-note">{esc(v["fuelEconomyNote"])}</div>'
     fuel_line = ""
     prices = site.get("fuelPrices", {})
     basis_km = site.get("fuelCostBasisKm", 15000)

@@ -55,6 +55,9 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
 }
 .spec-box .spec-row:last-of-type { border-bottom: none; }
 .spec-label { font-size: 12px; color: var(--ink-muted); }
+.spec-note {
+  font-size: 12px; color: var(--ink-muted); padding: 0 0 8px; line-height: 1.5;
+}
 .spec-fuel {
   border-top: 0.5px solid var(--border); margin-top: 0; padding: 10px 0 8px;
   font-size: 13px; color: var(--ink-secondary);

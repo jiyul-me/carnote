@@ -283,7 +283,7 @@
   "id": "morning-ja-1.0",
   "fuelEconomy": 14.7,
   "rangeKm": null,
-  "basis": "더 뉴 모닝(2023 F/L~) 14인치 휠, 2WD, 4AT — 14·16인치 동일 14.7. F/L 이전(올 뉴 모닝·모닝 어반)은 15.4~15.7로 상이",
+  "basis": "더 뉴 모닝(2023 F/L~) 14인치 휠, 2WD, 4AT — 14·16인치 동일 14.7. F/L 이전(올 뉴 모닝·모닝 어반)은 15.4~15.7로 상이 / 2020.5 엔진 코드 G3LA→G3LD(스마트스트림) 변경 — 2017~2020 구간 값은 미확정",
   "sources": "기아 공식 제원, 다나와 자동차",
   "confident": true
  },
@@ -323,7 +323,7 @@
   "id": "seltos-sp2-1.6t",
   "fuelEconomy": 12.8,
   "rangeKm": null,
-  "basis": "더 뉴 셀토스(2022 F/L~) 16인치 휠, 2WD, 8AT 기준. 18인치 11.8, 초기형(2019~2022)은 7DCT로 별도",
+  "basis": "더 뉴 셀토스(2022 F/L~) 16인치 휠, 2WD, 8AT 기준. 18인치 11.8, 초기형(2019~2022)은 7DCT로 별도 / 2022 F/L에서 G4FJ(177ps·7DCT)→G4FS(198ps·8AT) 교체 — 2019~2022 구간 값은 미확정",
   "sources": "다나와 자동차, 카눈",
   "confident": true
  },
@@ -989,6 +989,22 @@
   "rangeKm": null,
   "basis": "17인치 휠(기본, 프리미엄 트림), 2WD, 자동8단, 빌트인캠 미적용 — 도심 10.3/고속 14.6 (18인치 11.6, 19인치 캘리그래피 11.1). 2019.11 F/L 이후 더 뉴 그랜저 IG, 스마트스트림 G2.5 GDI",
   "sources": "다나와 자동차 더 뉴 그랜저IG 제원, 카위키(2022년형), 카이즈유",
+  "confident": true
+ },
+ "avante-cn7-nline": {
+  "id": "avante-cn7-nline",
+  "fuelEconomy": 13.8,
+  "rangeKm": null,
+  "basis": "18인치 N Line 전용 휠(단일 사양), 2WD, IVT — 2023.3 F/L 이후 스마트스트림 1.6 자연흡기(123ps) 기준. 2020.8~2023.3은 감마II 1.6 T-GDi(204ps·7DCT) 12.8(수동 12.3). 공식표에 N Line은 빌트인캠 포함 한 줄뿐이라 미적용 별도 인증값 없음",
+  "sources": "현대차 공식 가격표 PDF(the-new-avante / avante-n-line), 카눈, 나무위키",
+  "confident": true
+ },
+ "kona-nline": {
+  "id": "kona-nline",
+  "fuelEconomy": 12.2,
+  "rangeKm": null,
+  "basis": "19인치 N Line 전용 휠, 2WD, 8단 자동 — 2023.1~ 2세대(SX2) 기준. 2020.10~2023.1 1세대(OS F/L)는 18인치·7DCT 12.7. 두 세대 모두 같은 G1.6 T-GDi 198ps(배기량·출력 동일), 변속기·휠만 다름",
+  "sources": "현대차 공식 가격표 PDF(the-all-new-kona / kona-n-line), 카눈, 나무위키",
   "confident": true
  }
 }
