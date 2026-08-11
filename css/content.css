@@ -92,7 +92,26 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
   padding: 10px 0; border-bottom: 0.5px solid var(--border);
   color: var(--ink); text-decoration: none; font-size: 14px;
 }
-.hub-trims li:last-child .hub-trim { border-bottom: none; }
+.hub-trims > li:last-child > .hub-trim,
+.hub-trims > li:last-child > .hub-subgroup:not([open]) > summary.hub-trim { border-bottom: none; }
+
+/* 3단: 브랜드 > 모델 그룹 > 패키지 트림(N Line 등) */
+.hub-subgroup > summary.hub-trim { list-style: none; cursor: pointer; }
+.hub-subgroup > summary.hub-trim::-webkit-details-marker { display: none; }
+.hub-subgroup > summary.hub-trim:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px var(--accent-bg); border-radius: 8px;
+}
+.hub-subgroup[open] > summary .chevron { transform: rotate(180deg); }
+.hub-trims.nested {
+  background: var(--bg); border: 0.5px solid var(--border);
+  border-radius: 8px; margin: 2px 0 8px; padding: 2px 12px;
+}
+
+.compare-line {
+  background: var(--surface); border-radius: 8px;
+  padding: 12px 16px; margin: 0 0 16px; font-size: 14px; color: var(--ink-secondary);
+}
+.compare-line strong { color: var(--ink); }
 
 .tax-summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
 .tax-summary .card { flex: 1; min-width: 150px; margin: 0; }

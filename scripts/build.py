@@ -165,6 +165,42 @@ def jsonld_block(v, rates, site, this_year):
     )
 
 
+def trim_compare_line(v, all_vehicles, rates):
+    """패키지 트림(N Line 등) 페이지에 같은 모델 일반 트림과의 세액 비교 한 줄.
+    중복 콘텐츠를 피하면서 '세금이 더 나오나?'라는 실제 검색 의도에 답한다."""
+    if not v.get("trimGroup"):
+        return ""
+    peers = [
+        p for p in all_vehicles
+        if p["modelFamily"] == v["modelFamily"] and not p.get("trimGroup") and p["id"] != v["id"]
+    ]
+    if not peers:
+        return ""
+
+    def annual(x):
+        if x["fuelType"] == "ev":
+            return rates["displacement"]["ev"]["annualTotalKrw"]
+        return tax_for(x["displacementCc"], 1, rates)["annual"] if x["displacementCc"] else None
+
+    mine = annual(v)
+    if mine is None:
+        return ""
+    same = [p for p in peers if p.get("displacementCc") == v.get("displacementCc")]
+    if same:
+        return (f'<p class="compare-line">이 트림의 자동차세는 <strong>일반 {esc(same[0]["name"])}과 동일</strong>합니다 '
+                f"— 배기량이 같아 세금 차이가 없어요. N Line은 외관·서스펜션 등의 패키지 트림이라 과세 기준(배기량)이 바뀌지 않습니다.</p>")
+    priced = [(p, annual(p)) for p in peers if annual(p) is not None]
+    if not priced:
+        return ""
+    base, base_tax = min(priced, key=lambda t: t[1])
+    diff = mine - base_tax
+    if diff == 0:
+        return (f'<p class="compare-line">이 트림의 자동차세는 <strong>일반 {esc(base["name"])}과 동일</strong>합니다.</p>')
+    word = "높음" if diff > 0 else "낮음"
+    return (f'<p class="compare-line">이 트림의 자동차세는 일반 {esc(base["name"])}({base_tax:,}원)보다 '
+            f"<strong>연 {abs(diff):,}원 {word}</strong>입니다 — 배기량이 달라 과세 구간·세액이 달라집니다.</p>")
+
+
 def spec_box(v, site):
     """'한눈에' 미니 박스 (TASKS 개편 B). 연비·주행거리는 null이면 해당 줄 미노출 — 추정 금지."""
     rows = []
@@ -233,7 +269,7 @@ def table_img_script(v, site, this_year):
     )
 
 
-def vehicle_page(v, rates, site, this_year):
+def vehicle_page(v, rates, site, this_year, all_vehicles=()):
     cc = v["displacementCc"]
     name = v["name"]
     fuel = FUEL_LABELS.get(v["fuelType"], v["fuelType"])
@@ -249,6 +285,7 @@ def vehicle_page(v, rates, site, this_year):
 <div class="tax-hero">연 {annual:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인</p>
 {spec_box(v, site)}
+{trim_compare_line(v, all_vehicles, rates)}
 {notebook_cta(v)}
 {sources_block(rates)}
 <h2>계산 방법</h2>
@@ -325,6 +362,7 @@ def vehicle_page(v, rates, site, this_year):
 <div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
 <p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인</p>
 {spec_box(v, site)}
+{trim_compare_line(v, all_vehicles, rates)}
 {picker}
 {table}
 <button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
@@ -513,6 +551,11 @@ def index_page(vehicles, rates, site):
         groups = {}
         for v in items:
             groups.setdefault(v["modelFamily"], []).append(v)
+        def trim_row(v):
+            return (f'<li><a class="hub-trim" href="{esc(v["slug"])}.html">'
+                    f'<span>{esc(v["name"])}</span>'
+                    f'<span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>')
+
         rows = []
         for family, trims in groups.items():
             if len(trims) == 1:
@@ -521,19 +564,38 @@ def index_page(vehicles, rates, site):
                     f'<li><a class="hub-row" href="{esc(v["slug"])}.html">'
                     f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
                 )
-            else:
-                min_tax = min(new_car_annual(v) for v in trims)
-                trim_rows = "".join(
-                    f'<li><a class="hub-trim" href="{esc(v["slug"])}.html">'
-                    f'<span>{esc(v["name"])}</span><span class="hub-price">연 {new_car_annual(v):,}원</span></a></li>'
-                    for v in trims
-                )
-                rows.append(
-                    f'<li><details class="hub-group"><summary class="hub-row">'
-                    f'<span>{esc(family)}</span>'
-                    f'<span class="hub-right"><span class="hub-price">연 {min_tax:,}원부터</span>{chevron}</span>'
-                    f'</summary><ul class="hub-trims">{trim_rows}</ul></details></li>'
-                )
+                continue
+
+            # 패키지 트림(N Line 등)은 모델 그룹 안에서 다시 묶는다 —
+            # 단 2개 이상일 때만 중첩 details, 1개면 그대로 트림 행 (모델 그룹과 같은 규칙)
+            plain, subs = [], {}
+            for v in trims:
+                tg = v.get("trimGroup")
+                if tg:
+                    subs.setdefault(tg, []).append(v)
+                else:
+                    plain.append(v)
+            inner = "".join(trim_row(v) for v in plain)
+            for tg, members in subs.items():
+                if len(members) == 1:
+                    inner += trim_row(members[0])
+                else:
+                    sub_min = min(new_car_annual(v) for v in members)
+                    inner += (
+                        f'<li><details class="hub-subgroup"><summary class="hub-trim">'
+                        f'<span>{esc(tg)}</span>'
+                        f'<span class="hub-right"><span class="hub-price">연 {sub_min:,}원부터</span>{chevron}</span>'
+                        f'</summary><ul class="hub-trims nested">'
+                        + "".join(trim_row(v) for v in members)
+                        + "</ul></details></li>"
+                    )
+            min_tax = min(new_car_annual(v) for v in trims)
+            rows.append(
+                f'<li><details class="hub-group"><summary class="hub-row">'
+                f'<span>{esc(family)}</span>'
+                f'<span class="hub-right"><span class="hub-price">연 {min_tax:,}원부터</span>{chevron}</span>'
+                f'</summary><ul class="hub-trims">{inner}</ul></details></li>'
+            )
         sections.append(f'<p class="brand-title">{esc(brand)}</p><ul class="hub-list">{"".join(rows)}</ul>')
 
     d = rates["displacement"]
@@ -598,7 +660,7 @@ def main():
     slugs = []
     for v in vehicles:
         out = OUT_DIR / f"{v['slug']}.html"
-        out.write_text(vehicle_page(v, rates, site, this_year), encoding="utf-8")
+        out.write_text(vehicle_page(v, rates, site, this_year, vehicles), encoding="utf-8")
         slugs.append(v["slug"])
     (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(calculator_page(rates, site, this_year), encoding="utf-8")
