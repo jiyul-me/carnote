@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="포터2 2.5 LPG 터보(2,469cc) 자동차세는 신차 기준 연 641,940원. 연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다.">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="canonical" href="https://chailji.com/tax/porter2-lpg.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="차일지">
+  <meta property="og:title" content="포터2 2.5 LPG 터보 자동차세 — 연 641,940원부터, 연식별 계산표 | 차일지">
+  <meta property="og:description" content="포터2 2.5 LPG 터보(2,469cc) 자동차세는 신차 기준 연 641,940원. 연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다.">
+  <meta property="og:url" content="https://chailji.com/tax/porter2-lpg.html">
+  <title>포터2 2.5 LPG 터보 자동차세 — 연 641,940원부터, 연식별 계산표 | 차일지</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E차%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/content.css">
+  <script src="../js/analytics.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="topbar-title" href="../index.html">차일지</a>
+    <nav class="topbar-right topbar-nav">
+      <a href="../tax/index.html">자동차세</a>
+      <a href="../tco.html">유지비 비교</a>
+    </nav>
+  </header>
+  <main class="content">
+<p class="crumb"><a href="index.html">자동차세 계산</a> › 포터2 2.5 LPG 터보</p>
+<h1>포터2 2.5 LPG 터보 자동차세</h1>
+<p class="tax-caption" id="tax-caption">LPG · 2,469cc · 비영업용 승용 · 신차 기준</p>
+<div class="tax-hero" id="hero-amount">연 641,940원</div>
+<p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">612,520원</span> · 29,420원 할인</p>
+<div class="card spec-box"><div class="spec-row"><span class="spec-label">배기량</span><span>2,469cc</span></div><div class="spec-row"><span class="spec-label">연료</span><span>LPG</span></div></div>
+
+<div class="year-picker">
+  <label for="reg-year">우리 차 등록 연도</label>
+  <select id="reg-year"><option value="">선택 (신차 기준)</option><option value="2026">2026년</option><option value="2025">2025년</option><option value="2024">2024년</option><option value="2023">2023년</option><option value="2022">2022년</option><option value="2021">2021년</option><option value="2020">2020년</option><option value="2019">2019년</option><option value="2018">2018년</option><option value="2017">2017년</option><option value="2016">2016년</option><option value="2015">2015년</option><option value="2014">2014년</option><option value="2013">2013년</option></select>
+</div>
+<script>
+(function () {
+  var rows = {"1": {"annual": 641940, "pay": 612520}, "2": {"annual": 641940, "pay": 612520}, "3": {"annual": 609840, "pay": 581890}, "4": {"annual": 577740, "pay": 551270}, "5": {"annual": 545640, "pay": 520640}, "6": {"annual": 513550, "pay": 490020}, "7": {"annual": 481450, "pay": 459390}, "8": {"annual": 449350, "pay": 428760}, "9": {"annual": 417240, "pay": 398120}, "10": {"annual": 385160, "pay": 367510}, "11": {"annual": 353060, "pay": 336880}, "12": {"annual": 320970, "pay": 306260}, "13": {"annual": 320970, "pay": 306260}};
+  window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
+  var sel = document.getElementById('reg-year');
+  sel.addEventListener('change', function () {
+    document.querySelectorAll('tr.hl').forEach(function (r) { r.classList.remove('hl'); });
+    var age = sel.value ? Math.min(13, Math.max(1, 2026 - Number(sel.value) + 1)) : 1;
+    var d = rows[String(age)];
+    document.getElementById('hero-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
+    document.getElementById('prepay-line').innerHTML = '1월 연납 시 <span class="accent">' +
+      d.pay.toLocaleString('ko-KR') + '원</span> · ' + (d.annual - d.pay).toLocaleString('ko-KR') + '원 할인';
+    document.getElementById('tax-caption').textContent = 'LPG · 2,469cc · 비영업용 승용 · ' +
+      (sel.value ? sel.value + '년 등록 (' + age + '년차) 기준' : '신차 기준');
+    if (sel.value) {
+      var row = document.getElementById('age-' + age);
+      if (row) {
+        row.classList.add('hl');
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+    var cta = document.getElementById('start-notebook');
+    if (cta) {
+      var base = cta.getAttribute('href').split('&year=')[0];
+      cta.setAttribute('href', sel.value ? base + '&year=' + sel.value : base);
+    }
+  });
+})();
+</script>
+<div class="table-wrap"><table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody><tr id="age-1"><td>1년차 (신차)<span style="color:var(--ink-muted);font-size:12px;"> · 2026년 등록</span></td><td>0%</td><td>641,940원</td><td>612,520원</td></tr><tr id="age-2"><td>2년차<span style="color:var(--ink-muted);font-size:12px;"> · 2025년 등록</span></td><td>0%</td><td>641,940원</td><td>612,520원</td></tr><tr id="age-3"><td>3년차<span style="color:var(--ink-muted);font-size:12px;"> · 2024년 등록</span></td><td>5%</td><td>609,840원</td><td>581,890원</td></tr><tr id="age-4"><td>4년차<span style="color:var(--ink-muted);font-size:12px;"> · 2023년 등록</span></td><td>10%</td><td>577,740원</td><td>551,270원</td></tr><tr id="age-5"><td>5년차<span style="color:var(--ink-muted);font-size:12px;"> · 2022년 등록</span></td><td>15%</td><td>545,640원</td><td>520,640원</td></tr><tr id="age-6"><td>6년차<span style="color:var(--ink-muted);font-size:12px;"> · 2021년 등록</span></td><td>20%</td><td>513,550원</td><td>490,020원</td></tr><tr id="age-7"><td>7년차<span style="color:var(--ink-muted);font-size:12px;"> · 2020년 등록</span></td><td>25%</td><td>481,450원</td><td>459,390원</td></tr><tr id="age-8"><td>8년차<span style="color:var(--ink-muted);font-size:12px;"> · 2019년 등록</span></td><td>30%</td><td>449,350원</td><td>428,760원</td></tr><tr id="age-9"><td>9년차<span style="color:var(--ink-muted);font-size:12px;"> · 2018년 등록</span></td><td>35%</td><td>417,240원</td><td>398,120원</td></tr><tr id="age-10"><td>10년차<span style="color:var(--ink-muted);font-size:12px;"> · 2017년 등록</span></td><td>40%</td><td>385,160원</td><td>367,510원</td></tr><tr id="age-11"><td>11년차<span style="color:var(--ink-muted);font-size:12px;"> · 2016년 등록</span></td><td>45%</td><td>353,060원</td><td>336,880원</td></tr><tr id="age-12"><td>12년차<span style="color:var(--ink-muted);font-size:12px;"> · 2015년 등록</span></td><td>50%</td><td>320,970원</td><td>306,260원</td></tr><tr id="age-13"><td>13년차 이상<span style="color:var(--ink-muted);font-size:12px;"> · 2014년 등록</span></td><td>50%</td><td>320,970원</td><td>306,260원</td></tr></tbody></table></div>
+<button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
+<script>
+(function () {
+  var btn = document.getElementById('save-table-img');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var rows = window.__TAX_ROWS__ || {};
+    var scale = 2, W = 720, rowH = 42, headH = 96, footH = 54;
+    var ages = Object.keys(rows);
+    var H = headH + rowH * (ages.length + 1) + footH;
+    var cv = document.createElement('canvas');
+    cv.width = W * scale; cv.height = H * scale;
+    var ctx = cv.getContext('2d');
+    ctx.scale(scale, scale);
+    var font = '-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    function won(n) { return n.toLocaleString('ko-KR') + '원'; }
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1b2430'; ctx.font = '700 26px ' + font;
+    ctx.fillText('포터2 2.5 LPG 터보 자동차세', 24, 42);
+    ctx.fillStyle = '#66707d'; ctx.font = '14px ' + font;
+    ctx.fillText('2,469cc · 2026년 세율 기준 · 연납은 1월 신청 기준', 24, 68);
+    var y = headH;
+    ctx.fillStyle = '#f0f3f8'; ctx.fillRect(0, y - 28, W, rowH);
+    ctx.fillStyle = '#66707d'; ctx.font = '700 14px ' + font;
+    ctx.fillText('차령', 24, y);
+    ctx.textAlign = 'right';
+    ctx.fillText('연세액', 440, y);
+    ctx.fillText('1월 연납 시', 690, y);
+    ctx.textAlign = 'left';
+    ages.forEach(function (age, i) {
+      y += rowH;
+      if (i % 2 === 1) { ctx.fillStyle = '#f7f9fc'; ctx.fillRect(0, y - 28, W, rowH); }
+      ctx.fillStyle = '#1b2430'; ctx.font = '15px ' + font;
+      ctx.fillText(age + '년차' + (age === '13' ? ' 이상' : ''), 24, y);
+      ctx.textAlign = 'right'; ctx.font = '600 15px ' + font;
+      ctx.fillText(won(rows[age].annual), 440, y);
+      ctx.fillText(won(rows[age].pay), 690, y);
+      ctx.textAlign = 'left';
+    });
+    ctx.fillStyle = '#9aa4b2'; ctx.font = '13px ' + font;
+    ctx.textAlign = 'right';
+    ctx.fillText('chailji.com', W - 24, H - 22);
+    ctx.textAlign = 'left';
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = 'porter2-lpg-tax.png';
+    a.click();
+  });
+})();
+</script>
+<div class="card" style="border-color:var(--accent);margin:18px 0;">
+  <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
+  <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
+  <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?model=porter2-lpg&fuel=lpg&cc=2469">이 차로 수첩 시작하기</a>
+</div>
+<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car=porter2-lpg">이 차와 다른 차 유지비 비교하기</a>
+<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>2026년 세율 기준 · 최종 확인 2026-08. 세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
+<h2>계산 방법</h2>
+<p>본세 = 배기량 × cc당 세액(200원/cc 구간) → 차령 3년차부터 (차령 − 2) × 5% 경감(최대 50%) → 지방교육세 30% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 5%를 공제받아요.</p>
+<p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
+<p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "포터2 2.5 LPG 터보 자동차세는 얼마인가요?", "acceptedAnswer": {"@type": "Answer", "text": "배기량 2,469cc 기준 신차는 연 641,940원(본세+지방교육세)입니다. 3년차부터 차령 경감이 적용되어 12년 이상이면 연 320,970원까지 줄어듭니다."}}, {"@type": "Question", "name": "1월에 연납하면 얼마나 할인되나요?", "acceptedAnswer": {"@type": "Answer", "text": "1월 연납 시 2~12월분 세액의 5%를 공제받습니다. 신차 기준 연 641,940원에서 29,420원을 공제받아 612,520원을 냅니다."}}, {"@type": "Question", "name": "차령 경감은 언제부터 적용되나요?", "acceptedAnswer": {"@type": "Answer", "text": "최초 등록 후 3년차부터 (차령 − 2) × 5%씩 경감되고, 12년 이상이면 최대 50%가 경감됩니다."}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "차일지", "item": "https://chailji.com/"}, {"@type": "ListItem", "position": 2, "name": "자동차세", "item": "https://chailji.com/tax/index.html"}, {"@type": "ListItem", "position": 3, "name": "포터2 2.5 LPG 터보", "item": "https://chailji.com/tax/porter2-lpg.html"}]}</script>
+  </main>
+  <footer class="foot">
+    <p>차일지 (베타) — 계산 결과는 참고용이며, 실제 고지 세액은 위택스에서 확인하세요.</p>
+    <p><a href="../privacy.html">개인정보처리방침</a> · <a href="../terms.html">이용약관</a></p>
+  </footer>
+</body>
+</html>
