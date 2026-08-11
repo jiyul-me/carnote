@@ -27,7 +27,14 @@
       setTimeout(function () {
         try {
           var d = f.contentDocument;
+          var line2 = '';
+          d.querySelectorAll('details').forEach(function (el) { el.open = true; });
           var sw = d.documentElement.scrollWidth;
+          var deep = d.querySelector('.hub-trims.nested .hub-trim');
+          if (deep) {
+            var r = deep.getBoundingClientRect();
+            line2 = ' | 3단 행: 좌 ' + Math.round(r.left) + 'px, 높이 ' + Math.round(r.height) + 'px';
+          }
           var line = p + ' | scrollWidth=' + sw + (sw <= 376 ? ' [OK]' : ' [OVERFLOW]');
           var hero = d.querySelector('.tax-hero, .odo-km');
           if (hero) {
@@ -36,7 +43,7 @@
             var oneLine = hero.getBoundingClientRect().height < lineH * 1.6;
             line += ' | 히어로 ' + (oneLine ? '1줄 [OK]' : '[줄바꿈!]');
           }
-          results.push(line);
+          results.push(line + line2);
         } catch (e) {
           results.push(p + ' | [ERROR] ' + e.message);
         }

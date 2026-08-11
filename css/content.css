@@ -89,7 +89,8 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
 }
 .hub-trim {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 10px 0; border-bottom: 0.5px solid var(--border);
+  padding: 12px 0; /* 3단 중첩 시에도 터치 타깃 44px 이상 유지 */
+  border-bottom: 0.5px solid var(--border);
   color: var(--ink); text-decoration: none; font-size: 14px;
 }
 .hub-trims > li:last-child > .hub-trim,

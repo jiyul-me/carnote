@@ -165,6 +165,18 @@ def jsonld_block(v, rates, site, this_year):
     )
 
 
+def josa(word, no_batchim, with_batchim):
+    """받침 유무로 조사 선택 (와/과, 은/는 …). 숫자로 끝나면 읽는 음의 받침을 따른다."""
+    if not word:
+        return no_batchim
+    ch = word.strip()[-1]
+    if "가" <= ch <= "힣":
+        return with_batchim if (ord(ch) - 0xAC00) % 28 else no_batchim
+    if ch.isdigit():  # 영·일·삼·육·칠·팔은 받침 있음
+        return with_batchim if ch in "0136 78".replace(" ", "") else no_batchim
+    return no_batchim
+
+
 def trim_compare_line(v, all_vehicles, rates):
     """패키지 트림(N Line 등) 페이지에 같은 모델 일반 트림과의 세액 비교 한 줄.
     중복 콘텐츠를 피하면서 '세금이 더 나오나?'라는 실제 검색 의도에 답한다."""
@@ -187,18 +199,23 @@ def trim_compare_line(v, all_vehicles, rates):
         return ""
     same = [p for p in peers if p.get("displacementCc") == v.get("displacementCc")]
     if same:
-        return (f'<p class="compare-line">이 트림의 자동차세는 <strong>일반 {esc(same[0]["name"])}과 동일</strong>합니다 '
-                f"— 배기량이 같아 세금 차이가 없어요. N Line은 외관·서스펜션 등의 패키지 트림이라 과세 기준(배기량)이 바뀌지 않습니다.</p>")
+        reason = ("전기차는 배기량과 무관하게 정액이라 트림이 달라도 세금이 같아요."
+                  if v["fuelType"] == "ev" else
+                  "배기량이 같아 세금 차이가 없어요.")
+        return (f'<p class="compare-line">이 트림의 자동차세는 '
+                f'<strong>일반 {esc(same[0]["name"])}{josa(same[0]["name"], "와", "과")} 동일</strong>합니다 — {reason} '
+                f"N Line은 외관·서스펜션 등의 패키지 트림이라 과세 기준이 바뀌지 않습니다.</p>")
     priced = [(p, annual(p)) for p in peers if annual(p) is not None]
     if not priced:
         return ""
     base, base_tax = min(priced, key=lambda t: t[1])
     diff = mine - base_tax
     if diff == 0:
-        return (f'<p class="compare-line">이 트림의 자동차세는 <strong>일반 {esc(base["name"])}과 동일</strong>합니다.</p>')
-    word = "높음" if diff > 0 else "낮음"
+        return ('<p class="compare-line">이 트림의 자동차세는 '
+                f'<strong>일반 {esc(base["name"])}{josa(base["name"], "와", "과")} 동일</strong>합니다.</p>')
+    word = "높습니다" if diff > 0 else "낮습니다"
     return (f'<p class="compare-line">이 트림의 자동차세는 일반 {esc(base["name"])}({base_tax:,}원)보다 '
-            f"<strong>연 {abs(diff):,}원 {word}</strong>입니다 — 배기량이 달라 과세 구간·세액이 달라집니다.</p>")
+            f"<strong>연 {abs(diff):,}원 {word}</strong> — 배기량이 달라 과세 구간·세액이 달라집니다.</p>")
 
 
 def spec_box(v, site):
