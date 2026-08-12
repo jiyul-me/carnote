@@ -44,6 +44,37 @@ def tax_for(cc, age, rates):
     return {"perCc": per_cc, "discountRate": discount_rate, "base": base_after, "edu": edu, "annual": annual}
 
 
+def nonpassenger_tax(v, rates):
+    """승합·화물 연세액. 정액이므로 차령 경감·지방교육세를 적용하지 않는다.
+    반환: {kind, nonBusiness, business, basisLabel} / 계산 불가면 None"""
+    cls = v.get("vehicleClass", "passenger")
+    if cls == "truck":
+        kg = v.get("payloadKg")
+        if not kg:
+            return None
+        t = rates["truck"]
+        for b in t["brackets"]:
+            if kg <= b["maxKg"]:
+                return {"kind": "truck", "nonBusiness": b["nonBusinessKrw"],
+                        "business": b["businessKrw"], "basisLabel": f"적재정량 {kg:,}kg"}
+        # 1만kg 초과: 마지막 구간 + 초과 1만kg마다 가산
+        last = t["brackets"][-1]
+        extra_tons = -(-(kg - last["maxKg"]) // 10000)  # 올림
+        per = t["over10tPerTonKrw"]
+        return {"kind": "truck",
+                "nonBusiness": last["nonBusinessKrw"] + extra_tons * per["nonBusinessKrw"],
+                "business": last["businessKrw"] + extra_tons * per["businessKrw"],
+                "basisLabel": f"적재정량 {kg:,}kg"}
+    if cls == "van":
+        size = v.get("vanSize", "small")
+        s = next((x for x in rates["van"]["sizes"] if x["key"] == size), None)
+        if not s:
+            return None
+        return {"kind": "van", "nonBusiness": s["nonBusinessKrw"],
+                "business": s["businessKrw"], "basisLabel": s["label"]}
+    return None
+
+
 def prepay(annual, rates):
     """1월 연납 시 공제액·납부액. 공제율은 rateByYear의 가장 최근 연도."""
     p = rates["prepayDiscount"]
@@ -294,6 +325,75 @@ def table_img_script(v, site, this_year):
         .replace("__WATERMARK__", watermark)
         .replace("__SLUG__", v["slug"])
     )
+
+
+def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
+    """화물·승합 페이지. 정액이라 연식별 표를 만들지 않는다(전 행이 같은 값이라 무의미)."""
+    t = nonpassenger_tax(v, rates)
+    name = v["name"]
+    is_truck = t["kind"] == "truck"
+    kind_label = "화물자동차" if is_truck else "승합자동차"
+    crumb = '<p class="crumb"><a href="index.html">자동차세 계산</a> › ' + esc(name) + "</p>"
+
+    # 같은 배기량이라면 승용차는 얼마인지 — 왜 이렇게 낮은지 이해를 돕는다
+    compare = ""
+    if v.get("displacementCc"):
+        p = tax_for(v["displacementCc"], 1, rates)["annual"]
+        compare = (f'<p class="compare-line">같은 배기량({v["displacementCc"]:,}cc) 승용차라면 연 {p:,}원입니다 — '
+                   f"{kind_label}는 배기량이 아니라 "
+                   f"{'적재정량' if is_truck else '규모'} 기준이라 훨씬 낮습니다.</p>")
+
+    if is_truck:
+        parts = []
+        prev = 0
+        for b in rates["truck"]["brackets"]:
+            hl = ' class="hl"' if prev < v["payloadKg"] <= b["maxKg"] else ""
+            parts.append(f'<tr{hl}><td>{b["maxKg"]:,}kg 이하</td>'
+                         f'<td>{b["nonBusinessKrw"]:,}원</td><td>{b["businessKrw"]:,}원</td></tr>')
+            prev = b["maxKg"]
+        rows = "".join(parts)
+        table = ('<h2>적재정량별 세액</h2><div class="table-wrap"><table class="data"><thead><tr>'
+                 "<th>적재정량</th><th>자가용(비영업용)</th><th>영업용</th></tr></thead><tbody>"
+                 + rows + "</tbody></table></div>"
+                 f'<p class="notice">{esc(rates["truck"]["over10tNote"])}</p>')
+        basis_desc = (f'<p>{esc(name)}는 적재정량 {v["payloadKg"]:,}kg 화물자동차입니다. '
+                      "화물자동차 자동차세는 배기량과 무관하게 적재정량 구간별 정액으로 부과됩니다.</p>")
+    else:
+        parts = []
+        for sz in rates["van"]["sizes"]:
+            hl = ' class="hl"' if sz["key"] == v.get("vanSize", "small") else ""
+            parts.append(f'<tr{hl}><td>{esc(sz["label"])}</td>'
+                         f'<td>{sz["nonBusinessKrw"]:,}원</td><td>{sz["businessKrw"]:,}원</td></tr>')
+        rows = "".join(parts)
+        table = ('<h2>규모별 세액</h2><div class="table-wrap"><table class="data"><thead><tr>'
+                 "<th>구분</th><th>자가용(비영업용)</th><th>영업용</th></tr></thead><tbody>"
+                 + rows + "</tbody></table></div>"
+                 f'<p class="notice">대형 기준: {esc(rates["van"]["largeCriteria"])}</p>')
+        basis_desc = (f'<p>{esc(name)}는 승차정원 11인 이상 승합자동차입니다. '
+                      "승합자동차 자동차세는 배기량과 무관하게 규모별 정액으로 부과됩니다.</p>")
+
+    body = f"""{crumb}
+<h1>{esc(name)} 자동차세</h1>
+<p class="tax-caption">{esc(kind_label)} · {esc(t["basisLabel"])} · 자가용 기준</p>
+<div class="tax-hero">연 {t["nonBusiness"]:,}원</div>
+<p class="prepay-line">영업용은 연 <span class="accent">{t["business"]:,}원</span></p>
+<div class="card spec-box">
+  <div class="spec-row"><span class="spec-label">분류</span><span>{esc(kind_label)}</span></div>
+  <div class="spec-row"><span class="spec-label">과세 기준</span><span>{esc(t["basisLabel"])}</span></div>
+  <div class="spec-row"><span class="spec-label">연료</span><span>{esc(FUEL_LABELS.get(v["fuelType"], v["fuelType"]))}</span></div>
+</div>
+<p class="compare-line"><strong>연식과 무관하게 정액입니다.</strong> 승용차와 달리 차령 경감(3년차부터 5%씩)이 적용되지 않고,
+지방교육세 30%도 붙지 않습니다. 따라서 신차든 10년차든 세액이 같습니다.</p>
+{compare}
+{table}
+{basis_desc}
+{notebook_cta(v)}
+{sources_block(rates)}
+<p>소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서 하실 수 있어요.</p>"""
+    title = f"{name} 자동차세 — 연 {t['nonBusiness']:,}원 (자가용) | {site['siteName']}"
+    desc = (f"{name}({kind_label}) 자동차세는 자가용 연 {t['nonBusiness']:,}원, 영업용 {t['business']:,}원. "
+            f"{'적재정량' if is_truck else '규모'} 기준 정액이라 연식과 무관합니다.")
+    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
 
 
 def vehicle_page(v, rates, site, this_year, all_vehicles=()):
@@ -560,6 +660,8 @@ def index_page(vehicles, rates, site):
         by_brand.setdefault(v["brand"], []).append(v)
 
     def new_car_annual(v):
+        if v.get("vehicleClass", "passenger") != "passenger":
+            return nonpassenger_tax(v, rates)["nonBusiness"]
         if v["fuelType"] == "ev":
             return rates["displacement"]["ev"]["annualTotalKrw"]
         return tax_for(v["displacementCc"], 1, rates)["annual"]
@@ -679,31 +781,38 @@ def main():
     all_active = [v for v in load("vehicles.json")["vehicles"] if v["status"] == "active"]
     # 분류 가드: 승용(passenger)이 아닌 차종은 배기량 과세 대상이 아니다.
     # 화물은 적재량 기준, 승합은 규모별 정액이라 이 사이트의 계산이 성립하지 않는다.
-    non_passenger = [v for v in all_active if v.get("vehicleClass", "passenger") != "passenger"]
-    passenger = [v for v in all_active if v.get("vehicleClass", "passenger") == "passenger"]
-    # 스켈레톤 가드: 배기량 미확정(null) 차종은 페이지를 만들지 않는다.
-    # 전기차는 배기량 무관 정액이라 이름만 확정되면 생성 대상 (cc 채우면 자동 합류)
-    vehicles = [v for v in passenger if v["fuelType"] == "ev" or v["displacementCc"]]
-    skipped = [v for v in passenger if v not in vehicles]
+    # 분류별 생성 조건: 승용은 배기량(또는 전기차), 화물은 적재정량, 승합은 규모가 있어야 계산된다
+    def buildable(v):
+        cls = v.get("vehicleClass", "passenger")
+        if cls == "truck":
+            return bool(v.get("payloadKg"))
+        if cls == "van":
+            return bool(v.get("vanSize"))
+        return v["fuelType"] == "ev" or bool(v["displacementCc"])
+
+    vehicles = [v for v in all_active if buildable(v)]
+    skipped = [v for v in all_active if not buildable(v)]
     this_year = datetime.date.today().year
 
     OUT_DIR.mkdir(exist_ok=True)
     slugs = []
     for v in vehicles:
         out = OUT_DIR / f"{v['slug']}.html"
-        out.write_text(vehicle_page(v, rates, site, this_year, vehicles), encoding="utf-8")
+        if v.get("vehicleClass", "passenger") == "passenger":
+            html_out = vehicle_page(v, rates, site, this_year, vehicles)
+        else:
+            html_out = nonpassenger_page(v, rates, site, this_year, vehicles)
+        out.write_text(html_out, encoding="utf-8")
         slugs.append(v["slug"])
     (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(calculator_page(rates, site, this_year), encoding="utf-8")
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
     if skipped:
         print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
-    if non_passenger:
-        kinds = {}
-        for v in non_passenger:
-            kinds.setdefault(v["vehicleClass"], []).append(v["name"])
-        for k, names in kinds.items():
-            print(f"· 승용 아님({k}) {len(names)}종 제외: {', '.join(names)}")
+    kinds = {}
+    for v in vehicles:
+        kinds[v.get("vehicleClass", "passenger")] = kinds.get(v.get("vehicleClass", "passenger"), 0) + 1
+    print("· 분류별: " + " / ".join(f"{k} {n}종" for k, n in kinds.items()))
     build_sitemap(site, slugs)
 
 

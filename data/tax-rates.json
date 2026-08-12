@@ -4,15 +4,24 @@
   "lastVerified": "2026-08",
   "verifiedAgainstWetax": false,
   "system": "displacement",
-  "note": "system은 현행 배기량 기준. 차량가액 기준 개편 확정 시 'value' 블록을 추가하고 system을 교체한다 (CLAUDE.md 세율 데이터 규칙)",
+  "note": "system은 현행 배기량 기준. 차량가액 기준 개편 확정 시 'value' 블록을 추가하고 system을 교체한다 (CLAUDE.md 세율 데이터 규칙) / 승합·화물 세율은 van·truck 블록 (지방세법 제127조 제4·5호)",
   "displacement": {
     "vehicleClass": "passenger-nonbusiness",
     "vehicleClassLabel": "비영업용 승용",
     "bracketNote": "maxCc는 이하(≤) 기준. null은 상한 없음",
     "brackets": [
-      { "maxCc": 1000, "wonPerCc": 80 },
-      { "maxCc": 1600, "wonPerCc": 140 },
-      { "maxCc": null, "wonPerCc": 200 }
+      {
+        "maxCc": 1000,
+        "wonPerCc": 80
+      },
+      {
+        "maxCc": 1600,
+        "wonPerCc": 140
+      },
+      {
+        "maxCc": null,
+        "wonPerCc": 200
+      }
     ],
     "agingDiscount": {
       "startCarAge": 3,
@@ -32,7 +41,10 @@
     "rateByYear": {
       "2026": 0.05
     },
-    "januaryProration": { "coveredMonths": 11, "totalMonths": 12 },
+    "januaryProration": {
+      "coveredMonths": 11,
+      "totalMonths": 12
+    },
     "januaryFormula": "연납 할인 = 연세액 × (coveredMonths/totalMonths) × 공제율 (1월 신청 시 2~12월분 공제)",
     "fallbackRule": "당해 연도 키가 없으면 가장 최근 연도의 공제율을 사용하되 UI에 'YYYY년 기준' 문구를 강제 표기",
     "note": "3·6·9월 신청 시 공제 대상 기간이 줄어듦. MVP 계산기는 1월 연납 기준만 노출. 당초 시행령상 2025년 이후 3% 축소 예정이었으나 2024-12 시행령 개정으로 5% 유지됨(2025·2026 적용 확인) — 향후 축소 재추진 가능성이 있으니 매년 초 위택스(wetax.go.kr) 연납 안내에서 당해 연도 공제율 확인 필수"
@@ -46,5 +58,68 @@
       "label": "위택스 연납 안내",
       "url": "https://www.wetax.go.kr"
     }
-  ]
+  ],
+  "van": {
+    "sizes": [
+      {
+        "key": "small",
+        "label": "소형일반버스",
+        "businessKrw": 25000,
+        "nonBusinessKrw": 65000
+      },
+      {
+        "key": "large",
+        "label": "대형일반버스",
+        "businessKrw": 42000,
+        "nonBusinessKrw": 115000
+      }
+    ],
+    "largeCriteria": "승차정원 36인 이상이거나 길이·너비·높이가 모두 소형을 초과하면서 길이 9m 이상",
+    "note": "정액 과세 — 지방교육세 미부과, 차령 경감 미적용"
+  },
+  "truck": {
+    "brackets": [
+      {
+        "maxKg": 1000,
+        "businessKrw": 6600,
+        "nonBusinessKrw": 28500
+      },
+      {
+        "maxKg": 2000,
+        "businessKrw": 9600,
+        "nonBusinessKrw": 34500
+      },
+      {
+        "maxKg": 3000,
+        "businessKrw": 13500,
+        "nonBusinessKrw": 48000
+      },
+      {
+        "maxKg": 4000,
+        "businessKrw": 18000,
+        "nonBusinessKrw": 63000
+      },
+      {
+        "maxKg": 5000,
+        "businessKrw": 22500,
+        "nonBusinessKrw": 79500
+      },
+      {
+        "maxKg": 8000,
+        "businessKrw": 36000,
+        "nonBusinessKrw": 130500
+      },
+      {
+        "maxKg": 10000,
+        "businessKrw": 45000,
+        "nonBusinessKrw": 157500
+      }
+    ],
+    "over10tPerTonKrw": {
+      "businessKrw": 10000,
+      "nonBusinessKrw": 30000
+    },
+    "over10tNote": "1만kg 초과분은 1만kg마다 영업용 1만원·비영업용 3만원 가산",
+    "note": "적재정량 기준 정액 과세 — 지방교육세 미부과, 차령 경감 미적용"
+  }
 }
