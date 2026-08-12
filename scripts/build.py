@@ -177,6 +177,13 @@ def josa(word, no_batchim, with_batchim):
     return no_batchim
 
 
+def class_note_line(v):
+    """정원에 따라 승용/승합/화물이 갈리는 모델의 안내 (카니발·스타리아).
+    이 페이지의 계산은 승용 사양 기준임을 밝혀야 11인승 소유자가 오해하지 않는다."""
+    note = v.get("classNote")
+    return f'<p class="compare-line">{esc(note)}</p>' if note else ""
+
+
 def trim_compare_line(v, all_vehicles, rates):
     """패키지 트림(N Line 등) 페이지에 같은 모델 일반 트림과의 세액 비교 한 줄.
     중복 콘텐츠를 피하면서 '세금이 더 나오나?'라는 실제 검색 의도에 답한다."""
@@ -305,7 +312,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=()):
 <div class="tax-hero">연 {annual:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인</p>
 {spec_box(v, site)}
-{trim_compare_line(v, all_vehicles, rates)}
+{class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
 {notebook_cta(v)}
 {sources_block(rates)}
 <h2>계산 방법</h2>
@@ -382,7 +389,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=()):
 <div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
 <p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인</p>
 {spec_box(v, site)}
-{trim_compare_line(v, all_vehicles, rates)}
+{class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
 {picker}
 {table}
 <button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
