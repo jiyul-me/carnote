@@ -209,9 +209,11 @@
         return r.json();
       });
     })).then(function (res) {
-      // 배기량 미확정 스켈레톤 제외 (전기차는 정액이라 포함)
+      // 승용이 아닌 차종(화물·승합)과 배기량 미확정 스켈레톤 제외 (전기차는 정액이라 포함)
       data.vehicles = res[0].vehicles.filter(function (v) {
-        return v.status === 'active' && (v.fuelType === 'ev' || v.displacementCc != null);
+        return v.status === 'active' &&
+          (v.vehicleClass || 'passenger') === 'passenger' &&
+          (v.fuelType === 'ev' || v.displacementCc != null);
       });
       data.rates = res[1];
       data.dep = res[2];

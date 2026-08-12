@@ -670,10 +670,14 @@ def main():
     site = load("site.json")
     rates = load("tax-rates.json")
     all_active = [v for v in load("vehicles.json")["vehicles"] if v["status"] == "active"]
+    # 분류 가드: 승용(passenger)이 아닌 차종은 배기량 과세 대상이 아니다.
+    # 화물은 적재량 기준, 승합은 규모별 정액이라 이 사이트의 계산이 성립하지 않는다.
+    non_passenger = [v for v in all_active if v.get("vehicleClass", "passenger") != "passenger"]
+    passenger = [v for v in all_active if v.get("vehicleClass", "passenger") == "passenger"]
     # 스켈레톤 가드: 배기량 미확정(null) 차종은 페이지를 만들지 않는다.
     # 전기차는 배기량 무관 정액이라 이름만 확정되면 생성 대상 (cc 채우면 자동 합류)
-    vehicles = [v for v in all_active if v["fuelType"] == "ev" or v["displacementCc"]]
-    skipped = [v for v in all_active if v not in vehicles]
+    vehicles = [v for v in passenger if v["fuelType"] == "ev" or v["displacementCc"]]
+    skipped = [v for v in passenger if v not in vehicles]
     this_year = datetime.date.today().year
 
     OUT_DIR.mkdir(exist_ok=True)
@@ -687,6 +691,12 @@ def main():
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
     if skipped:
         print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
+    if non_passenger:
+        kinds = {}
+        for v in non_passenger:
+            kinds.setdefault(v["vehicleClass"], []).append(v["name"])
+        for k, names in kinds.items():
+            print(f"· 승용 아님({k}) {len(names)}종 제외: {', '.join(names)}")
     build_sitemap(site, slugs)
 
 
