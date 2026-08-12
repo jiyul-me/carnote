@@ -327,9 +327,20 @@ def table_img_script(v, site, this_year):
     )
 
 
+def lump_sum_note(annual, rates):
+    """연세액이 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능."""
+    p = rates["prepayDiscount"]
+    th = p.get("lumpSumThresholdKrw")
+    if not th or annual > th:
+        return ""
+    return ('<p class="notice">연세액이 10만원 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 '
+            "공제를 자동 반영하는 경우가 있습니다. 이때는 1월·3월에만 연납 신청이 가능합니다.</p>")
+
+
 def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
     """화물·승합 페이지. 정액이라 연식별 표를 만들지 않는다(전 행이 같은 값이라 무의미)."""
     t = nonpassenger_tax(v, rates)
+    pp = prepay(t["nonBusiness"], rates)  # 연납은 차종 구분 없이 적용(지방세법 제128조 제3항)
     name = v["name"]
     is_truck = t["kind"] == "truck"
     kind_label = "화물자동차" if is_truck else "승합자동차"
@@ -376,7 +387,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption">{esc(kind_label)} · {esc(t["basisLabel"])} · 자가용 기준</p>
 <div class="tax-hero">연 {t["nonBusiness"]:,}원</div>
-<p class="prepay-line">영업용은 연 <span class="accent">{t["business"]:,}원</span></p>
+<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인 &nbsp;|&nbsp; 영업용 {t["business"]:,}원</p>
 <div class="card spec-box">
   <div class="spec-row"><span class="spec-label">분류</span><span>{esc(kind_label)}</span></div>
   <div class="spec-row"><span class="spec-label">과세 기준</span><span>{esc(t["basisLabel"])}</span></div>
@@ -387,6 +398,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
 {compare}
 {table}
 {basis_desc}
+{lump_sum_note(t["nonBusiness"], rates)}
 {notebook_cta(v)}
 {sources_block(rates)}
 <p>소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서 하실 수 있어요.</p>"""
