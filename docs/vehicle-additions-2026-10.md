@@ -1,12 +1,12 @@
 # 차종 추가 기록 (2026-10)
 
-- 작업일: 2026-10-04 · 대상 파일: `data/vehicles.json` (199종, 이번에 7종 추가)
-- 절차: 후보마다 두 조사(A·B)가 서로 따로 웹에서 확인 → **배기량·연료·분류가 같게 나온 것만 추가**. 값이 갈리면 1차 출처 재확인(판정)을 거친다.
-- 이번 7종은 모두 A·B가 같은 값을 냈다(판정 거친 항목 없음).
-- 연비·주행거리는 **두 조사가 같은 트림 기준으로 같은 값(±0.05)을 냈을 때만** 넣는다. 이번 7종은 해당이 없어 전부 `null` — 페이지에 연비·연료비 줄이 나오지 않는다.
-- 조사 환경의 한계: 두 조사 모두 제조사·공공기관 사이트에 직접 접속이 거의 막혀서, 검색 결과 요약이나 GitHub에 올라온 사본(관보, 에너지공단 공공데이터, 카탈로그 텍스트)으로 확인한 경우가 많다. 아래 '확인 필요' 항목이 많은 이유다.
+- 작업일: 2026-10-04 · 대상 파일: `data/vehicles.json` (247종 — 1차 7종, 2차 48종 추가)
+- 1차(7종): 후보마다 두 조사(A·B)가 서로 따로 웹에서 확인 → **배기량·연료·분류가 같게 나온 것만 추가**. 값이 갈리면 1차 출처 재확인(판정)을 거친다. 7종 모두 A·B가 같은 값을 냈다(판정 거친 항목 없음).
+- 2차(48종): 1차에서 한쪽 이상이 '미확인'이던 후보를 **블라인드 이중 검증**으로 다시 확인했다 — 서로 답을 모르는 두 조사가 값마다 출처 2개 이상을 대고, 배기량(화물은 적재정량)·연료·분류가 같게 나온 것만 넣었다. 자세한 기준은 2절.
+- 연비·주행거리는 **두 조사가 같은 트림 기준으로 같은 값(±0.05)을 냈을 때만** 넣는다. 1차 7종은 해당이 없어 전부 `null`, 2차 48종은 검증 범위가 배기량·적재정량뿐이라 전부 `null` — 페이지에 연비·연료비 줄이 나오지 않는다.
+- 조사 환경의 한계: 두 차례 모두 제조사·공공기관 사이트에 직접 접속이 거의 막혀서, 검색 결과 요약이나 GitHub에 올라온 사본(관보, 에너지공단 공공데이터, 카탈로그 텍스트)으로 확인한 경우가 많다. 아래 '확인 필요' 항목이 많은 이유다.
 
-## 1. 추가한 차종
+## 1. 1차 추가 (7종)
 
 세액은 `scripts/build.py` 산출값을 손계산으로 대조했다(신차 기준, 비영업용).
 
@@ -40,108 +40,199 @@
 | 넥쏘 | 미기입 | 미기입 | 수소차 연비 단위(km/kg)가 스키마와 다름 |
 | PV5 패신저 | 미기입 | 미기입 | 출처 간 불일치 |
 
-### 빌드 확인
+### 빌드 확인 (1차 시점)
 
 - `python3 scripts/build.py`: 페이지 199개(승용 192·화물 5·승합 2), sitemap 205 URL.
 - 허브(`tax/index.html`): 싼타페 5종은 '현대 › 싼타페' 그룹 안 MX5 항목 뒤, 넥쏘는 '현대'의 아이오닉 6 다음 단독 행, PV5 패신저는 '기아'의 EV9 다음 단독 행.
 - 손계산 대조: 2,199cc = 439,800 + 131,940 = 571,740원(13년차 285,870원), 2,151cc = 430,200 + 129,060 = 559,260원, 1,995cc = 399,000 + 119,700 = 518,700원, 넥쏘·PV5 = 130,000원(1월 연납 124,050원). 모두 페이지 값과 같다.
 
-## 2. 확인 필요 (이번에 넣지 않은 후보)
+## 2. 2차 추가 (48종)
 
-아래 차종은 두 조사 중 한쪽 이상이 값을 확인하지 못했거나(대부분 '출처 접속 실패'), 값이 갈려서 이중 확인 기준을 통과하지 못했어요. 숫자 자체가 서로 다른 경우는 드물고, 한쪽이 '미확인'으로 비워 둔 경우가 대부분이에요.
+### 검증 절차
 
-'재확인' 칸은 그 뒤 별도로 다시 찾아본 결과예요. 대부분 관보 재산공개·카탈로그·에너지공단 자료의 **GitHub 사본**으로 확인한 값이라 공식 원문을 직접 본 것은 아니에요. 그래서 참고값으로만 두고, 자동차등록증이나 제조사 제원표로 한 번 확인되면 넣을게요.
+- **2차 블라인드 이중 검증**: 1차에서 이중 확인을 통과하지 못해 '확인 필요'로 남았던 후보 53종(싼타페 DM 2.0 디젤 전기형만 제외)을, 서로 답을 모르는 새 두 조사가 각자 확인했다. 조사마다 값 하나에 출처 2개 이상(인용문 + URL)을 대야 하고, 두 조사의 배기량(화물은 적재정량)·연료·분류가 같을 때만 통과 — 35종 통과.
+- **3차 블라인드 이중 검증**: 2차에서 한쪽이 값을 내지 못한 18종을 또 다른 두 조사가 같은 방식으로 다시 확인 — 12종 통과, 6종은 보류(3절).
+- **연식 구간**: 두 조사의 연식 구간이 다르면 **좁은 쪽**을 넣었다(예: 트랙스 1세대 2013–2022 vs 2013–2021 → 2021까지). 어느 한쪽이라도 배기량을 '미확인(null)'으로 둔 연식은 넣지 않았다(예: BMW 520d 후기형 2021–2023, 볼보 XC60 2017–2021).
+- **배기량이 연식에 따라 다르면 별도 항목**: 벤츠 S450·S500(W223)은 2021–2023년식 2,999cc, 2025년식 2,998cc라 두 페이지로 나눴다(2024년식은 두 값이 섞여 비움). 한 후보 안에서 배기량이 같은 변형(G80 DH 3.3 자연흡기·스포츠 3.3 터보, EQ900·G90 페이스리프트, 볼보 S90 T5·B5)은 한 항목으로 묶었다.
+- **세대별 페이지**: 기존 항목과 배기량이 같아도 세대가 다르면 그랜저 HG/IG·싼타페 DM/TM 관례대로 따로 뒀다(투싼 TL↔투싼 ix, 쏘렌토 UM↔쏘렌토R, 쏘나타 DN8 LPi↔LF LPG, 니로 DE↔SG2 등 — 세액은 같다). 같은 모델·세대·배기량·연료인 기존 항목은 없었다.
+- **근거의 성격**: 2·3차 모두 제조사·공공기관 사이트 직접 접속이 막혔고, 2차는 검색 한도까지 소진돼, 값을 검색 결과 요약이나 GitHub에 올라온 공공데이터 사본(관보 공직자 재산공개 텍스트, 한국에너지공단 표시연비 CSV, 기아 카탈로그 텍스트)과 국내 제원·매물 수집 자료로 확인했다. 원문 사이트를 직접 연 것이 아니다. 관보 값은 공직자가 등록증을 보고 적은 값이라 반올림(2,000cc 등)·오기가 섞여 있어, **반올림되지 않은 값이 서로 다른 신고자에게서 반복될 때만** 근거로 썼다.
 
-### 확인하는 방법
+### 추가한 차종
 
-- **자동차등록증**: '배기량' 칸의 cc 숫자를 보면 돼요. 화물차(포터·봉고·픽업 등)는 '최대적재량'(kg) 칸이 세금을 정해요.
-- **제조사 가격표·카탈로그**: 맨 뒤 '제원' 표의 배기량(cc).
-- **자동차365(car365.go.kr)** 제원 조회, **한국에너지공단 수송에너지** 표시연비 검색.
-- 확인한 값과 연식(몇 년식인지)을 알려 주시면 해당 연식 구간으로 추가해요.
+세액은 신차 기준 비영업용(자가용) 연세액이다. 표의 '근거 1'·'근거 2'는 서로 답을 모르는 두 조사가 댄 출처에서 각 2개까지 옮겼다(전체 목록은 조사 원본에 있다). '사본'은 GitHub에 올라온 공공데이터·수집 자료 사본이라는 뜻이다.
+
+#### 국산 승용 — 지난 세대·병존 파워트레인 (24종)
+
+| 페이지 이름 | 주소(`/tax/…`) | 배기량 | 연식 | 신차 세액 | 근거 1 | 근거 2 |
+|---|---|---|---|---|---|---|
+| `투싼 TL 2.0 디젤` | `tucson-tl-2.0d` | 1,995cc | 2015–2020 | 518,700원 | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3250&Lineup=40015&Tab=spec) · [KB차차차](https://m.kbchachacha.com/public/web/car/detail.kbc?carSeq=11645492) | [위키백과(영문)](https://en.wikipedia.org/wiki/Hyundai_R_engine) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3250&Lineup=40035&Tab=spec) |
+| `투싼 TL 1.7 디젤` | `tucson-tl-1.7d` | 1,685cc | 2015–2018 | 438,100원 | [한국경제](https://www.hankyung.com/article/201503171467g) · [카이즈유](https://m.carisyou.com/car/5236/Spec/51929) | [위키백과(영문)](https://en.wikipedia.org/wiki/Hyundai_U_engine) · [한국경제](https://www.hankyung.com/article/201503171467g) |
+| `쏘렌토 UM 2.0 디젤` | `sorento-um-2.0d` | 1,995cc | 2014–2020 | 518,700원 | [엠파크](https://www.m-park.co.kr/buy/detail/6051500900) · [이에이카](https://www.eacar.co.kr/specific.php?year=2019&model=%EC%8F%98%EB%A0%8C%ED%86%A0) | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3153&Lineup=40181&Tab=spec) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3495&Tab=spec) |
+| `쏘렌토 UM 2.2 디젤` | `sorento-um-2.2d` | 2,199cc | 2014–2020 | 571,740원 | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3153&Lineup=40181&Tab=spec) · [카이즈유](https://www.carisyou.com/car/5351/Spec/52574) | [motorreviewer](https://www.motorreviewer.com/engine.php?engine_id=140) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3153&Lineup=41967&Tab=spec) |
+| `스포티지 QL 2.0 디젤` | `sportage-ql-2.0d` | 1,995cc | 2015–2021 | 518,700원 | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3298&Lineup=40211&Tab=spec) · [중고차 가이드](https://ino1.com/car/sportage-ql-facelift-cost/) | [카이즈유](https://www.carisyou.com/car/5503/Spec/53247) · [다나와](https://mauto.danawa.com/service/ajax_spec_mobile.php?Type=spec&Lineup=47658) |
+| `K5 2세대 2.0` | `k5-jf-2.0` | 1,999cc | 2015–2019 | 519,740원 | [카이즈유](https://m.carisyou.com/car/5037/Spec/51283) · [카이즈유](https://www.carisyou.com/car/5658/Spec) | [카이즈유](https://m.carisyou.com/car/5037/Spec/51283) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3260&Lineup=40797&Tab=spec) |
+| `K5 2세대 2.0 LPi` | `k5-jf-lpi` | 1,999cc | 2015–2019 | 519,740원 | [위키백과](https://ko.wikipedia.org/wiki/%EA%B8%B0%EC%95%84_K5) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3260&Tab=spec) | [위키백과](https://ko.wikipedia.org/wiki/%EA%B8%B0%EC%95%84_K5) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3566&Lineup=47532&Tab=spec) |
+| `K7 프리미어 2.5` | `k7-yg-2.5` | 2,497cc | 2019–2021 | 649,220원 | [기아 카탈로그 사본](https://github.com/hyein-sli/AI-Response-Enhancement/blob/56fbe33de11050444146ebb7daad447c7d8dc420/전처리2차/2021_K7%20카탈로그.md) · [기아 카탈로그 사본](https://github.com/hyein-sli/AI-Response-Enhancement/blob/56fbe33de11050444146ebb7daad447c7d8dc420/전처리2차/2019_K7%20카탈로그.md) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-02-23/046_정부산하기관및위원회_정부공직자윤리위원회공고제2024_2호_재산등록사항_공개.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2021-03-25/068_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_강원도.md) |
+| `K7 2세대 3.0 LPi` | `k7-yg-3.0-lpi` | 2,999cc | 2016–2021 | 779,740원 | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3323&Lineup=40825&Tab=spec) · [카이즈유](https://www.carisyou.com/car/5619) | [다나와](https://auto.danawa.com/auto/?Work=model&Model=3722&Tab=spec) · [나무위키](https://namu.wiki/w/%ED%98%84%EB%8C%80%20%EB%9E%8C%EB%8B%A4%20%EC%97%94%EC%A7%84/2%EC%84%B8%EB%8C%80) |
+| `K7 2세대 하이브리드` | `k7-yg-hybrid` | 2,359cc | 2017–2021 | 613,340원 | [오토헤럴드](http://www.autoherald.co.kr/news/articleView.html?idxno=20577) · [카이즈유](https://www.carisyou.com/car/5105/Spec/51394) | [지디넷](https://zdnet.co.kr/view/?no=20161129132137) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3734) |
+| `스팅어 3.3 터보` | `stinger-3.3t` | 3,342cc | 2017–2023 | 868,920원 | [기아 카탈로그 사본](https://github.com/hyein-sli/AI-Response-Enhancement/blob/56fbe33de11050444146ebb7daad447c7d8dc420/전처리1차/2017_CK%20full_FCM.md) · [기아 카탈로그 사본](https://github.com/hyein-sli/AI-Response-Enhancement/blob/56fbe33de11050444146ebb7daad447c7d8dc420/전처리1차/2020_CK_PE.md) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/135_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_시_도교육청.md) · [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) |
+| `스팅어 2.0 터보` | `stinger-2.0t` | 1,998cc | 2017–2020 | 519,480원 | [기아 카탈로그 사본](https://github.com/hyein-sli/AI-Response-Enhancement/blob/56fbe33de11050444146ebb7daad447c7d8dc420/전처리1차/2017_CK%20full_FCM.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/130_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_전라북도.md) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/130_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_전라북도.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-03-28/097_정부산하기관및위원회_정부공직자윤리위원회공고제2024_4호_2024년도_정기재산변동_신고사항_공개_농림축산식품부.md) |
+| `니로 1세대 하이브리드` | `niro-de-hybrid` | 1,580cc | 2016–2022 | 287,560원 | [다음 자동차](https://auto.daum.net/newcar/model/m8c0002spp5c) · [카이즈유](https://www.carisyou.com/car/6020) | [위키백과](https://ko.wikipedia.org/wiki/%EA%B8%B0%EC%95%84_%EB%8B%88%EB%A1%9C) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3677&Tab=spec) |
+| `아이오닉 AE 하이브리드` | `ioniq-ae-hybrid` | 1,580cc | 2016–2022 | 287,560원 | [카이즈유](https://www.carisyou.com/car/5191/Spec) · [카위키](https://www.carwiki.co.kr/model/10049_2019/%EB%8D%94_%EB%89%B4_%EC%95%84%EC%9D%B4%EC%98%A4%EB%8B%89_%ED%95%98%EC%9D%B4%EB%B8%8C%EB%A6%AC%EB%93%9C) | [현대차 공식](https://www.hyundai.com/kr/en/eco/ioniq-hybrid/19pe/specifications) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3326&Tab=spec) |
+| `말리부 1.5 터보 (2016~2018)` | `malibu-1.5t` | 1,490cc | 2016–2018 | 271,180원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-02-23/046_정부산하기관및위원회_정부공직자윤리위원회공고제2024_2호_재산등록사항_공개.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/082_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_국방부.md) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-02-23/046_정부산하기관및위원회_정부공직자윤리위원회공고제2024_2호_재산등록사항_공개.md) · [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) |
+| `트랙스 1.4 터보 (1세대)` | `trax-1.4t` | 1,362cc | 2013–2021 | 247,880원 | [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) · [중고 매물 사본](https://github.com/yunminseop/LearningModel/blob/c39e27112c37853765d143d1b1d2fa0f0b6e2a44/ML/UsedCar.ipynb) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/130_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2020_4%ED%98%B8_2020%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99_%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EC%A0%84%EB%9D%BC%EB%B6%81%EB%8F%84.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2025-03-27/081_%EC%A0%95%EB%B6%80%EC%82%B0%ED%95%98%EA%B8%B0%EA%B4%80%EB%B0%8F%EC%9C%84%EC%9B%90%ED%9A%8C_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2025_5%ED%98%B8_2025%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EA%B2%BD%EC%B0%B0%EC%B2%AD.md) |
+| `SM6 2.0 GDe` | `sm6-2.0` | 1,997cc | 2016–2020 | 519,220원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2023-03-30/101_정부산하기관및위원회_정부공직자윤리위원회공고제2023_5호_2023년도_정기재산변동_신고사항_공개_관세청.md) · [제원 페이지 사본](https://github.com/yzzzwan/CarStroy/blob/32fb02887eda4936504f2cd39a3d22d2663f8853/차량소개.js) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/059_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_대통령비서실.md) · [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) |
+| `SM6 2.0 LPe` | `sm6-lpe` | 1,998cc | 2016– | 519,480원 | [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) · [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) | [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-03-28/103_%EC%A0%95%EB%B6%80%EC%82%B0%ED%95%98%EA%B8%B0%EA%B4%80%EB%B0%8F%EC%9C%84%EC%9B%90%ED%9A%8C_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2024_4%ED%98%B8_2024%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99_%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EA%B5%AD%ED%86%A0%EA%B5%90%ED%86%B5%EB%B6%80.md) |
+| `QM3 1.5 디젤` | `qm3-1.5d` | 1,461cc | 2013–2019 | 265,900원 | [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/4b6a9df034f01e009c78d746702f24b2d39dcf46/02_database/init/052_insert_car_specs.sql) · [국내 매물 집계 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN28-1st-4team/blob/dd5c7d1bfc7a299abd3d449a22dfd9d9e226a18b/data_collection/raw/models_cohort/cohort_generation/data/model_category_mapping_requests.csv) | [엔하위키 미러](https://github.com/forkwikiman/enha_monimarkup/blob/4f42347f38d7bc190acc1517637bc4d57b172ed3/%EB%A5%B4%EB%85%B8%EC%82%BC%EC%84%B1%20QM3.wiki) · [국내 매물 집계 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN28-1st-4team/blob/dd5c7d1bfc7a299abd3d449a22dfd9d9e226a18b/data_collection/raw/models_cohort/cohort_generation/data/model_category_mapping_requests.csv) |
+| `G80 DH 3.3 (G80 스포츠 포함)` | `g80-dh-3.3` | 3,342cc | 2016–2020 | 868,920원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2021-05-28/036_대법원_대법원_공직자윤리위원회공고제2021_146호.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2023-02-24/082_정부산하기관및위원회_정부공직자윤리위원회공고제2023_2호_재산등록사항_공개.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [보배드림 매물 사본](https://github.com/sobin98/used_car_prediction/blob/HEAD/cars_processed.csv) |
+| `G80 DH 3.8` | `g80-dh-3.8` | 3,778cc | 2016–2020 | 982,280원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2023-03-30/104_정부산하기관및위원회_정부공직자윤리위원회공고제2023_5호_2023년도_정기재산변동_신고사항_공개_대검찰청.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2026-03-26/128_인사혁신처_정부공직자윤리위원회공고제2026_4호_2026년도_정기재산변동신고사항_공개_제주특별자치도.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [보배드림 매물 사본](https://github.com/sobin98/used_car_prediction/blob/HEAD/cars_processed.csv) |
+| `EQ900·G90 HI 3.8` | `g90-hi-3.8` | 3,778cc | 2016–2021 | 982,280원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/121_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_인천광역시.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-03-28/084_정부산하기관및위원회_정부공직자윤리위원회공고제2024_4호_2024년도_정기재산변동_신고사항_공개_국민권익위원회.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [국내 제원 DB 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN26-1ST-1TEAM/blob/HEAD/02_database/init/052_insert_car_specs.sql) |
+| `EQ900·G90 HI 3.3 터보` | `g90-hi-3.3t` | 3,342cc | 2016–2021 | 868,920원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2022-03-31/139_정부산하기관및위원회_정부공직자윤리위원회공고제2022_4호_2022년도_정기재산변동_신고사항_공개_대전광역시.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-03-28/134_정부산하기관및위원회_정부공직자윤리위원회공고제2024_4호_2024년도_정기재산변동_신고사항_공개_대구광역시.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [보배드림 매물 사본](https://github.com/sobin98/used_car_prediction/blob/HEAD/cars_processed.csv) |
+| `GV80 3.0 디젤` | `gv80-3.0d` | 2,996cc | 2020–2023 | 778,960원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2021-03-25/067_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_충청북도.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2023-03-30/130_정부산하기관및위원회_정부공직자윤리위원회공고제2023_5호_2023년도_정기재산변동_신고사항_공개_부산광역시.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [현대 차종 사전 사본](https://github.com/lee-sangyeong/kdt-project/blob/HEAD/hyundai-car-dictionary/data_Hyundai/gasoline/GV80%28JX1%29/GV80.txt) |
+
+#### 국산 승용 — 현행 LPG·전기 (3종)
+
+| 페이지 이름 | 주소(`/tax/…`) | 배기량 | 연식 | 신차 세액 | 근거 1 | 근거 2 |
+|---|---|---|---|---|---|---|
+| `아반떼 1.6 LPi` | `avante-lpg` | 1,591cc | 2020– | 289,560원 | [카눈](http://www.carnoon.co.kr/newcar/vehicle/10406-102604) · [카눈](https://www.carnoon.co.kr/newcar/vehicle/11414-114949) | [현대차 공식](https://www.hyundai.com/contents/repn-car/catalog/avante-price.pdf) · [현대차 공식](https://www.hyundai.com/contents/repn-car/catalog/the-new-avante-price.pdf) |
+| `쏘나타 2.0 LPi` | `sonata-lpg` | 1,999cc | 2019– | 519,740원 | [카눈](http://www.carnoon.co.kr/newcar/vehicle/10324-110607) · [카눈](https://www.carnoon.co.kr/newcar/vehicle/11462-116591) | [카눈](http://www.carnoon.co.kr/newcar/vehicle/10324-110607) · [나무위키](https://en.namu.wiki/w/%ED%98%84%EB%8C%80%20%EC%8F%98%EB%82%98%ED%83%80/8%EC%84%B8%EB%8C%80) |
+| `EV5` | `ev5` | 없음 | 2025– | 130,000원 | [뉴스 헤드라인 사본](https://github.com/peri2532/Front/blob/7ed9634a5382cfa89ff5f0b0607c03365dae37c9/Web%20croling/기아_news_temp.csv) · [제조사 FAQ 사본](https://github.com/golddragon0926/SKN33_1_2team_project/blob/85d544f3e40db54aee8fb56e1d8880ce7dbe7048/data/faq/kia_faq_data.csv) | [기아 DART 공시 사본](https://github.com/arching3/26-1ArtificialIntelligenceService/blob/HEAD/origin/processed/기아_000270/cleaned/20260312001224.txt) · [기아 DART 공시 사본](https://github.com/arching3/26-1ArtificialIntelligenceService/blob/HEAD/origin/processed/기아_000270/cleaned/20250814003814.txt) |
+
+#### 화물·승합 (8종)
+
+화물차 세금은 배기량이 아니라 **적재정량(최대적재량)**으로, 승합차는 **규모**로 정해지는 정액이다. 이번 화물 7종은 모두 1,000kg 이하라 자가용 연 28,500원, 그랜드 스타렉스 11·12인승은 소형일반버스라 연 65,000원이다.
+
+| 페이지 이름 | 주소(`/tax/…`) | 배기량 · 적재 | 연식 | 신차 세액 | 근거 1 | 근거 2 |
+|---|---|---|---|---|---|---|
+| `포터2 일렉트릭` | `porter2-electric` | 없음 · 적재 1,000kg | 2020– | 28,500원 | [한국금융신문](https://www.fntimes.com/html/view.php?ud=2019121111110053297de3572ddd_18) · [현대차 공식](https://www.hyundai.com/kr/ko/e/vehicles/porter2-electric/intro) | [현대차 공식](https://www.hyundai.com/kr/ko/e/vehicles/porter2-electric-special/intro) · [상용차정보](https://www.cvinfo.com/news/articleView.html?idxno=29483) |
+| `봉고3 EV` | `bongo3-ev` | 없음 · 적재 1,000kg | 2020– | 28,500원 | [모토야](https://www.motoya.co.kr/news/articleView.html?idxno=30425) · [이데일리](https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=02774886625636408) | [엔카](https://www.encar.com/mg/post.do?method=view&pagetype=news&subid=newcar1&postid=123186) · [기아 공식](https://www.kia.com/kr/vehicles/bongo3-ev/specification) |
+| `봉고3 2.5 LPG 터보` | `bongo3-lpg` | 2,469cc · 적재 1,000kg | 2024– | 28,500원 | [상용차정보](https://www.cvinfo.com/news/articleView.html?idxno=26499) · [다나와](https://auto.danawa.com/auto/?Work=model&Model=3772) | [위키백과](https://ko.wikipedia.org/wiki/%ED%98%84%EB%8C%80_%EC%8A%A4%EB%A7%88%ED%8A%B8%EC%8A%A4%ED%8A%B8%EB%A6%BC_%EC%97%94%EC%A7%84) · [카눈](https://www.carnoon.co.kr/newcar/vehicle/10047-114564) |
+| `타스만 2.5 터보` | `tasman-2.5t` | 2,497cc · 적재 700kg | 2025– | 28,500원 | [카눈](https://www.carnoon.co.kr/newcar/vehicle/11747-115950) · [중소기업신문](https://www.smedaily.co.kr/news/articleView.html?idxno=321479) | [현대차그룹 보도자료](https://www.hyundaimotorgroup.com/ko/news/CONT0000000000169263) · [오토트리뷴](https://www.autotribune.co.kr/news/articleView.html?idxno=30402) |
+| `PV5 카고` | `pv5-cargo` | 없음 · 적재 700kg | 2025– | 28,500원 | [한국경제](https://www.hankyung.com/article/202506091706g) · [위키백과](https://ko.wikipedia.org/wiki/%EA%B8%B0%EC%95%84_PV5) | [기아 공식](https://www.kia.com/kr/vehicles/pv5-cargo/features) · [현대차그룹 보도자료](https://www.hyundaimotorgroup.com/ko/news/CONT0000000000178271) |
+| `렉스턴 스포츠 2.2 디젤` | `rexton-sports-2.2d` | 2,157cc · 적재 400kg | 2018–2025 | 28,500원 | [국내 매물 집계 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN28-1st-4team/blob/dd5c7d1bfc7a299abd3d449a22dfd9d9e226a18b/data_collection/raw/models_cohort/cohort_generation/data/model_category_mapping_requests.csv) · [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) | [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) · [오토홈 제원 사본](https://github.com/swoiow/autohome/blob/7c6c356e7c7c3a0c53d1445c7059cf2768cf750b/data/%E5%8F%8C%E9%BE%99_%E9%9B%B7%E6%96%AF%E7%89%B9.csv) |
+| `렉스턴 스포츠 칸 2.2 디젤` | `rexton-sports-khan-2.2d` | 2,157cc · 적재 700kg | 2019–2025 | 28,500원 | [국내 매물 집계 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN28-1st-4team/blob/dd5c7d1bfc7a299abd3d449a22dfd9d9e226a18b/data_collection/raw/models_cohort/cohort_generation/data/model_category_mapping_requests.csv) · [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) | [제원 수집 사본](https://github.com/SKNETWORKS-FAMILY-AICAMP/SKN09-1st-1Team/blob/2888937c5244728ea36020187d4f7fe8e82bdadf/not_complete_files/car_data/car_data.txt) · [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) |
+| `그랜드 스타렉스 11·12인승 (승합)` | `starex-12` | 2,497cc | 2007–2021 | 65,000원 | [카이즈유](https://www.carisyou.com/car/2898) · [현대차 공식](https://www.hyundai.com/kr/ko/vehicles/grand-starex-special/20my/specifications.html) | [카이즈유](https://www.carisyou.com/car/4239/Spec/47425) · [위키백과](https://ko.wikipedia.org/wiki/%ED%98%84%EB%8C%80_A%EC%97%94%EC%A7%84) |
+
+#### 수입 (13종)
+
+| 페이지 이름 | 주소(`/tax/…`) | 배기량 | 연식 | 신차 세액 | 근거 1 | 근거 2 |
+|---|---|---|---|---|---|---|
+| `벤츠 E300 (W213)` | `benz-e300-w213` | 1,991cc | 2016–2020 | 517,660원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/098_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_대검찰청.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-05-28/023_대법원공직자윤리위원회_대법원공직자윤리위원회공고제2020_118호_재산등록_변동_사항_공개.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/main/한국에너지공단_자동차%20표시연비%20정보_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2020-03-26/084_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_문화체육관광부.md) |
+| `벤츠 C200 (W206)` | `benz-c200` | 1,999cc | 2022–2025 | 519,740원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [벤츠코리아 제원표 사본](https://github.com/KHyeonggi/KHyeonggi.github.io/blob/main/_posts/2024-06-14-Mercedes-Benz-C_Class.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [벤츠코리아 제원표 사본](https://github.com/KHyeonggi/KHyeonggi.github.io/blob/974d77b5453b71f04281b657f626f3f6337887cb/_posts/2024-06-14-Mercedes-Benz-C_Class.md) |
+| `벤츠 S450·S500 (W223, 2021~2023)` | `benz-s450` | 2,999cc | 2021–2023 | 779,740원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2023-03-30/037_%EB%8C%80%EB%B2%95%EC%9B%90_%EB%8C%80%EB%B2%95%EC%9B%90%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C_%EA%B3%B5%EA%B3%A0%EC%A0%9C2023_87%ED%98%B8_%EC%9E%AC%EC%82%B0%EB%93%B1%EB%A1%9D_%EB%B3%80%EB%8F%99_%EC%82%AC%ED%95%AD%EA%B3%B5%EA%B0%9C.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-10-24/032_%EB%8C%80%EB%B2%95%EC%9B%90_%EB%8C%80%EB%B2%95%EC%9B%90%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C_%EA%B3%B5%EA%B3%A0%EC%A0%9C2024_271%ED%98%B8_%EC%9E%AC%EC%82%B0%EB%93%B1%EB%A1%9D_%EB%B3%80%EB%8F%99_%EC%82%AC%ED%95%AD%EA%B3%B5%EA%B0%9C.md) |
+| `벤츠 S450·S500 (W223, 2025년식)` | `benz-s450-2025` | 2,998cc | 2025 | 779,480원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2026-03-26/068_%EC%9D%B8%EC%82%AC%ED%98%81%EC%8B%A0%EC%B2%98_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2026_4%ED%98%B8_2026%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EA%B5%90%EC%9C%A1%EB%B6%80.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2026-03-26/068_%EC%9D%B8%EC%82%AC%ED%98%81%EC%8B%A0%EC%B2%98_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2026_4%ED%98%B8_2026%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EA%B5%90%EC%9C%A1%EB%B6%80.md) |
+| `벤츠 GLE450 (V167)` | `benz-gle450` | 2,999cc | 2019–2025 | 779,740원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2025-03-27/101_%EC%A0%95%EB%B6%80%EC%82%B0%ED%95%98%EA%B8%B0%EA%B4%80%EB%B0%8F%EC%9C%84%EC%9B%90%ED%9A%8C_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2025_5%ED%98%B8_2025%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2026-03-26/112_%EC%9D%B8%EC%82%AC%ED%98%81%EC%8B%A0%EC%B2%98_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2026_4%ED%98%B8_2026%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C.md) |
+| `BMW 520d (G30)` | `bmw-520d-g30` | 1,995cc | 2017–2020 | 518,700원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2021-03-25/099_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_산업통상자원부.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2020-03-26/092_정부공직자윤리위원회_정부공직자윤리위원회공고제2020_4호_2020년도_정기재산변동_신고사항_공개_해양수산부.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/main/한국에너지공단_자동차%20표시연비%20정보_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2021-03-25/099_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_산업통상자원부.md) |
+| `BMW X5 xDrive30d (G05)` | `bmw-x5-30d` | 2,993cc | 2019–2025 | 778,180원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/main/derived/readable-corrected/2026-03-26/084_%EC%9D%B8%EC%82%AC%ED%98%81%EC%8B%A0%EC%B2%98_%EC%A0%95%EB%B6%80%EA%B3%B5%EC%A7%81%EC%9E%90%EC%9C%A4%EB%A6%AC%EC%9C%84%EC%9B%90%ED%9A%8C%EA%B3%B5%EA%B3%A0%EC%A0%9C2026_4%ED%98%B8_2026%EB%85%84%EB%8F%84_%EC%A0%95%EA%B8%B0%EC%9E%AC%EC%82%B0%EB%B3%80%EB%8F%99%EC%8B%A0%EA%B3%A0%EC%82%AC%ED%95%AD_%EA%B3%B5%EA%B0%9C_%ED%95%B4%EC%96%91%EC%88%98%EC%82%B0%EB%B6%80.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [케냐 국세청 CRSP 사본](https://github.com/lakliech/VehicleDutyCalculator/blob/e032a50f87a3cd176e28d893b330bccf1acd18e7/attached_assets/crsp2020_1751896282356.csv) |
+| `BMW X3 xDrive20d (G01)` | `bmw-x3-20d-g01` | 1,995cc | 2017–2024 | 518,700원 | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/HEAD/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [독일 매물 데이터 사본](https://github.com/alabenkhlifa/CarAdvisor/blob/main/data/de_cars.csv) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [케냐 국세청 CRSP 사본](https://github.com/lakliech/VehicleDutyCalculator/blob/e032a50f87a3cd176e28d893b330bccf1acd18e7/attached_assets/crsp2020_1751896282356.csv) |
+| `아우디 A6 45 TFSI (C8)` | `audi-a6-45tfsi-c8` | 1,984cc | 2019–2024 | 515,840원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2021-03-25/020_대법원_대법원공직자윤리위원회_공고제2021_80호_대법원공직자윤리위원회공고제2021_80호_재산등록변동사항_공개.md) · [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-06-28/094_정부산하기관및위원회_정부공직자윤리위원회공고제2024_8호_재산등록사항_공개.md) · [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) |
+| `볼보 XC60 B5` | `volvo-xc60-b5` | 1,969cc | 2022– | 511,940원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2026-01-30/101_인사혁신처_정부공직자윤리위원회공고제2026_1호_재산공개목록_수시.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2026-03-26/051_인사혁신처_정부공직자윤리위원회공고제2026_4호_2026년도_정기재산변동신고사항_공개_대통령비서실.md) | [에너지공단 표시연비 사본](https://github.com/minseong0213/car_data/blob/06d73f67cd5ddff2d5ebfb73292a5a1a06fc78a6/%ED%95%9C%EA%B5%AD%EC%97%90%EB%84%88%EC%A7%80%EA%B3%B5%EB%8B%A8_%EC%9E%90%EB%8F%99%EC%B0%A8%20%ED%91%9C%EC%8B%9C%EC%97%B0%EB%B9%84%20%EC%A0%95%EB%B3%B4_20240731.csv) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/7c224756c0d80de489f0260f710c4466b16d8d78/derived/readable-corrected/2024-12-20/136_정부산하기관및위원회_정부공직자윤리위원회공고제2024_14호_재산공개목록_수시.md) |
+| `볼보 S90 B5·T5` | `volvo-s90-b5` | 1,969cc | 2017– | 511,940원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2023-03-30/112_정부산하기관및위원회_정부공직자윤리위원회공고제2023_5호_2023년도_정기재산변동_신고사항_공개_대통령비서실.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2021-03-25/101_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_문화체육관광부.md) | [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) · [홍콩 운수부 등록 데이터 사본](https://github.com/wlmqwyz/5126/blob/a441de6177b76d746c057a3e7df2f89d718b22c3/HongKong/hongkong%20car%20data/particulars_of_first_registered_vehicle_may_2022_eng.csv) |
+| `토요타 캠리 하이브리드 (XV70)` | `toyota-camry-hybrid-xv70` | 2,487cc | 2018–2024 | 646,620원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2024-03-28/107_정부산하기관및위원회_정부공직자윤리위원회공고제2024_4호_2024년도_정기재산변동_신고사항_공개_관세청.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2023-07-28/085_정부산하기관및위원회_정부공직자윤리위원회공고제2023_11호_재산등록사항_공개.md) | [에너지공단 연비 데이터 사본](https://github.com/ChopinBag/PNU-CSE/blob/fb106b07652bb67fec3bd4cad6ede2829c5dfbdd/Lecture/1-2/BCP/final_exam/week12/car.csv) · [싱가포르 매물 데이터 사본](https://github.com/eugenetytan/SCTP_Capstone_EugeneTan/blob/c8e8cafd5c66d0a0f39e444d64b016d9c15aaa41/car_data_part02.csv) |
+| `미니 쿠퍼 3도어 (F56)` | `mini-cooper-f56` | 1,499cc | 2014–2024 | 272,810원 | [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2023-03-30/136_정부산하기관및위원회_정부공직자윤리위원회공고제2023_5호_2023년도_정기재산변동_신고사항_공개_국무조정실.md) · [관보 재산공개 사본](https://github.com/hosungseo/ai-readable-gazette-kr/blob/HEAD/derived/readable-corrected/2021-03-25/084_인사혁신처_정부공직자윤리위원회공고제2021_5호_2021년도_정기재산변동_신고사항_공개_경찰청.md) | [국내 제원 스크랩 사본](https://github.com/yugyeonghoon/Car/blob/a32755443473b76c14cc76ec8956760296a130c1/Car/py/carCSV/car_spec_oktitle.csv) · [홍콩 운수부 등록 데이터 사본](https://github.com/wlmqwyz/5126/blob/a441de6177b76d746c057a3e7df2f89d718b22c3/HongKong/hongkong%20car%20data/particulars_of_first_registered_vehicle_jan_2020_eng.csv) |
+
+### 항목별 메모
+
+- **아반떼 1.6 LPi** — 가솔린 1.6(스마트스트림 1,598cc)과 달리 감마 1.6 LPi 1,591cc다. 한 조사는 1,598cc라고 적은 요약(나무위키·카이즈유 모델 요약)을 봤지만, 현대차 가격표 3종(초기·2024 더 뉴·2026)과 트림 제원 페이지가 모두 1,591cc라 그쪽을 택했다. 세액 차이는 신차 기준 연 1,270원.
+- **쏘나타 2.0 LPi (DN8)** — 기존 '쏘나타 LF 2.0 LPG'와 같은 1,999cc다. 세대별 페이지로 두었고, 기존 별칭 '쏘나타 lpg'는 LF 항목에 그대로 있다(이번 작업은 새 항목 추가만 했다). DN8 쪽 별칭은 'dn8'·'디 엣지'를 붙인 것만 썼다.
+- **K7 2세대(YG)** — 프리미어(2019.6 부분변경) 전후로 2.4(2,359cc)가 2.5(2,497cc)로 바뀌어 2.4는 보류했다(3절). 3.0 LPi(2,999cc)와 하이브리드(2,359cc)는 세대 내내 같은 값이라 한 항목씩이다. 하이브리드는 2016년 11월 말 2017년형으로 출시돼 2017부터다.
+- **G80 DH 3.3** — 자연흡기 3.3과 G80 스포츠 3.3 터보가 같은 3,342cc라 한 페이지다. 같은 시기 3.8(3,778cc)과는 세액이 연 113,360원 다르니 등록증 배기량으로 구분해야 한다. 현대 브랜드로 팔린 제네시스 DH(2013–2016)는 검증하지 않아 넣지 않았다.
+- **EQ900·G90 (HI)** — 두 조사 모두 마지막 연식을 후보의 2022가 아니라 **2021**로 고쳤다. 2022년식 G90은 관보 기록이 모두 3,470cc(신형 RS4 3.5 터보)다. 2021년 말 등록분이 2022년 초 등록 신형과 섞일 수 있으니 등록증 배기량(3,778·3,342 또는 3,470)으로 구분한다. 5.0 V8은 수요가 작아 후보에서 뺐다.
+- **GV80 3.0 디젤** — 2,996cc. 모하비 3.0 디젤(2,959cc)과 다른 엔진이라 그 값을 쓰면 안 된다.
+- **SM6** — 가솔린 2.0 GDe는 1,997cc, 2.0 LPe는 1,998cc로 1cc 다르다(관보에 '1,990cc → 1,997cc 입력오류 정정' 기록까지 있다). LPe의 마지막 연식은 두 조사 모두 확인하지 못해 `modelYearTo: null`로 뒀다 — 현행 판매라는 뜻이 아니다.
+- **말리부 1.5 터보** — 2019년식부터는 F/L의 1.35 터보(1,341cc)라 2018에서 끊었다. 이름에 연식을 붙여 구분했다.
+- **트랙스 1.4 터보 (1세대)** — 국내 등록값은 1,362cc다. 해외 자료의 1,364cc를 쓰면 안 된다. 같은 세대 1.6 디젤(1,598cc)은 별도 파워트레인이라 넣지 않았다.
+- **니로 1세대·아이오닉 하이브리드** — 둘 다 카파 1.6 GDi 하이브리드 1,580cc다. 연식 상한 2022는 후보값으로, 실제 국내 판매는 니로 DE가 2021년 12월, 아이오닉 하이브리드가 2020년 말 무렵 사실상 끝났다(배기량은 같아 세액 영향 없음). 아이오닉 5·6·9와 다른 차라 모델 그룹 '아이오닉'을 따로 만들었다.
+- **EV5** — 2025년 하반기 국내 출시(기아 DART 공시 사본, 2026년 보조금 목록 사본). 전기차 정액 130,000원이라 배기량 근거는 필요 없다. 주행거리는 확인하지 않았다.
+- **렉스턴 스포츠·칸** — 픽업이라 **화물자동차**다. 배기량 2,157cc는 근거가 강하지만, 적재정량은 근거가 약하다(아래 3절). 2025년 '무쏘 스포츠'·'무쏘 칸'으로 이름이 바뀌어 마지막 연식을 2025로 뒀다. 모델 그룹은 기존 '렉스턴'(G4, 승용)과 섞이지 않게 '렉스턴 스포츠'로 따로 만들었다.
+- **포터2 일렉트릭·봉고3 EV·PV5 카고** — 전기 화물차는 배기량이 없고 적재정량 정액(1톤 이하 28,500원)이다. 전기 승용차 정액(130,000원)과 다르다.
+- **봉고3 2.5 LPG 터보** — 포터2 LPG와 같은 스마트스트림 LPG 2.5 터보(2,469cc)다. 이전 2.5 디젤(2,497cc)과 헷갈리지 않게 별칭을 '봉고3 lpg 터보'처럼 터보를 붙인 것만 썼다(2023년 이전 봉고3 2.4 LPI는 다른 엔진).
+- **타스만** — 국내는 2.5 터보 가솔린 하나뿐이고 픽업이라 화물이다. 2WD 더블캡 적재 700kg.
+- **그랜드 스타렉스 11·12인승** — 승합이라 규모별 정액(소형일반버스 연 65,000원)이다. 2007–2021 전 기간 2.5 디젤 2,497cc. 9인승(승용)·3·5인승 밴(화물)·2.4 LPi는 이 페이지가 아니다(3절).
+- **벤츠 E300 (W213)** — 후기형(2021–2023) E300 가솔린은 국내 등록·인증 기록이 없어 2020에서 끊었다(국내 후기형 주력은 기존 'E250 (W213)'). **2016년식 'E300'에는 이전 세대 W212(V6 3,498cc)가 섞여 있다** — 등록증 배기량이 1,991cc인지 꼭 확인. 다음 세대 W214 E300은 1,999cc라 주소를 `benz-e300-w213`으로 세대까지 붙였다.
+- **벤츠 C200 (W206)** — 후보의 '1.5 터보'가 아니다. 국내 C200은 2.0 터보 1,999cc(에너지공단 인증·벤츠코리아 제원표 사본). 1.5(1,496cc)는 유럽 사양이라 해외 값을 쓰면 세액이 연 247,000원가량 틀린다.
+- **BMW 520d (G30)** — 전기형 2017–2020만. 신형 G60의 국내 디젤은 '523d'로 별개다.
+- **볼보 XC60 B5·S90 B5** — 48V 마일드 하이브리드지만 에너지공단 자료의 연료가 '휘발유'라 기존 BMW 520i(G60) 관례대로 `gasoline`으로 뒀다. 비영업용 승용 세금은 배기량 기준이라 연료 표기가 세액을 바꾸지 않는다.
+- **토요타 캠리 하이브리드 (XV70)** — 2,487cc. 이전 XV50(2,494cc)은 다르고, 신형 XV80도 2,487cc로 보인다(다음 후보).
+- **별칭** — 구형에는 다른 세대와 겹치는 일반명('쏘렌토', 'e300', 'c200', 'sm6', 'xc60', '캠리 하이브리드' 등)을 쓰지 않았다. 수첩은 이름·별칭이 정확히 같을 때만 자동 매칭하므로, 일반명이 구형에 걸리면 신형 차주의 배기량이 틀리게 채워진다. 세대명 별칭('k7 프리미어', '올뉴k5', 'eq900', 'g80dh')은 그랜저hg 관례대로 그 세대의 주력 트림에 걸었다. 추가 후 이름·별칭 중복은 기존부터 있던 'k5 lpg'(TF·DL3) 하나뿐이다.
+
+### 빌드 확인 (2차)
+
+- `python3 scripts/validate_data.py`: 차종 247개, 오류·경고 0.
+- `python3 scripts/build.py`: 페이지 247개(승용 232·화물 12·승합 3), sitemap 253 URL, 새 썸네일 48개 + 허브 썸네일 갱신.
+- 허브(`tax/index.html`) 위치: 새 항목은 같은 모델 그룹 안 기존 트림 뒤(예: '기아 › K7'의 1세대 다음에 프리미어 2.5·2세대 LPi·하이브리드, '제네시스 › G90'의 3.5 터보 다음에 HI 2종). 새 모델 그룹은 가까운 그룹 뒤에 둔다 — 그랜드 스타렉스는 '현대'의 스타리아 다음, 아이오닉 하이브리드는 아이오닉 9 다음, 타스만은 '기아'의 봉고 다음, 스팅어는 모하비 다음, 렉스턴 스포츠는 'KGM'의 렉스턴 다음, SM6·QM3는 '르노코리아'의 QM6 다음, 말리부는 '쉐보레'의 올란도 다음, 벤츠 C클래스·S클래스·GLE클래스는 E클래스 다음, BMW X5·X3는 3시리즈 다음. 새 수입 브랜드(아우디·볼보·토요타·미니)는 기존 수입 브랜드(BYD) 뒤.
+- 손계산 대조(무작위 3종, 시드 고정): BMW 520d (G30) 1,995cc = 399,000 + 119,700 = **518,700원**(3년차 379,050 + 113,710 = 492,760원), G80 DH 3.3 3,342cc = 668,400 + 200,520 = **868,920원**(13년차 이상 334,200 + 100,260 = 434,460원), K7 프리미어 2.5 2,497cc = 499,400 + 149,820 = **649,220원**(13년차 이상 324,610원). 1,600cc 이하 구간도 1건: 말리부 1,490cc × 140원 = 208,600 + 62,580 = 271,180원. 화물 28,500원·승합 65,000원·전기 130,000원. 모두 페이지 값과 같다.
+- `node tests/run.js`: JS 테스트 5개 파일 통과. `python3 scripts/check.py`: 데이터·JS 테스트·세액 일치·빌드 최신·링크 모두 통과(생성물을 빌드한 상태 기준).
+
+## 3. 확인 필요
+
+### 자동차등록증으로 확인하는 방법
+
+아래 차종은 값이 하나로 모이지 않았거나 일부 연식만 확인됐어요. 등록증 한 장이면 대부분 바로 확인돼요.
+
+- **차종** (등록증 앞면 위쪽, 예: '중형 승용', '소형 화물', '중형 승합'): 승용·승합·화물에 따라 세금 계산 방식 자체가 달라요. 픽업(렉스턴 스포츠·타스만)과 PV5 카고는 '화물'이 맞는지 봐 주세요.
+- **형식 및 모델연도**: 여기 적힌 연도가 이 문서의 '연식'이에요. '최초등록일'과 다를 수 있어요(예: 2019년 12월 등록 2020년식). 사이트의 연식별 세액표는 차령, 즉 최초등록일 기준이에요.
+- **배기량** (아래 '제원' 칸, cc): 승용차 세금을 정해요. 1cc 차이로도 세액이 달라지니 반올림하지 말고 적힌 숫자 그대로 알려 주세요(예: 2,999인지 2,998인지).
+- **최대적재량** (kg): 화물차 세금을 정해요. 1,000kg 이하인지가 가장 중요해요.
+- **승차정원**: 승합(11인승 이상)인지 승용(10인승 이하)인지 갈려요.
+- **연료의 종류**: 휘발유·경유·LPG·전기·하이브리드 중 무엇으로 적혀 있는지도 함께 알려 주시면 좋아요.
+- 등록증이 없으면 정부24의 '자동차등록원부 열람'이나 **자동차365(car365.go.kr)**에서도 같은 값을 볼 수 있어요. 제조사 가격표·카탈로그 맨 뒤 '제원' 표의 배기량, **한국에너지공단 수송에너지** 표시연비 검색도 도움이 돼요.
+- 확인한 값과 연식(몇 년식인지)을 알려 주시면 해당 연식 구간으로 추가하거나 고칠게요.
 
 표 읽는 법: '미확인' = 출처를 열지 못해 비워 둔 것. 배기량이 같으면 세금도 같아요.
 
-### 부분 반영
+### 일부 연식만 넣은 차종
 
-| 차종 | 조사 A | 조사 B | 재확인 | 쟁점 · 확인할 것 |
-|---|---|---|---|---|
-| 싼타페 DM 2.0 디젤 전기형 (2012–2015) | 1,995cc | 미확인 | — | 더 프라임(2015–2018)만 넣었어요. 2012–2014년식 싼타페 DM 2.0 디젤 등록증의 배기량이 1,995cc인지 확인되면 기존 페이지 연식을 2012부터로 넓혀요. |
+| 차종 | 넣은 연식 | 빠진 연식 | 쟁점 · 확인할 것 |
+|---|---|---|---|
+| 싼타페 DM 2.0 디젤 (더 프라임) | 2015–2018 | 2012–2014 | 1차에서 한 조사만 1,995cc를 확인했어요. 2012–2014년식 싼타페 DM 2.0 디젤 등록증의 배기량이 1,995cc인지 확인되면 기존 페이지 연식을 2012부터로 넓혀요. |
+| 트랙스 1.4 터보 (1세대) | 2013–2021 | 2022 | 한 조사는 후보값대로 2022까지 봤지만 근거가 없었고, 다른 조사는 2021년식까지만 등록 기록을 찾았어요. 2022년식 1세대 트랙스가 있다면 배기량(1,362cc)을 확인해 주세요. |
+| 벤츠 E300 (W213) | 2016–2020 | 2021–2023 | 후기형 E300 가솔린의 국내 등록·인증 기록이 없어요(1,991cc일 가능성은 높아요). 2016년식은 이전 세대 W212(3,498cc)가 섞이니 꼭 배기량으로 구분하세요. |
+| 벤츠 C200 (W206) | 2022–2025 | 2026– | 2026년식 기록이 없어요. 같은 시기 벤츠 엔진(M256)이 연식 중간에 1cc 바뀐 전례가 있어요. |
+| 벤츠 S450·S500 (W223) | 2021–2023 (2,999cc) · 2025 (2,998cc) | 2024, 2026– | 에너지공단 2024년 인증에 2,999cc와 2,998cc가 함께 있어 2024년식은 차마다 달라요. 등록증 배기량으로 맞는 페이지를 골라 주세요(세액 차이 연 260원). |
+| 벤츠 GLE450 (V167) | 2019–2025 | 2026– | 2026년식 기록이 없어요. 같은 엔진 S/E450이 2025년식에 2,998cc로 바뀐 전례가 있어 확인이 필요해요. |
+| BMW X5 xDrive30d (G05) | 2019–2025 | 2026– | 2026년식 기록이 없어요. |
+| BMW 520d (G30) | 2017–2020 | 2021–2023 (후기형) | 후기형(48V)의 국내 등록·인증 기록이 없어요. 해외 자료는 모두 1,995cc예요. 후기형 국내 시작 연식(2020인지 2021인지)도 미확인. |
+| 아우디 A6 45 TFSI (C8) | 2019–2024 | 2025–2026 | 한 조사는 2026까지(신형 C9이 2026-04 출시) 봤지만 2025년식 이후 국내 기록은 없어요. 신형 C9도 '45 TFSI'라는 같은 이름이라 따로 확인해야 해요. |
+| 볼보 XC60 B5 | 2022– | 2017–2021 | 'B5'가 적힌 국내 기록이 2022년식부터예요. 2019–2021년식 T6·T8 기록은 1,969cc라 초기 B5·T5도 같을 가능성이 높지만 미확인이에요. |
+| 토요타 캠리 하이브리드 (XV70) | 2018–2024 | 2017 | 2017년식에는 이전 세대 XV50(2,494cc)이 섞일 수 있어요. |
+| 봉고3 2.5 LPG 터보 | 2024– | 2023 | 2023-11 출시(2024년형)예요. 한 조사는 포터2 LPG처럼 2023부터로 봤어요. 2023년식 등록이 있는지 확인이 필요해요. |
+| 포터2 일렉트릭 | 2020– | 2019 | 2019-12-11 출시라 한 조사는 2019부터, 다른 조사는 2020년형부터로 봤어요. |
 
-### 국산 — 지난 세대·병존 파워트레인
+### 값은 넣었지만 확인이 더 필요한 것
 
-| 차종 | 조사 A | 조사 B | 재확인 | 쟁점 · 확인할 것 |
-|---|---|---|---|---|
-| 투싼 TL 2.0 디젤 (2015–2020) | 1,995cc | 미확인 | 1,995cc | B가 출처를 못 열었어요. 기존 투싼ix 2.0 디젤과 같은 값이에요. 더 뉴 투싼 출시 월(2018.3인지 2018.8인지)도 미확인이지만 배기량엔 영향 없어요. |
-| 투싼 TL 1.7 디젤 (2015–2018) | 1,685cc | 미확인 | 1,685cc | 재확인도 A의 근거를 다시 쓴 것이라 독립 확인이 아니에요. 쏘나타 LF 1.7 디젤과 같은 엔진. 2018 이후 1.6 디젤과 헷갈리지 마세요. |
-| 쏘렌토 UM 2.0 디젤 (2014–2020) | 미확인 | 미확인 | 1,995cc | 관보 기록 30여 건이 모두 1,995cc예요. 다만 2014년식·2020년식 기록이 없어요(2014년은 쏘렌토R, 2020년은 신형과 연식이 겹침). |
-| 쏘렌토 UM 2.2 디젤 (2014–2020) | 미확인 | 미확인 | 2,199cc | 기아 카탈로그 사본 6종이 모두 2,199cc. 신형 쏘렌토 2.2 디젤(2,151cc)과 다른 엔진이에요. 연비는 13.4(2014–2017)와 13.6(2018–2019)으로 연식마다 달라요. |
-| 스포티지 QL 2.0 디젤 (2015–2021) | 미확인 | 미확인 | 1,995cc | 카탈로그 사본 4종 + 관보. 신형 스포티지 2.0 디젤(1,998cc)과 다른 엔진이에요. |
-| K5 2세대(JF) 2.0 가솔린 (2015–2019) | 미확인 | 미확인 | 미확인 | 세 번 모두 출처를 못 열었어요. 1·3세대처럼 1,999cc일 것으로 보이지만, 2018 더 뉴 K5에서 바뀌었는지도 확인이 필요해요. |
-| K5 2세대(JF) 2.0 LPi (2015–2019) | 미확인 | 미확인 | 미확인 | 1,999cc로 예상. 1세대 초기 LPI는 1,998cc라 1cc 차이를 꼭 등록증으로 확인해야 해요. |
-| 아반떼 CN7 1.6 LPi (2020–) | 미확인 | 미확인 | 1,591cc | 가솔린(1,598cc)과 배기량이 달라 별도 페이지가 필요해요. 틀려도 세금 차이는 신차 기준 연 1,270원 정도. |
-| 쏘나타 DN8 2.0 LPi (2019–) | 미확인 | 미확인 | 1,999cc | 기존 쏘나타 LF LPG와 같은 값이에요. 세대별 페이지로 둘지, 기존 별칭 '쏘나타 lpg'를 어느 쪽에 둘지도 정해야 해요. |
-| 니로 1세대(DE) 하이브리드 (2016–2022) | 미확인 | 미확인 | 1,580cc | 현행 니로 하이브리드와 같은 배기량이에요. 연비(16인치 19.5)는 현행(20.2)과 달라요. |
-| 아이오닉(AE) 하이브리드 (2016–2022) | 미확인 | 미확인 | 1,580cc | 관보 기록 다수 + 에너지공단 자료 사본. 아이오닉 5·6과 다른 차예요. |
-| 코나 1세대(OS) 1.6 터보 | 미확인 | 미확인 | 2017–2020: 1,591cc / 2020–2023(더 뉴 코나): 1,598cc | **2020년식은 두 값이 섞여요** — 등록증 확인이 꼭 필요해요. 1,598cc 구간은 기존 '코나 1.6 터보' 페이지 연식을 넓히는 쪽을 권해요. |
-| K7 2세대(YG) 2.4 (2016–2019) | 미확인 | 미확인 | 미확인 | 그랜저 IG 2.4와 같은 2,359cc로 예상. K7 프리미어 전환 시점(2019.6 무렵)도 확인이 필요해요. |
-| K7 2세대(YG) 3.0 LPi (2016–2021) | 미확인 | 미확인 | 2,999cc | 기아 카탈로그 사본 3종 + 관보. 연비는 프리미어 7.6, 전기형 7.4로 달라요. |
-| K7 2세대(YG) 하이브리드 (2016–2021) | 미확인 | 미확인 | 2,359cc | 카탈로그 사본 5종. 실제 출시는 2016년 말이라 2016년식 등록이 있는지는 미확인. |
-| K7 프리미어 2.5 (2019–2021) | 미확인 | 미확인 | 2,497cc | 카탈로그 사본 3종. 전기형 2.4(2,359cc)와 섞으면 안 돼요. |
-| 스팅어 3.3 터보 (2017–2023) | 미확인 | 미확인 | 미확인 | 3,342cc로 예상. 2020 마이스터 전후로 같은지 확인이 필요해요. |
-| 스팅어 2.0 터보 (2017–2020) | 미확인 | 미확인 | 미확인 | 1,998cc로 예상. 1,995·1,999와 헷갈리기 쉬운 값이에요. |
-| 말리부 1.5 터보 (2016–2018) | 미확인 | 미확인 | 미확인 | 1,490cc로 예상. 2018.11 이후 1.35 터보와 섞으면 안 돼요. |
-| SM6 2.0 GDe 가솔린 (2016–2020) | 미확인 | 미확인 | 미확인 | 1,997cc인지 1,998cc인지가 쟁점이에요(같은 차 LPe는 1,998cc, 관보엔 가솔린 1,997cc 기록). |
-| SM6 2.0 LPe (2016–) | 1,998cc | 미확인 | 1,998cc | 가솔린(1,997cc)과 1cc 차이. 단종 연식도 미확인. |
-| QM3 1.5 디젤 (2013–2019) | 1,461cc | 미확인 | 1,461cc | 관보 기록 20여 건이 모두 1,461cc. |
-| 트랙스 1세대 1.4 터보 (2013–2022) | 1,362cc | 미확인 | 1,362cc | 해외 자료의 1,364cc와 헷갈리지 마세요. 국내 기록은 전부 1,362cc. |
+| 차종 | 넣은 값 | 쟁점 · 확인할 것 |
+|---|---|---|
+| 렉스턴 스포츠 2.2 디젤 | 적재 400kg | 두 조사가 같은 400kg을 냈지만 출처가 리스 광고 페이지·배차 데모 데이터라 약해요. 1,000kg 이하면 세액(연 28,500원)은 같아요. 등록증 '최대적재량'을 알려 주세요. |
+| 렉스턴 스포츠 칸 2.2 디젤 | 적재 700kg | 700kg은 파워 리프 사양(출시 기사). 5링크 사양은 500kg으로 보이지만 출처 1곳이에요. 둘 다 1톤 이하라 세액은 같아요. |
+| 타스만 2.5 터보 | 적재 700kg | 2WD 기준이에요. X-Pro 4WD 500kg은 출처 1곳. 오픈베드(2026-07 출시, 2WD 1,000kg·4WD 900kg)는 한 조사만 확인해 넣지 않았어요. 모두 1톤 이하라 세액은 같아요. |
+| PV5 카고 | 적재 700kg | 스탠다드 3도어 기준이에요. 4도어 650kg, 롱레인지 600kg(출처마다 표기가 조금 달라요). 하이루프 등 파생 차체는 미확인. 모두 1톤 이하라 세액은 같아요. |
+| 포터2 일렉트릭 | 적재 1,000kg | 일부 특장(파워게이트) 사양은 800kg으로 나와요. 세액은 같아요. |
+| 봉고3 2.5 LPG 터보 | 적재 1,000kg (1톤) | **1.2톤 트림(적재 약 1,200kg)은 2,000kg 이하 구간이라 연 34,500원**으로 이 페이지(28,500원)와 달라요. 1,200kg은 트림 이름으로만 확인돼 따로 넣지 않았어요 — 1.2톤 차주는 등록증 최대적재량을 확인해 주세요. |
+| SM6 2.0 LPe | 2016– (마지막 연식 비움) | 단종 연식을 두 조사 모두 확인하지 못했어요. 2022·2023년식 SM6 관보 기록은 TCe(1,332·1,798cc)뿐이에요. |
+| SM6 2.0 GDe | 2016–2020 | 2020년식 등록 기록은 못 찾았어요(2016–2019년식 확인). |
+| 말리부 1.5 터보 | 2016–2018 | 1,490cc 근거가 관보 사본 위주예요. 2016년식은 '1,500cc'로 반올림된 기록뿐이라 등록증 확인이 필요해요. |
+| 스팅어 2.0 터보 · 3.3 터보 | 2017–2020 · 2017–2023 | 2.0 터보는 2020년식 기록이 없어요. 3.3 터보는 마이스터(2020.8~) 정확값 기록이 약해요(관보엔 3,300cc 반올림). 마이스터의 2.5 터보(2,497cc)와 2.2 디젤은 다음 후보예요. |
+| QM3 1.5 디젤 | 2013–2019 | 2013년(1,000대 한정 판매)식 등록 기록은 못 찾았어요. |
+| 미니 쿠퍼 3도어 (F56) | 2014–2024 | 2014년식에 이전 R56(1,598cc) 재고가 섞였는지 미확인이에요. 쿠퍼 S(1,998cc)·쿠퍼 D(1,496cc)는 다른 배기량이에요. |
+| G80 DH 3.8 | 2016–2020 | 2016·2020년식 등록 기록은 직접 보지 못했어요. |
+| GV80 3.0 디젤 | 2020–2023 | 2023년식은 한 조사(현대 인증중고 데이터 사본)만 확인했어요. |
+| 그랜드 스타렉스 11·12인승 | 승합 · 2,497cc | 12인승 2.4 LPi(2,359cc)도 승합 정액이라 세액은 같아요(페이지의 '연료: 디젤'만 달라요). 9인승은 승용이고, 3·5인승 밴은 화물이라 이 페이지가 아니에요. 9인승이 지방세특례제한법의 전방조종자동차 특례(연 65,000원) 대상인지는 `docs/vehicle-class-reference.md` 참고 — 별도 확인이 필요해요. |
 
-### 제네시스 지난 세대
+### 아직 넣지 않은 차종 (이중 검증 미통과)
 
-| 차종 | 조사 A | 조사 B | 재확인 | 쟁점 · 확인할 것 |
-|---|---|---|---|---|
-| G80(DH) 3.3 · G80 스포츠 3.3 터보 (2016–2020) | 미확인 | 미확인 | 둘 다 3,342cc | 자연흡기와 터보가 같은 배기량이에요. 같은 시기 3.8(3,778cc)과 구분해야 해요. |
-| G80(DH) 3.8 (2016–2020) | 미확인 | 미확인 | 3,778cc | 관보 기록 다수. 2019–2020년식 기록은 못 찾았어요. |
-| EQ900·G90(HI) 3.8 | 미확인 | 미확인 | 3,778cc | 재확인에서 마지막 연식을 2022 → 2021로 고쳤어요(2022년식 G90은 신형 3.5 터보). |
-| EQ900·G90(HI) 3.3 터보 (2015–2022) | 미확인 | 미확인 | 3,342cc | 관보에 '2016년식 EQ900 3.3T 3,342cc' 기록. |
-| GV80 3.0 디젤 (2020–2023) | 미확인 | 미확인 | 2,996cc | 모하비 3.0 디젤(2,959cc)과 다른 엔진이라 그 값을 쓰면 안 돼요. |
+| 차종 | 조사 1 | 조사 2 | 쟁점 · 확인할 것 |
+|---|---|---|---|
+| 코나 1세대(OS) 1.6 터보 | 2017–2020: 1,591cc / 2020.10~(더 뉴 코나): 1,598cc | 같은 값 | 배기량은 두 조사가 같지만 **2020년식에 두 값이 섞여** 연식만으로는 구분이 안 돼요. 연식 경계를 확정하지 못해 보류했어요. 1,598cc 구간은 기존 '코나 1.6 터보' 연식을 넓히는 쪽을 권해요. |
+| K7 2세대(YG) 2.4 (2016–2019) | 2,359cc | 같은 값 | **2019년식은 6월 전후로 2.4(2,359cc)와 프리미어 2.5(2,497cc)가 섞여요.** 2.5는 이번에 넣었고, 2.4의 마지막 연식(2018 또는 2019)을 등록증으로 확인하면 넣을게요. |
+| 무쏘 EV (화물, 2025–) | 적재 500kg | 미확인 | 500kg은 한 조사만, 그것도 인용문과 URL의 대응을 직접 확인하지 못했어요. 모델 그룹을 '무쏘'로 할지 '무쏘 EV'로 할지도 정해야 해요(2025년 렉스턴 스포츠가 '무쏘 스포츠'로 개명). |
+| 벤츠 E200·E300 (W214, 2024–) | 1,999cc | 미확인 | 트림별 출처가 1건씩뿐이에요. W213 값(1,991cc)을 옮겨 쓰면 안 돼요. E200과 E300이 같은 배기량인지도 확인이 필요해요. |
+| 벤츠 GLC300 (X254, 2023–) | 1,999cc | 미확인 | 국내 매물 중 '하이브리드(가솔린)'로 적힌 것이 마일드 하이브리드 GLC300인지 GLC300e(플러그인)인지 미확인. 이전 세대 X253(1,991cc로 보임)은 따로 다뤄야 해요. |
+| 폭스바겐 티구안 2.0 TDI (2세대) | 1,968cc (출처 1곳) | 미확인 | 국내 시작은 2018년식이에요. 2021–2024년식은 관보 신고값이 1,980·2,000으로 갈려 미정이에요. 전기·후기형으로 나눠 확인이 필요해요. |
 
-### 승합·화물·전기·신차
+## 4. 다음 후보 (조사 중 발견, 이번 범위 밖)
 
-화물차 세금은 배기량이 아니라 **적재정량(최대적재량)**으로 정해져요. 1,000kg 이하면 자가용 연 28,500원이라, 정확한 kg보다 '1톤 이하인지'가 중요해요.
-
-| 차종 | 조사 A | 조사 B | 재확인 | 쟁점 · 확인할 것 |
-|---|---|---|---|---|
-| 그랜드 스타렉스 11·12인승 (승합, 2007–2021) | 미확인 | 미확인 | 2,497cc | 승합은 규모별 정액(소형 연 65,000원)이라 배기량이 세금에 안 쓰여요. 9인승·리무진은 승용, 3·5인승 밴은 화물이라 따로 다뤄야 해요. |
-| 포터2 일렉트릭 (화물, 2019–) | 적재 미확인 | 적재 1,000kg | 적재 미확인 | B의 1,000kg은 '1톤 트럭'이라는 이름에서 나온 값이에요. 등록증 '최대적재량'을 확인해 주세요. |
-| 봉고3 EV (화물, 2020–) | 적재 미확인 | 적재 1,000kg | 적재 미확인 | 포터2 일렉트릭과 같은 쟁점이에요. |
-| 봉고3 2.5 LPG 터보 (화물, 2023–) | 미확인 | 미확인 (적재 1,000kg) | 2,469cc · 1,000kg | 포터2 LPG와 같은 엔진(2,469cc). 디젤 2,497cc와 헷갈리지 마세요. 2023년 이전 봉고3 2.4 LPI(2,359cc)는 별도 후보예요. |
-| 타스만 2.5 터보 (화물, 2025–) | 미확인 | 2,497cc · 700kg | 2,497cc · 700kg | 700kg은 2WD 기준. 4WD 적재량은 미확인이에요(1톤 이하일 가능성 높음). |
-| 렉스턴 스포츠 2.2 디젤 (화물, 2018–2025) | 2,157cc · 400kg | 미확인 | 2,157cc · 적재 미확인 | A의 400kg은 근거가 약해요. 2025년 '무쏘 스포츠'로 이름이 바뀌었어요. `docs/vehicle-class-reference.md`의 '추가하면 안 되는 차종'은 화물 세율이 없던 때 기준이라, 지금은 적재량만 확인되면 넣을 수 있어요. |
-| 렉스턴 스포츠 칸 2.2 디젤 (화물, 2019–2025) | 2,157cc · 700kg | 미확인 | 2,157cc · 700kg | 700kg은 파워 리프 사양. 5링크 사양 적재량은 미확인. 2025년 '무쏘 칸'으로 개명. |
-| PV5 카고 (화물, 2025–) | 적재 미확인 | 적재 미확인 | 적재 미확인 | 665kg이라는 기사 1곳뿐이에요. 트림·배터리별로 달라질 수 있어요. |
-| 무쏘 EV (화물, 2025–) | 적재 미확인 | 적재 미확인 | 적재 미확인 | 500kg이라는 기사 1곳뿐. 모델 그룹 이름을 '무쏘'로 할지 '무쏘 EV'로 할지도 정해야 해요. |
-| 기아 EV5 (2025–) | 국내 판매 미확인 | 판매 · 주행거리 460km | 판매 확인 · 주행거리 미확인 | A는 국내 판매를 확인하지 못했어요. 재확인에서 기아 공시로 2025년 3분기 국내 출시를 확인했어요. 전기차라 세금은 130,000원 고정이고, 주행거리만 미확정이에요. |
-
-### 수입차
-
-| 차종 | 조사 A | 조사 B | 재확인 | 쟁점 · 확인할 것 |
-|---|---|---|---|---|
-| BMW 520d (G30, 2017–2023) | 미확인 | 미확인 | 2017–2020: 1,995cc / 2020–2023: 미확인 | 후기형(48V)도 같을 가능성이 높지만 국내 기록이 없어요. 후기형 시작 연식(2020인지 2021인지)도 미확인. |
-| 벤츠 E300 (W213, 2016–2023) | 미확인 | 미확인 | 1,991cc (전 구간) | A가 걱정한 1,999cc는 다음 세대(W214)부터예요. 2016년식 'E300'에는 이전 세대(W212, 3,498cc)가 섞여 있어 세대 구분이 필요해요. |
-| 벤츠 E200·E300 (W214, 2024–) | 미확인 | 미확인 | 미확인 | 1,999cc로 예상. W213 값(1,991cc)을 옮겨 쓰면 안 돼요. |
-| 벤츠 GLC300 (X254, 2023–) | 미확인 | 미확인 | 미확인 | 1,999cc로 예상. 이전 세대(X253)는 1,991cc로 보여 따로 다뤄야 해요. |
-| 폭스바겐 티구안 2.0 TDI (2세대) | 미확인 | 미확인 | 2018–2020: 1,968cc / 2021–2024: 미확인 | 국내 시작은 2016이 아니라 2018년식이에요. 후기형은 관보 신고값이 1,980·2,000으로 갈려 미정. |
-| 아우디 A6 45 TFSI (C8) | 미확인 | 1,984cc | 1,984cc | 2026-04 신형(C9)이 나와 C8의 마지막 연식을 2026으로 닫을 것을 권해요. 신형도 같은 이름이라 따로 확인해야 해요. |
-| 볼보 XC60 B5 | 미확인 | 1,969cc (2021–) | 1,969cc (2022–) | B5 기록은 2022년식부터라 시작 연식을 2022로 고쳤어요. 연비는 10.1. |
-| 벤츠 C200 (W206) | 미확인 (1.5 터보로 기억) | 미확인 | 2022–2023: 미확인 / 2024–2025: 1,999cc | **이름과 달리 2024–2025년식은 2.0이에요.** 1,496cc면 연 272,270원, 1,999cc면 연 519,740원으로 세금 차이가 커서 2022–2023년식 등록증 확인이 중요해요. |
-| 벤츠 S450·S500 (W223, 2021–) | 미확인 | 2,999cc | 2,999cc | 두 트림 같은 배기량. 이전 세대 S500(4,663cc)과 섞으면 안 돼요. |
-| 벤츠 GLE450 (V167, 2019–) | 미확인 | 2,999cc | 2,999cc | 국내 기록은 트림 표기 없이 'GLE 2,999cc'라 국내 트림 확인이 한 번 더 필요해요. |
-| BMW X5 xDrive30d (G05, 2019–) | 미확인 | 2,993cc | 2,993cc | 관보에 2025년식도 2,993cc라 후기형도 같아요. |
-| BMW X3 xDrive20d (G01, 2017–2024) | 미확인 | 1,995cc | 1,995cc | G01을 명시한 국내 등록 기록은 없고 해외 자료·형제차(X4) 기록이에요. |
-| 볼보 S90 B5 (T5 포함, 2017–) | 미확인 | 1,969cc | 1,969cc | T5와 B5 모두 같은 배기량이라 한 페이지로 충분해요. |
-| 토요타 캠리 하이브리드 (XV70, 2018–2024) | 미확인 | 2,487cc | 2,487cc | 이전 세대(XV50)는 2,494cc라 따로예요. 연비 17.1은 B가 신형 값으로 봤지만 재확인 결과 XV70 후기형 값이에요. |
-| 미니 쿠퍼 3도어 (F56, 2014–2024) | 미확인 | 1,499cc | 1,499cc | 쿠퍼 D(1,496cc)·쿠퍼 S(1,998cc)와 다른 배기량이에요. |
-
-### 다음 후보 (조사 중 발견, 이번 범위 밖)
-
-투싼 TL 1.6 디젤(F/L), 스포티지 QL 1.7·1.6 디젤, 코나 1세대 2.0·디젤·일렉트릭, K7 YG 3.3·2.2 디젤, 현대 제네시스 DH(2013–2016, 브랜드 '현대'), 무쏘 스포츠·무쏘 칸(2025)과 신형 무쏘(2026), 봉고3 2.4 LPI(2023년 이전), 아이오닉 플러그인·일렉트릭, 벤츠 GLC300(X253), BMW X3 20d(G45), 토요타 캠리(XV80), 스팅어 2.2 디젤·2.5 터보, 말리부 1.35 터보·2.0 터보, 넥쏘 세대별 주행거리.
+- 국산 지난 세대: 투싼 TL 1.6 디젤(F/L, 1,598cc), 스포티지 QL 1.7·1.6 디젤, 코나 1세대 2.0·디젤·일렉트릭, K5 JF 1.6 터보·2.0 터보·하이브리드, K7 YG 3.3 가솔린·2.2 디젤·프리미어 3.0 가솔린, 니로 DE 플러그인·EV, 아이오닉 플러그인·일렉트릭, 현대 제네시스 DH(2013–2016, 브랜드 '현대'), 스팅어 2.2 디젤·마이스터 2.5 터보, 말리부 1.35 터보·2.0 터보, SM6 TCe 260·TCe 300, 트랙스 1세대 1.6 디젤.
+- 화물·승합: 무쏘 스포츠·무쏘 칸(2025, 렉스턴 스포츠·칸과 같은 2,157cc)과 신형 무쏘(2026), 봉고3 2.4 LPI(2023년 이전), 봉고3 LPG 1.2톤, 타스만 오픈베드, 그랜드 스타렉스 9인승·3·5인승 밴(화물)·2.4 LPi.
+- 수입: 벤츠 GLC300(X253)·S580, BMW X3 20d(G45)·X5 xDrive40i·50e, 아우디 A6 신형(C9), 토요타 캠리(XV80), 미니 쿠퍼 S·5도어(F55), 볼보 XC60·S90 T8·B6.
+- 연비·주행거리: 2차 48종 전부, EV5·넥쏘 세대별 주행거리.
