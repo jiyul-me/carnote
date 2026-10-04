@@ -174,6 +174,16 @@
 
   // ---------- 검사 D-day (data/inspection.json) ----------
 
+  /* 이 차에 inspection.json의 검사 주기(비사업용 승용: 최초 4년, 이후 2년)를 적용해도 되는지.
+   * vehicle = car.vehicleId로 찾은 vehicles.json 항목. 없으면(차종 미매칭) 지금까지처럼 승용으로 본다.
+   * vehicleClass가 없거나 'passenger'면 승용. 화물('truck')·승합('van') 등은 검사 주기가 차종·용도마다 달라
+   * 승용 규칙으로 날짜를 만들지 않는다(D-day·캘린더 일정 없음) — 화면은 등록증·검사 안내문을 확인하라고 안내한다 */
+  function passengerInspectionApplies(vehicle) {
+    if (!vehicle) return true;
+    var cls = vehicle.vehicleClass;
+    return cls == null || cls === 'passenger';
+  }
+
   /* 만료일 추정: 최근 검사일이 있으면 +intervalYears, 없으면 최초등록일 +firstInspectionAfterYears.
    * 과거로 밀린 만료일은 intervalYears씩 굴려 현재에 가장 가까운 회차를 잡는다
    * (기록이 없어도 과거 검사는 받았다고 가정 — UI에 '최근 검사일을 입력하면 정확해져요' 안내).
@@ -533,6 +543,7 @@
     latestOdometer: latestOdometer, monthlyKmEstimate: monthlyKmEstimate,
     lastRecordFor: lastRecordFor, partStatus: partStatus,
     defaultEnabledPartIds: defaultEnabledPartIds, applicableParts: applicableParts,
+    passengerInspectionApplies: passengerInspectionApplies,
     inspectionStatus: inspectionStatus, insuranceStatus: insuranceStatus,
     yearlySpend: yearlySpend,
     monthKey: monthKey, addMonthKey: addMonthKey,

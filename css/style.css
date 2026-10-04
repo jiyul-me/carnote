@@ -106,6 +106,8 @@ main {
   cursor: pointer; color: var(--ink); font: inherit; font-size: 15px;
 }
 li:last-child > .sched-row { border-bottom: none; }
+/* 누를 곳이 없는 안내 행 (화물·승합 검사) — 버튼 행과 같은 모양, 눌림·호버 표시 없음 */
+.sched-row.sched-static, .sched-row.sched-static:hover, .sched-row.sched-static:active { cursor: default; background: none; }
 .sched-main { min-width: 0; }
 .sched-name { font-weight: 500; }
 .sched-sub { color: var(--ink-muted); font-size: 12px; }

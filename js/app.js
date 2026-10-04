@@ -79,15 +79,25 @@
   function fuelLabel(car) {
     return carEnergy(car) === 'hydrogen' ? '수소전기' : (FUEL_LABELS[car.fuelType] || car.fuelType);
   }
+  // 검사 D-day는 inspection.json의 승용 주기를 적용할 수 있는 차만 — 화물·승합은 주기가 차종·용도마다 달라
+  // 날짜를 만들지 않는다(null). 대시보드·.ics가 같은 판정을 쓰도록 여기서만 계산
+  function inspectionApplies(car) { return D.passengerInspectionApplies(vehicleById(car.vehicleId)); }
+  function carInspection(car, today) {
+    return inspectionApplies(car) ? D.inspectionStatus(car, data.inspection.regularInspection, today) : null;
+  }
 
   var toastTimer = null;
   var toastClose = null; // 떠 있는 토스트 닫기 (새 토스트가 이전 것을 대체할 때)
   /* opts (선택): {ms} 표시 시간, 또는 실행 취소 등 액션 {label, fn, focus, hold, returnFocus}.
    *  액션이 있으면 더 오래(ACTION_TOAST_MS) 떠 있고, 마우스를 올린 동안은 멈춘다.
-   *  focus: 뜨자마자 액션 버튼으로 포커스 (다시 그려 사라진 포커스 대신 — 키보드·스크린리더 사용자가 바로 되돌리게)
+   *  fn(byKeyboard): 액션 버튼을 눌렀을 때. byKeyboard = 키보드·스크린리더로 눌렀는지 (click의 detail이 0)
+   *  focus: 뜨자마자 액션 버튼으로 포커스 (다시 그려 사라진 포커스 대신 — 키보드·스크린리더 사용자가 바로 되돌리게).
+   *         키보드로 시작한 동작에만 쓴다 — 마우스·터치로 시작했는데 옮기면 보이지 않는 포커스가 버튼에 남아
+   *         스페이스로 스크롤하려던 사용자가 버튼을 누르게 된다
    *  hold: 포커스가 토스트 안에 있는 동안 시간을 멈춘다. 키보드로 지운 경우만 — 터치로 지웠는데 멈추면
    *        포커스가 남아 화면에서 사라지지 않는다. 토스트 밖을 누르면(다음 일로 넘어감) 다시 센다
-   *  returnFocus: 포커스가 토스트에 있는 채로 닫히면(시간 초과·Esc) 포커스를 돌려줄 요소를 찾는 함수 */
+   *  returnFocus: 포커스가 토스트에 있는 채로 닫히면(시간 초과·Esc) 포커스를 돌려줄 요소를 찾는 함수.
+   *         focus와 같은 이유로 키보드로 시작한 동작에만 */
   function toast(msg, opts) {
     if (toastClose) toastClose(false);
     var action = opts && opts.label && opts.fn ? opts : null;
@@ -130,9 +140,9 @@
       btn.className = 'msg-toast-action';
       btn.textContent = action.label;
       btn.setAttribute('aria-label', msg + ' ' + action.label); // 포커스가 옮겨 왔을 때 무엇을 되돌리는지
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
         close(false);
-        action.fn();
+        action.fn(e.detail === 0);
       });
       el.appendChild(btn);
       el.addEventListener('mouseenter', function () { hovered = true; schedule(); });
@@ -212,7 +222,7 @@
         url: siteUrl || undefined
       });
     });
-    var insp = D.inspectionStatus(car, data.inspection.regularInspection, today);
+    var insp = carInspection(car, today);
     if (insp && insp.expiryOn >= today) {
       events.push({
         uid: car.id + '-inspection@chailji',
@@ -370,8 +380,10 @@
   function focusEl(el) { if (el) el.focus({ preventScroll: true }); }
 
   /* 기록 삭제 (정비·주유·지출 공용) — 확인 창 대신 되돌리기 토스트. 그 기록이 주행거리 로그에 한 일도 되돌린다.
-   * 다시 그리면 포커스가 사라지므로 '되돌리기' 버튼으로 옮겨 키보드·스크린리더 사용자도 바로 되돌릴 수 있게 하고,
-   * 키보드로 지웠으면(keyboard) 토스트에 머무는 동안 시간을 멈춘다. 그대로 닫히면 다음 행의 삭제 버튼으로 돌려준다 */
+   * 키보드·스크린리더로 지웠으면(keyboard) 다시 그려 사라진 포커스를 '되돌리기' 버튼으로 옮겨 바로 되돌릴 수 있게 하고,
+   * 토스트에 머무는 동안 시간을 멈춘다. 그대로 닫히면 다음 행의 삭제 버튼으로 돌려준다.
+   * 마우스·터치로 지웠으면 포커스를 옮기지 않는다 — 옮기면 보이지 않는 포커스가 되돌리기(시간이 지나면 다음 행의 삭제)에
+   * 남아, 스페이스로 스크롤하려던 사용자가 되돌리기를 누르거나 다음 기록을 지운다. 결과는 role=status로 똑같이 알린다 */
   function deleteWithUndo(listName, id, btn, keyboard) {
     var list = doc[listName];
     var idx = -1;
@@ -387,24 +399,25 @@
     render({ keepScroll: true });
     toast('삭제했어요', {
       label: '되돌리기',
-      focus: true,
+      focus: keyboard,
       hold: keyboard,
-      returnFocus: function () {
+      returnFocus: keyboard ? function () {
         var now = document.querySelectorAll(sel);
         var next = now[Math.min(Math.max(pos, 0), now.length - 1)];
         if (next) return next;
         var h = document.querySelector('#app h1');
         if (h) h.setAttribute('tabindex', '-1');
         return h;
-      },
-      fn: function () {
+      } : null,
+      fn: function (byKeyboard) {
         if (!carById(removed.carId)) return; // 그사이 차가 지워졌으면 복구할 곳이 없다
         var l = doc[listName];
         l.splice(Math.min(idx, l.length), 0, removed);
         restoreOdometer(odoUndo);
         persist();
         render({ keepScroll: true });
-        focusEl(document.querySelector(sel + '[data-id="' + removed.id + '"]'));
+        // 되돌리기를 키보드로 눌렀을 때만 복원된 행으로 — 마우스로 눌렀는데 옮기면 위와 같은 이유로 스페이스가 다시 지운다
+        if (byKeyboard) focusEl(document.querySelector(sel + '[data-id="' + removed.id + '"]'));
         toast('되돌렸어요');
       }
     });
@@ -482,7 +495,7 @@
     }
 
     // 내 차 카드 — 주행거리가 이 페이지의 히어로 숫자
-    var insp = D.inspectionStatus(car, data.inspection.regularInspection, today);
+    var insp = carInspection(car, today);
     var insur = D.insuranceStatus(car, today);
     html += '<div class="card">' +
       '<div class="car-head">' +
@@ -506,7 +519,8 @@
       '</ul>' +
       inspectionNotices(insp) +
       '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
-      '<p class="notice">교체 예정일·검사 만료일·연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
+      '<p class="notice">교체 예정일·' + (inspectionApplies(car) ? '검사 만료일·' : '') +
+        '연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
     '</div>';
 
     // 이번 달 지출 — 지출 화면 진입점 + 빠른 기록
@@ -556,7 +570,13 @@
   // 다가오는 일정 행: 검사·보험 + 임박/지남 소모품
   function scheduleRows(car, insp, insur, today, monthlyKm) {
     var rows = [];
-    if (insp) {
+    if (!inspectionApplies(car)) {
+      // 화물·승합: 승용 주기로 지어낸 날짜 대신 확인할 곳을 안내 (누를 곳이 없으니 버튼이 아닌 행)
+      rows.push('<li><div class="sched-row sched-static">' +
+        '<span class="sched-main"><span class="sched-name">자동차 검사</span>' +
+        '<div class="sched-sub">화물·승합차는 검사 주기가 차종·용도마다 달라요. ' +
+        '자동차등록증이나 검사 안내문의 유효기간을 확인해 주세요</div></span></div></li>');
+    } else if (insp) {
       rows.push('<li><button type="button" class="sched-row" data-action="edit-car">' +
         '<span class="sched-main"><span class="sched-name">자동차 검사</span>' +
         '<div class="sched-sub">' + fmtDate(insp.expiryOn) + '까지' + (insp.estimated ? ' · 추정' : '') + '</div></span>' +
