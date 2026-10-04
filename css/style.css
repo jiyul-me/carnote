@@ -204,6 +204,10 @@ li:last-child > .part-row { border-bottom: none; }
 .history-item:last-child { border-bottom: none; }
 .history-main { font-size: 14px; }
 .history-sub { font-size: 12px; color: var(--ink-muted); }
+/* 공백 없는 긴 메모·정비소 이름(영문·숫자 연속)도 카드 안에서 줄바꿈 — 375px에서 가로 스크롤 방지.
+ * anywhere는 최소 너비 계산에도 반영돼 flex 항목이 줄어들 수 있다 */
+.history-main, .history-sub { overflow-wrap: anywhere; }
+.history-item > :first-child { min-width: 0; }
 .history-del {
   background: none; border: none; color: var(--ink-muted); cursor: pointer;
   font-size: 13px; padding: 12px 8px; margin: -12px -8px -12px 0;
@@ -300,10 +304,14 @@ li:last-child > .part-row { border-bottom: none; }
   background: var(--ink); color: var(--bg);
   padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
   z-index: 50;
-  display: flex; align-items: center; white-space: nowrap;
+  display: flex; align-items: center;
+  width: max-content; max-width: calc(100% - 40px); /* 긴 안내는 화면 안에서 줄바꿈 (좌우 20px 여백) */
+  overflow-wrap: anywhere;
 }
 .msg-toast-action {
-  background: none; border: none; cursor: pointer;
+  background: none; border: none; cursor: pointer; flex-shrink: 0; white-space: nowrap;
   color: inherit; font: inherit; font-weight: 700; text-decoration: underline;
   margin-left: 12px; padding: 4px; font-family: inherit;
 }
+/* 삭제 직후 포커스가 옮겨 오는 자리 — 어두운 배경 위에서도 보이게 */
+.msg-toast-action:focus-visible { outline: 2px solid var(--bg); outline-offset: 2px; }

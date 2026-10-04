@@ -335,14 +335,21 @@
     return months ? Math.round(sum / months) : null;
   }
 
-  /* 실연비 (가득 주유 full-to-full, docs/storage-schema.md 파생 규칙)
-   * - 끝점: 주행거리가 있는 가득 주유. 연속한 두 끝점 사이 구간의 실연비 =
-   *   (뒤 끝점 km − 앞 끝점 km) ÷ (앞 끝점 다음 주유부터 뒤 끝점까지 넣은 양의 합)
-   * - 구간 안의 부분 주유·주행거리 없는 가득 주유는 끝점이 못 될 뿐 양은 합산된다
-   * - 양을 알 수 없는 주유(주유량·단가 모두 없음)나 단위(L·kWh)가 다른 주유가 낀 구간, 거리가 0 이하인 구간은 제외
-   * - 합산 실연비 = 유효 구간 거리 합 ÷ 양 합. 단위가 섞였으면 가장 최근 유효 구간의 단위로만 집계
-   * 반환: null(유효 구간 없음) | {kmPerUnit, unit, distanceKm, amount, intervals, latestKmPerUnit} */
-  function fuelEconomy(fuelLogs, carId) {
+  // ---------- 에너지원 (주유·충전 단위) ----------
+  // 과세 구분(fuelType)과 실제 넣는 에너지는 다를 수 있다 — 수소차(넥쏘)는 세법상 'ev'지만 수소를 kg 단위로 충전한다.
+  // vehicles.json 항목의 energySource가 있으면 그것, 없으면 fuelType에서 유도
+  var ENERGY_BY_FUEL = { gasoline: 'gasoline', diesel: 'diesel', lpg: 'lpg', hybrid: 'gasoline', ev: 'electricity' };
+  var UNIT_BY_ENERGY = { electricity: 'kWh', hydrogen: 'kg' }; // 그 외(휘발유·경유·LPG)는 L
+
+  function energySource(vehicle, fuelType) {
+    if (vehicle && typeof vehicle.energySource === 'string' && vehicle.energySource) return vehicle.energySource;
+    return ENERGY_BY_FUEL[fuelType] || 'gasoline';
+  }
+
+  function energyUnit(source) { return UNIT_BY_ENERGY[source] || 'L'; }
+
+  // 같은 날짜는 입력 순서(createdAt)대로
+  function sortedFuelLogs(fuelLogs, carId) {
     var logs = (fuelLogs || []).filter(function (l) { return l.carId === carId && l.filledOn; });
     logs.sort(function (a, b) {
       if (a.filledOn !== b.filledOn) return a.filledOn < b.filledOn ? -1 : 1;
@@ -350,31 +357,94 @@
       var bc = b.createdAt || '';
       return ac < bc ? -1 : (ac > bc ? 1 : 0);
     });
-    var anchor = null;
-    var acc = 0;
-    var accOk = true;
+    return logs;
+  }
+
+  // 구간 주유량 누적: 단위가 하나로 모이고 양을 다 알 때만 유효
+  function newAcc() { return { amount: 0, ok: true, unit: null }; }
+  function addToAcc(acc, l) {
+    var a = fuelLogAmount(l);
+    if (a == null) acc.ok = false;
+    else acc.amount += a;
+    if (acc.unit == null) acc.unit = l.unit;
+    else if (acc.unit !== l.unit) acc.ok = false;
+  }
+  function joinAcc(a, b) {
+    return {
+      amount: a.amount + b.amount,
+      ok: a.ok && b.ok && (a.unit == null || b.unit == null || a.unit === b.unit),
+      unit: a.unit != null ? a.unit : b.unit
+    };
+  }
+
+  /* 실연비 (가득 주유 full-to-full, docs/storage-schema.md 파생 규칙)
+   * - 끝점: 주행거리가 있는 가득 주유. 연속한 두 끝점 사이 구간의 실연비 =
+   *   (뒤 끝점 km − 앞 끝점 km) ÷ (앞 끝점 다음 주유부터 뒤 끝점까지 넣은 양의 합)
+   * - 구간 안의 부분 주유·주행거리 없는 가득 주유는 끝점이 못 될 뿐 양은 합산된다
+   * - 양을 알 수 없는 주유(주유량·단가 모두 없음)나 단위(L·kWh·kg)가 다른 주유가 낀 구간은 제외
+   * - 주행거리가 기준점보다 줄어든 가득 주유(자릿수 오타 등)는 구간도 기준점도 되지 못한다. 양은 다음 구간에 합산.
+   *   · 다음 끝점이 기준점보다 크면 그 줄어든 값은 오타 — 기준점에서 다음 끝점까지 한 구간으로 잰다
+   *   · 다음 끝점도 기준점보다 작지만 줄어든 값보다는 크면 계기판 교체 등 새 출발 — 줄어든 값부터 잰다
+   *   · 다음 끝점이 기준점보다 작아도 그 앞 기준점보다 크면 기준점 쪽이 튄 값(자릿수가 붙은 오타 등) —
+   *     앞 기준점→기준점 구간을 버리고 앞 기준점부터 다음 끝점까지 한 구간으로 다시 잰다
+   * - 같은 주행거리로 다시 기록한 가득 주유(중복 저장·추가 주유)는 구간 없이 기준점만 옮긴다
+   * - 합산 실연비 = 유효 구간 거리 합 ÷ 양 합. 단위가 섞였으면 가장 최근 유효 구간의 단위로만 집계
+   * 반환: null(유효 구간 없음) | {kmPerUnit, unit, distanceKm, amount, intervals, latestKmPerUnit} */
+  function fuelEconomy(fuelLogs, carId) {
+    var segs = [];        // 잰 구간 {dist, amount, unit} — null이면 양·단위 문제로 무효(자리만 차지)
+    var anchor = null;    // 지금 기준 끝점
+    var acc = null;       // anchor 다음 주유부터 지금까지의 양
+    var back = null;      // anchor 직전 기준점과 그 구간 {anchor, acc, seg(segs 안의 위치)} — 튄 값 판정용
+    var low = null;       // anchor보다 작은 끝점 {log, acc(그 다음부터의 양)} — 오타·계기판 교체 판정용
+
+    function measure(from, to, a) {
+      var dist = to.odometerKm - from.odometerKm;
+      var ok = a.ok && a.amount > 0 && a.unit === from.unit && dist > 0;
+      segs.push(ok ? { dist: dist, amount: a.amount, unit: a.unit } : null);
+      return segs.length - 1;
+    }
+    function moveTo(l, prevAnchor, prevAcc, segIdx) {
+      back = prevAnchor ? { anchor: prevAnchor, acc: prevAcc, seg: segIdx } : null;
+      anchor = l;
+      acc = newAcc();
+      low = null;
+    }
+
+    sortedFuelLogs(fuelLogs, carId).forEach(function (l) {
+      if (anchor) addToAcc(acc, l);
+      if (low) addToAcc(low.acc, l);
+      if (!l.isFullTank || l.odometerKm == null) return;
+      if (!anchor) { moveTo(l, null); return; }
+      var km = l.odometerKm;
+      if (km > anchor.odometerKm) {
+        moveTo(l, anchor, acc, measure(anchor, l, acc));
+      } else if (km === anchor.odometerKm) {
+        anchor = l; // 같은 주행거리 — 기준점만 옮긴다 (그 사이 양은 버림)
+        acc = newAcc();
+        low = null;
+      } else if (back && km > back.anchor.odometerKm) {
+        segs[back.seg] = null; // anchor가 튄 값 — 그 구간 무효, 앞 기준점부터 다시
+        var merged = joinAcc(back.acc, acc);
+        var from = back.anchor;
+        moveTo(l, from, merged, measure(from, l, merged));
+      } else if (low && km > low.log.odometerKm) {
+        var lowLog = low.log;
+        var lowAcc = low.acc;
+        moveTo(l, lowLog, lowAcc, measure(lowLog, l, lowAcc)); // 줄어든 값이 이어짐 — 새 출발
+      } else {
+        low = { log: l, acc: newAcc() }; // 판정 보류 (양은 anchor 구간에 계속 합산)
+      }
+    });
+
     var per = {};
     var latest = null;
-    logs.forEach(function (l) {
-      if (anchor) {
-        var a = fuelLogAmount(l);
-        if (a == null || l.unit !== anchor.unit) accOk = false;
-        else acc += a;
-      }
-      if (!l.isFullTank || l.odometerKm == null) return;
-      if (anchor && accOk && acc > 0) {
-        var dist = l.odometerKm - anchor.odometerKm;
-        if (dist > 0) {
-          var u = per[l.unit] || (per[l.unit] = { distanceKm: 0, amount: 0, intervals: 0 });
-          u.distanceKm += dist;
-          u.amount += acc;
-          u.intervals += 1;
-          latest = { unit: l.unit, kmPerUnit: dist / acc };
-        }
-      }
-      anchor = l;
-      acc = 0;
-      accOk = true;
+    segs.forEach(function (s) {
+      if (!s) return;
+      var u = per[s.unit] || (per[s.unit] = { distanceKm: 0, amount: 0, intervals: 0 });
+      u.distanceKm += s.dist;
+      u.amount += s.amount;
+      u.intervals += 1;
+      latest = { unit: s.unit, kmPerUnit: s.dist / s.amount };
     });
     if (!latest) return null;
     var t = per[latest.unit];
@@ -386,6 +456,28 @@
       intervals: t.intervals,
       latestKmPerUnit: latest.kmPerUnit
     };
+  }
+
+  /* 실연비가 없을 때(fuelEconomy가 null) 무엇이 모자란지 — 안내 문구를 실제 조건에 맞추기 위함
+   *  'endpoints' 주행거리를 적은 가득 주유가 2번 미만
+   *  'amount'    끝점은 2번 이상인데 그 사이 주유 중 양을 알 수 없는 것(금액만 적음)이 있음
+   *  'other'     그 밖(단위가 섞임, 주행거리가 늘지 않음 등) */
+  function fuelEconomyGap(fuelLogs, carId) {
+    var logs = sortedFuelLogs(fuelLogs, carId);
+    var first = -1;
+    var last = -1;
+    logs.forEach(function (l, i) {
+      if (l.isFullTank && l.odometerKm != null) {
+        if (first === -1) first = i;
+        last = i;
+      }
+    });
+    if (first === last) return 'endpoints'; // 끝점 0~1개
+    // 첫 끝점 다음부터 마지막 끝점까지(구간에 들어가는 주유) 중 양을 모르는 것
+    for (var i = first + 1; i <= last; i++) {
+      if (fuelLogAmount(logs[i]) == null) return 'amount';
+    }
+    return 'other';
   }
 
   // ---------- 입력 정규화 ----------
@@ -446,7 +538,8 @@
     monthKey: monthKey, addMonthKey: addMonthKey,
     fuelLogCost: fuelLogCost, fuelLogAmount: fuelLogAmount,
     spendEntries: spendEntries, monthSpend: monthSpend, spendSeries: spendSeries,
-    monthlyAverageSpend: monthlyAverageSpend, fuelEconomy: fuelEconomy,
+    monthlyAverageSpend: monthlyAverageSpend, fuelEconomy: fuelEconomy, fuelEconomyGap: fuelEconomyGap,
+    energySource: energySource, energyUnit: energyUnit,
     parseKrwInput: parseKrwInput, parseDecimalInput: parseDecimalInput,
     formatKrw: formatKrw, formatKrwShort: formatKrwShort, formatDday: formatDday
   };

@@ -289,6 +289,81 @@
     fl('b', '2026-09-10', 10500, 100, true, { unit: 'kWh' })
   ], 'c1');
   eq([ec8.unit, ec8.kmPerUnit], ['kWh', 5], '전기차 km/kWh');
+  // 수소차: kg 단위 그대로 (넥쏘 약 100km/kg)
+  var ecH = D.fuelEconomy([
+    fl('a', '2026-09-01', 30000, 5, true, { unit: 'kg' }),
+    fl('b', '2026-09-20', 30500, 5, true, { unit: 'kg' })
+  ], 'c1');
+  eq([ecH.unit, ecH.kmPerUnit], ['kg', 100], '수소차 km/kg');
+
+  // 주행거리가 줄어든 가득 주유(자릿수 누락 46200 → 4620)는 구간·기준점이 되지 못한다.
+  // 다음 정상 기록까지 한 구간으로: (46800 − 45600) ÷ (40 + 40) = 15 (예전엔 기준점이 되어 534.75 · 최근 1054.5)
+  var ecDrop = D.fuelEconomy([
+    fl('a', '2026-09-01', 45000, 40, true),
+    fl('b', '2026-09-15', 45600, 40, true),
+    fl('c', '2026-09-29', 4620, 40, true),
+    fl('d', '2026-10-13', 46800, 40, true)
+  ], 'c1');
+  eq([ecDrop.kmPerUnit, ecDrop.intervals, ecDrop.latestKmPerUnit, ecDrop.distanceKm], [15, 2, 15, 1800], '줄어든 주행거리(오타)는 기준점 아님');
+  // 마지막 기록이 줄어든 값이면 판정 보류 — 앞 구간만
+  var ecDropLast = D.fuelEconomy([
+    fl('a', '2026-09-01', 45000, 40, true),
+    fl('b', '2026-09-15', 45600, 40, true),
+    fl('c', '2026-09-29', 4620, 40, true)
+  ], 'c1');
+  eq([ecDropLast.kmPerUnit, ecDropLast.intervals], [15, 1], '마지막이 줄어든 값 → 앞 구간만');
+  // 자릿수가 붙은 오타(46200 → 462000): 다음 기록이 그보다 작고 앞 기준점보다 크면 튄 값 — 그 구간을 버리고 다시 잰다
+  var ecJump = D.fuelEconomy([
+    fl('a', '2026-09-01', 45000, 40, true),
+    fl('b', '2026-09-15', 45600, 40, true),
+    fl('c', '2026-09-29', 462000, 40, true),
+    fl('d', '2026-10-13', 46800, 40, true)
+  ], 'c1');
+  eq([ecJump.kmPerUnit, ecJump.intervals, ecJump.latestKmPerUnit], [15, 2, 15], '튄 주행거리(오타) 구간 제외');
+  // 계기판 교체 등으로 줄어든 값이 이어지면 새 기준 — 이후 구간은 정상 계산
+  var ecReset = D.fuelEconomy([
+    fl('a', '2026-08-01', 45000, 40, true),
+    fl('b', '2026-08-15', 45600, 40, true),
+    fl('c', '2026-09-01', 100, 40, true),
+    fl('d', '2026-09-15', 700, 40, true),
+    fl('e', '2026-09-29', 1300, 40, true)
+  ], 'c1');
+  eq([ecReset.kmPerUnit, ecReset.intervals, ecReset.distanceKm], [15, 3, 1800], '계기판 교체 후 새 기준');
+  // 같은 주행거리로 두 번 저장(중복)한 가득 주유: 구간 없이 기준점만 옮겨 양이 이중으로 잡히지 않는다
+  var ecDup = D.fuelEconomy([
+    fl('a', '2026-09-01', 45000, 40, true),
+    fl('b', '2026-09-15', 45600, 40, true),
+    fl('b2', '2026-09-15', 45600, 40, true),
+    fl('c', '2026-09-29', 46200, 40, true)
+  ], 'c1');
+  eq([ecDup.kmPerUnit, ecDup.intervals], [15, 2], '중복 저장한 가득 주유');
+
+  // 실연비가 없을 때 이유 — 안내 문구가 실제 계산 조건과 맞게
+  eq(D.fuelEconomyGap([fl('a', '2026-09-01', 45000, 40, true)], 'c1'), 'endpoints', '끝점 1개 → endpoints');
+  eq(D.fuelEconomyGap([fl('a', '2026-09-01', null, 40, true), fl('b', '2026-09-10', null, 40, true)], 'c1'), 'endpoints', '주행거리 없는 가득 주유뿐 → endpoints');
+  // 금액·주행거리·가득만 적은 주유 3건 (리뷰 재현): 양을 몰라 계산 불가 → 'amount'
+  var amtOnly = [
+    fl('a', '2026-09-10', 45000, null, true, { totalKrw: 60000 }),
+    fl('b', '2026-09-25', 45600, null, true, { totalKrw: 55000 }),
+    fl('c', '2026-10-03', 46200, null, true, { totalKrw: 58000 })
+  ];
+  eq(D.fuelEconomy(amtOnly, 'c1'), null, '금액만 적은 가득 주유 → 실연비 없음');
+  eq(D.fuelEconomyGap(amtOnly, 'c1'), 'amount', '금액만 적은 주유 → amount');
+  // 첫 끝점(기준점)의 양은 구간에 안 들어가므로 따지지 않는다
+  eq(D.fuelEconomyGap([
+    fl('a', '2026-09-01', 45000, null, true, { totalKrw: 60000 }),
+    fl('b', '2026-09-15', 45600, 40, true, { unit: 'kWh' })
+  ], 'c1'), 'other', '단위 섞임 → other');
+
+  // ---------- 에너지원 (주유·충전 단위) ----------
+  eq(D.energySource({ fuelType: 'ev', energySource: 'hydrogen' }, 'ev'), 'hydrogen', '넥쏘: 과세는 ev, 에너지원은 수소');
+  eq(D.energyUnit(D.energySource({ fuelType: 'ev', energySource: 'hydrogen' }, 'ev')), 'kg', '수소 → kg');
+  eq(D.energySource({ fuelType: 'ev' }, 'ev'), 'electricity', 'energySource 없으면 fuelType에서 유도(ev → 전기)');
+  eq(D.energySource(null, 'ev'), 'electricity', '차종 미매칭 전기차');
+  eq(D.energyUnit(D.energySource(null, 'ev')), 'kWh', '전기 → kWh');
+  eq(D.energyUnit(D.energySource(null, 'hybrid')), 'L', '하이브리드 → L');
+  eq(D.energyUnit(D.energySource(null, 'diesel')), 'L', '디젤 → L');
+  eq(D.energyUnit(D.energySource(null, '모르는값')), 'L', '알 수 없는 연료 → L');
 
   // ---------- 입력 정규화 ----------
   eq(D.parseKrwInput('50,000'), 50000, 'parseKrwInput 쉼표');
