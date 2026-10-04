@@ -6,3 +6,6 @@ CLAUDE.md
 
 # 실수로 생긴 빈 파일
 carproject
+
+# Python 바이트코드 (build.py가 images.py를 import)
+__pycache__/
