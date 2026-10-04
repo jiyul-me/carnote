@@ -18,6 +18,24 @@
 .prepay-line { font-size: 15px; color: var(--ink-secondary); margin: 0 0 20px; }
 .prepay-line .accent { color: var(--accent); font-weight: 600; }
 
+/* 연납 신청 기간 안내 줄 — 연납 한 줄 바로 아래(허브·계산기는 소개 문단 아래).
+ * js/prepay-banner.js가 신청 기간·예고 기간에만 채워서 보인다. 기본 hidden(JS 꺼짐이면 안 보임) */
+.prepay-banner {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; /* 좁으면 신청 링크가 다음 줄로 */
+  margin: 0 0 16px; padding: 8px 0;
+  border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);
+  font-size: 14px; line-height: 1.6; color: var(--ink-secondary);
+}
+.prepay-banner[hidden] { display: none; }
+.prepay-badge {
+  padding: 0 8px; border-radius: 6px;
+  background: var(--accent-bg); color: var(--accent);
+  font-size: 12px; font-weight: 500; line-height: 20px; white-space: nowrap;
+}
+.prepay-main { color: var(--ink); } /* 안의 D-day는 style.css .dday 규칙 그대로 (여유=텍스트, 임박=b-warn 배지) */
+.prepay-apply { color: var(--accent); font-weight: 500; text-decoration: none; white-space: nowrap; }
+.prepay-note { flex-basis: 100%; font-size: 12px; color: var(--ink-muted); }
+
 /* ---------- 표 ---------- */
 .table-wrap { overflow-x: auto; }
 table.data { width: 100%; border-collapse: collapse; font-size: 14px; }

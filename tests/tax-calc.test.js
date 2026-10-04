@@ -48,6 +48,30 @@
   // 전기차 정액
   eq(T.evTax(RATES), 130000, '전기차 고정');
 
+  // 연납 공제율 폴백 (tax-rates.json fallbackRule) — 계산기는 브라우저의 올해를 넘긴다
+  var p26 = T.prepay(RATES, 290830, 2026);
+  eq(p26.year, '2026', '당해 연도 키가 있으면 그 해 공제율');
+  eq(p26.fallback, false, '당해 연도 키가 있으면 폴백 아님');
+  eq(p26.pay, 277510, '연도 지정해도 납부액 동일');
+  var p27 = T.prepay(RATES, 290830, 2027);
+  eq(p27.year, '2026', '키 없는 해(2027)는 가장 최근 연도(2026) 공제율');
+  eq(p27.fallback, true, '키 없는 해는 폴백 표시(YYYY년 기준 문구 강제)');
+  eq(p27.pay, 277510, '폴백 시 최근 연도 공제율로 계산');
+  eq(T.prepay(RATES, 290830).fallback, false, '연도 생략(기존 호출)은 최근 연도·폴백 아님');
+
+  // 당해 연도 키가 최신이 아니어도 당해 연도 우선 (최근 연도로 덮어쓰지 않는다)
+  var RATES2 = {
+    displacement: RATES.displacement,
+    prepayDiscount: {
+      rateByYear: { "2025": 0.05, "2026": 0.03 },
+      januaryProration: { coveredMonths: 11, totalMonths: 12 }
+    }
+  };
+  eq(T.prepay(RATES2, 290830, 2025).rate, 0.05, '2025년은 2025년 공제율');
+  eq(T.prepay(RATES2, 290830, 2026).rate, 0.03, '2026년은 2026년 공제율');
+  eq(T.rateFor(RATES2, 2028).year, '2026', '2028년(키 없음)은 2026년 기준');
+  eq(T.prepay(RATES2, 290830, 2026).pay, 290830 - T.floor10(290830 * 11 / 12 * 0.03), '3% 공제 납부액');
+
   print(failures === 0 ? '통과: ' + total + '/' + total : '실패: ' + failures + '/' + total);
   if (failures > 0) throw new Error(failures + '개 실패');
 })();
