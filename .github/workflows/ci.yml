@@ -1,0 +1,92 @@
+# 차일지 자동 검사 — push·PR마다 세액 계산 오류·데이터 실수·빌드 누락을 잡는다.
+# 로컬에서 같은 검사: python3 scripts/check.py  (README '검사' 참고)
+name: 자동 검사
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch: # Actions 탭에서 손으로 다시 돌리기 (예: 새해 첫날 연도 바뀐 뒤 확인)
+
+permissions:
+  contents: read
+
+# 같은 브랜치에 연달아 push하면 이전 실행은 취소 (최신 커밋만 보면 된다)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 빌드의 연도(this_year)를 사용자 로컬 빌드와 같은 한국 시간으로 — 1월 1일 0~9시에 연도가 어긋나지 않게
+  TZ: Asia/Seoul
+  PYTHONUTF8: "1"
+
+jobs:
+  check:
+    name: 데이터·세액·빌드·링크 검사
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 받아오기
+        uses: actions/checkout@v4
+
+      - name: Python 3.12 준비
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Node 22 준비
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Pillow 설치 (공유 썸네일 그리기용)
+        id: deps
+        run: python -m pip install pillow
+
+      # 아래 검사들은 앞 검사가 실패해도 계속 돌린다 — 실패한 것을 한 번에 다 보이게
+      - name: 1. 데이터 검사 (data/*.json)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: python scripts/validate_data.py
+
+      - name: 2. JS 테스트 (tests/*.test.js)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: node tests/run.js
+
+      - name: 3. 세액 계산 일치 (build.py ↔ js/tax-calc.js)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: python scripts/check_tax_parity.py
+
+      - name: 4. 빌드 결과 최신 여부 (tax/·og/·icons/)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: python scripts/check.py build
+
+      - name: 5. 깨진 링크
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: python scripts/check_links.py
+
+  python39:
+    # 사용자 Mac 기본 python3(Xcode 내장)가 3.9라서, build.py와 검사 스크립트가 3.9에서 실제로 도는지 확인
+    name: Python 3.9 호환 (Mac 기본 python3)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 받아오기
+        uses: actions/checkout@v4
+
+      - name: Node 22 준비
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: uv 준비
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
+
+      - name: Python 3.9 + Pillow 설치
+        run: |
+          uv venv --python 3.9 "$RUNNER_TEMP/py39"
+          uv pip install --python "$RUNNER_TEMP/py39/bin/python" pillow
+          "$RUNNER_TEMP/py39/bin/python" --version
+
+      - name: Python 3.9로 전체 검사 (python3 scripts/check.py 그대로)
+        run: '"$RUNNER_TEMP/py39/bin/python" scripts/check.py'
