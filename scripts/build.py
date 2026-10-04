@@ -93,12 +93,36 @@ def prepay_rate(rates, this_year):
     return latest, by_year[latest], True
 
 
+def prepay_days(rates, year):
+    """1월 연납 공제 일수 — 지방세법 제128조 제3항 계산식의 '납부기한 다음 날부터 12월 31일까지 일수 ÷ 365(윤년 366)'.
+    납부기한 = applicationWindows에서 month가 januaryProration.windowMonth인 기간의 endDay (js/tax-calc.js prorationDays와 같은 규칙).
+    반환: (일수, 그 해 일수) — 평년 (334, 365), 윤년 (335, 366)"""
+    p = rates["prepayDiscount"]
+    month = p["januaryProration"]["windowMonth"]
+    w = next((w for w in p.get("applicationWindows") or [] if w["month"] == month), None)
+    if w is None:
+        raise ValueError(f"tax-rates.json januaryProration.windowMonth({month})에 해당하는 applicationWindows 기간이 없습니다")
+    y = int(year)
+    days = (datetime.date(y, 12, 31) - datetime.date(y, w["month"], w["endDay"])).days
+    year_days = (datetime.date(y + 1, 1, 1) - datetime.date(y, 1, 1)).days
+    return days, year_days
+
+
+def prepay_period_label(rates, year):
+    """공제 일수의 기간 문구 '2월 1일~12월 31일' (납부기한 다음 날~연말 — prepay_days와 같은 기준)."""
+    days, _ = prepay_days(rates, year)
+    start = datetime.date(int(year), 12, 31) - datetime.timedelta(days=days - 1)
+    return f"{start.month}월 {start.day}일~12월 31일"
+
+
 def prepay(annual, rates, this_year):
-    """1월 연납 시 공제액·납부액. this_year = 빌드 연도 (공제율 선택 기준)."""
+    """1월 연납 시 공제액·납부액 (일할). this_year = 빌드 연도 — 공제율 선택과 일수(평년 334/365, 윤년 335/366) 모두 이 해 기준.
+    연세액은 지방교육세 포함 총액 그대로 곱하고 10원 미만 절사 (서울시 공식 예시와 원 단위 일치 — scripts/check_tax_parity.py)."""
     year, rate, fallback = prepay_rate(rates, this_year)
-    pr = rates["prepayDiscount"]["januaryProration"]
-    discount = floor10(annual * pr["coveredMonths"] / pr["totalMonths"] * rate)
-    return {"year": year, "rate": rate, "fallback": fallback, "discount": discount, "pay": annual - discount}
+    days, year_days = prepay_days(rates, this_year)
+    discount = floor10(annual * days / year_days * rate)
+    return {"year": year, "rate": rate, "fallback": fallback, "days": days, "yearDays": year_days,
+            "discount": discount, "pay": annual - discount}
 
 
 def prepay_basis(rates, this_year, sep=" · "):
@@ -109,16 +133,18 @@ def prepay_basis(rates, this_year, sep=" · "):
 
 def prepay_windows(rates):
     """연납 신청 기간 (tax-rates.json applicationWindows). 값이 이상하면 빌드를 멈춘다 —
-    잘못된 날짜는 잘못된 안내로 직결된다. 1월분 공제 월 수는 금액 계산(januaryProration)과 같아야 한다."""
+    잘못된 날짜는 잘못된 안내로 직결된다. 금액 계산(januaryProration.windowMonth)이 가리키는 기간이 있어야 한다."""
     p = rates["prepayDiscount"]
     windows = p.get("applicationWindows") or []
     for w in windows:
-        last_day = calendar.monthrange(2024, w["month"])[1] if 1 <= w["month"] <= 12 else 0  # 윤년 기준 말일
-        if not (1 <= w["startDay"] <= w["endDay"] <= last_day and 0 < w["coveredMonths"] < 12):
+        last_day = calendar.monthrange(2023, w["month"])[1] if 1 <= w["month"] <= 12 else 0  # 평년 말일 (2/29 금지)
+        lead = w.get("bannerLeadDays", 0)
+        if not (1 <= w["startDay"] <= w["endDay"] <= last_day and 0 < w["coveredMonths"] < 12
+                and isinstance(lead, int) and 0 <= lead <= 120):
             raise ValueError(f"tax-rates.json applicationWindows 값 오류: {w}")
-    jan = next((w for w in windows if w["month"] == 1), None)
-    if jan and jan["coveredMonths"] != p["januaryProration"]["coveredMonths"]:
-        raise ValueError("applicationWindows 1월 coveredMonths가 januaryProration.coveredMonths와 다릅니다")
+    jp = p["januaryProration"]
+    if jp.get("method") != "daily" or not any(w["month"] == jp.get("windowMonth") for w in windows):
+        raise ValueError("tax-rates.json januaryProration: method는 'daily', windowMonth는 applicationWindows의 month여야 합니다")
     return windows
 
 
@@ -129,21 +155,27 @@ def lump_sum_only(base, rates):
     return bool(th) and base <= th
 
 
-def prepay_banner(rates, lump_sum=False, amount_note=True, css_prefix="../"):
+def prepay_banner(rates, this_year, lump_sum=False, amount_note=True, age_based=False, css_prefix="../"):
     """연납 신청 기간 안내 줄 자리 (연납 한 줄 바로 아래). 날짜 판단은 js/prepay-banner.js가 오늘 날짜로 한다.
     기본 hidden — JS가 꺼져 있거나 기간 밖이면 아무것도 보이지 않는다.
-    lump_sum: 6월 일괄부과 차량이면 6·9월 기간을 빼고 심는다.
-    amount_note: 페이지에 '1월 연납 시' 금액이 있는지 (문구가 그 금액을 가리킨다)."""
+    lump_sum: 6월 일괄부과 차량이면 data-lump-sum — JS가 6·9월(lumpSumEligible=false) 기간을 뺀다.
+      계산기는 입력에 따라 JS(ChailjiPrepayBanner.update)가 이 표시를 켜고 끈다.
+    amount_note: 페이지에 '1월 연납 시' 금액이 있는지 (문구가 그 금액을 가리킨다).
+    age_based: 페이지 금액이 차령(빌드 연도 기준)에 따라 달라지는지 — 다음 해 1월 예고 때 '차령이 늘어 달라질 수 있다'고 밝힌다.
+    data-build-year: 페이지 금액의 기준 연도. 안내 대상 기간의 연도가 이와 다르면 '이 금액으로 낼 수 있다'고 하지 않는다."""
     p = rates["prepayDiscount"]
-    windows = [w for w in prepay_windows(rates) if not lump_sum or w.get("lumpSumEligible", True)]
+    windows = prepay_windows(rates)
     if not windows:
         return ""
-    data = [{k: w[k] for k in ("month", "startDay", "endDay", "coveredMonths", "label")} for w in windows]
+    keys = ("month", "startDay", "endDay", "coveredMonths", "label", "lumpSumEligible", "bannerLeadDays")
+    data = [{k: w[k] for k in keys if k in w} for w in windows]
     attrs = (
         f' data-windows="{esc(json.dumps(data, ensure_ascii=False, separators=(",", ":")))}"'
         f' data-rates="{esc(json.dumps(p["rateByYear"], separators=(",", ":")))}"'
-        f' data-lead-days="{int(p.get("bannerLeadDays", 0))}"'
+        f' data-build-year="{int(this_year)}"'
         + (" data-amount-note" if amount_note else "")
+        + (" data-age-based" if age_based else "")
+        + (" data-lump-sum" if lump_sum else "")
     )
     # 신청 링크는 sources의 위택스 항목을 그대로 쓴다 (URL 단일 출처)
     src = next((s for s in rates.get("sources", []) if s.get("key") == "wetax"), None)
@@ -422,18 +454,24 @@ def table_img_script(v, site, rates, this_year):
     )
 
 
-def lump_sum_note(base, rates):
-    """본세(지방교육세 제외)가 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능.
-    base = 본세. 승용은 지방교육세를 뺀 값을 넘길 것 (기준이 '지방교육세 별도' 연세액)."""
-    p = rates["prepayDiscount"]
-    th = p.get("lumpSumThresholdKrw")
-    if not lump_sum_only(base, rates):
+def lump_sum_text(rates):
+    """6월 일괄부과 안내 문장 (차종 페이지 lump_sum_note·계산기 결과 카드 공용). 기준이 없으면 빈 문자열."""
+    th = rates["prepayDiscount"].get("lumpSumThresholdKrw")
+    if not th:
         return ""
     th_label = f"{th // 10000}만원" if th % 10000 == 0 else f"{th:,}원"
     months = "·".join(f"{w['month']}월" for w in prepay_windows(rates) if w.get("lumpSumEligible", True))
     tail = f" 이때는 {months}에만 연납 신청이 가능합니다." if months else ""
-    return (f'<p class="notice">자동차세 본세(지방교육세 제외)가 연 {th_label} 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 '
-            f"공제를 자동 반영하는 경우가 있습니다.{tail}</p>")
+    return (f"자동차세 본세(지방교육세 제외)가 연 {th_label} 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 "
+            f"공제를 자동 반영하는 경우가 있습니다.{tail}")
+
+
+def lump_sum_note(base, rates):
+    """본세(지방교육세 제외)가 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능.
+    base = 본세. 승용은 지방교육세를 뺀 값을 넘길 것 (기준이 '지방교육세 별도' 연세액)."""
+    if not lump_sum_only(base, rates):
+        return ""
+    return f'<p class="notice">{lump_sum_text(rates)}</p>'
 
 
 def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
@@ -487,7 +525,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
 <p class="tax-caption">{esc(kind_label)} · {esc(t["basisLabel"])} · 자가용 기준</p>
 <div class="tax-hero">연 {t["nonBusiness"]:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인{prepay_basis(rates, this_year)} &nbsp;|&nbsp; 영업용 {t["business"]:,}원</p>
-{prepay_banner(rates, lump_sum=lump_sum_only(t["nonBusiness"], rates))}
+{prepay_banner(rates, this_year, lump_sum=lump_sum_only(t["nonBusiness"], rates))}
 <div class="card spec-box">
   <div class="spec-row"><span class="spec-label">분류</span><span>{esc(kind_label)}</span></div>
   <div class="spec-row"><span class="spec-label">과세 기준</span><span>{esc(t["basisLabel"])}</span></div>
@@ -523,7 +561,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 <p class="tax-caption">전기 · 비영업용 승용 · 연식 무관 정액</p>
 <div class="tax-hero">연 {annual:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인{prepay_basis(rates, this_year)}</p>
-{prepay_banner(rates, lump_sum=lump_sum_only(ev["baseKrw"], rates))}
+{prepay_banner(rates, this_year, lump_sum=lump_sum_only(ev["baseKrw"], rates))}
 {spec_box(v, site)}
 {class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
 {lump_sum_note(ev["baseKrw"], rates)}
@@ -604,7 +642,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 <p class="tax-caption" id="tax-caption">{esc(fuel)} · {cc:,}cc · 비영업용 승용 · 신차 기준</p>
 <div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
 <p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인{basis}</p>
-{prepay_banner(rates, lump_sum=lump_sum_only(new_tax["base"], rates))}
+{prepay_banner(rates, this_year, lump_sum=lump_sum_only(new_tax["base"], rates), age_based=True)}
 {spec_box(v, site)}
 {class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
 {picker}
@@ -615,7 +653,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 {notebook_cta(v)}
 {sources_block(rates, this_year)}
 <h2>계산 방법</h2>
-<p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요{basis_paren}.</p>
+<p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요{basis_paren}. 공제액은 날짜로 나눠 연세액 × {new_prepay["days"]}/{new_prepay["yearDays"]}({prepay_period_label(rates, this_year)} 일수 ÷ 그 해 일수) × {new_prepay["rate"]*100:.0f}%로 계산하고 10원 미만은 버려요.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
 <p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
 {jsonld_block(v, rates, site, this_year)}"""
@@ -694,20 +732,22 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
     var card = $('calc-result');
     var tableWrap = $('calc-table');
     $('calc-cc').disabled = ev;
-    if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; return; }
+    if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; banner(false, true); return; }
     var yearSel = $('calc-year').value;
     var thisYear = __THIS_YEAR__;
-    var nowYear = new Date().getFullYear(); // 연납 공제율 선택 기준 (tax-rates.json fallbackRule)
+    var nowYear = new Date().getFullYear(); // 연납 공제율·일수 기준 (tax-rates.json fallbackRule·januaryProration)
     var age = yearSel ? Math.min(13, Math.max(1, thisYear - Number(yearSel) + 1)) : 1;
-    var annual, label;
+    var annual, base, label;
     if (ev) {
       annual = T.evTax(rates);
+      base = rates.displacement.ev.baseKrw;
       label = '전기차 정액 (연식 무관)';
       tableWrap.innerHTML = '';
     } else {
       cc = Math.round(cc);
       var t = T.taxFor(rates, cc, age);
       annual = t.annual;
+      base = t.base;
       label = cc.toLocaleString('ko-KR') + 'cc · ' +
         (yearSel ? yearSel + '년 등록 · ' + age + '년차' + (age === 13 ? ' 이상' : '') : '신차 기준') +
         (t.discountRate ? ' · ' + Math.round(t.discountRate * 100) + '% 경감' : '');
@@ -725,7 +765,18 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
     $('cr-amount').textContent = '연 ' + won(annual);
     $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)' +
       (p.fallback ? ' · ' + p.year + '년 공제율 기준' : '');
+    // 본세(지방교육세 제외)가 기준 이하면 6월 일괄부과 차량 — 6·9월 연납이 없다 (build.py lump_sum_only와 같은 기준).
+    // 신청 기간 안내 줄에서 6·9월을 빼고 결과 카드에 일괄부과 안내를 붙인다
+    var th = rates.prepayDiscount.lumpSumThresholdKrw;
+    var lump = !!th && base <= th;
+    $('cr-lump').hidden = !lump;
+    banner(lump, !ev);
     card.hidden = false;
+  }
+  // 연납 신청 기간 안내 줄을 입력에 맞춰 다시 그린다 (js/prepay-banner.js). 전기차는 차령과 무관한 정액
+  function banner(lumpSum, ageBased) {
+    var B = window.ChailjiPrepayBanner, el = document.querySelector('.prepay-banner');
+    if (B && B.update && el) B.update(el, { lumpSum: lumpSum, ageBased: ageBased });
   }
   document.addEventListener('input', render);
   document.addEventListener('change', render);
@@ -746,7 +797,7 @@ def calculator_page(rates, site, this_year, og=None):
     body = f"""<p class="crumb"><a href="index.html">자동차세 계산</a> › 계산기</p>
 <h1>자동차세 계산기</h1>
 <p class="lede">배기량(cc)과 등록 연도만 넣으면 자동차세와 1월 연납액을 바로 계산해요. 비영업용 승용 기준.</p>
-{prepay_banner(rates)}
+{prepay_banner(rates, this_year, age_based=True)}
 <div class="card">
   <div class="field-row">
     <div class="field"><label for="calc-cc">배기량(cc)</label>
@@ -761,6 +812,7 @@ def calculator_page(rates, site, this_year, og=None):
   <div class="label" id="cr-label"></div>
   <div class="amount" id="cr-amount"></div>
   <div class="label" id="cr-prepay"></div>
+  <p class="notice" id="cr-lump" hidden>{esc(lump_sum_text(rates))}</p>
 </div>
 <div class="table-wrap" id="calc-table"></div>
 <h2>세율표</h2>
@@ -856,7 +908,7 @@ def index_page(vehicles, rates, site, this_year, og=None):
     )
     body = f"""<h1>차종별 자동차세 계산</h1>
 <p class="lede">배기량과 연식만으로 정해지는 자동차세, 차종별로 미리 계산해 뒀습니다. 비영업용 승용 기준.</p>
-{prepay_banner(rates, amount_note=False)}
+{prepay_banner(rates, this_year, amount_note=False)}
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
 <tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.</p>
