@@ -85,7 +85,7 @@ main {
 
 /* ---------- 차 요약 ---------- */
 .car-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.car-name { font-size: 17px; font-weight: 700; margin: 0; color: var(--ink); }
+.card .car-name { font-size: 17px; font-weight: 700; margin: 0; color: var(--ink); }
 .car-sub { color: var(--ink-muted); font-size: 12px; margin: 2px 0 0; }
 .odo-row { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .odo-km { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }

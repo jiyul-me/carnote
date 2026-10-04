@@ -56,7 +56,7 @@ jobs:
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: python scripts/check_tax_parity.py
 
-      - name: 4. 빌드 결과 최신 여부 (tax/·og/·icons/)
+      - name: 4. 빌드 결과 최신 여부 (tax/·og/·icons/·sitemap.xml)
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: python scripts/check.py build
 

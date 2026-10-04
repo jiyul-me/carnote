@@ -448,7 +448,8 @@ def spec_box(v, site):
 
 
 def notebook_cta(v):
-    """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가."""
+    """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가.
+    유지비 비교(js/tco.js)는 승용만 목록에 넣으므로 화물·승합 페이지에는 비교 링크를 붙이지 않는다."""
     params = f"model={v['slug']}&fuel={v['fuelType']}"
     if v["displacementCc"]:
         params += f"&cc={v['displacementCc']}"
@@ -456,8 +457,8 @@ def notebook_cta(v):
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
   <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?{params}">이 차로 수첩 시작하기</a>
-</div>
-<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car={v["slug"]}">이 차와 다른 차 유지비 비교하기</a>"""
+</div>""" + ("" if v.get("vehicleClass", "passenger") != "passenger" else f"""
+<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car={v["slug"]}">이 차와 다른 차 유지비 비교하기</a>""")
 
 
 def sources_block(rates, this_year):
@@ -540,7 +541,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
                  "<th>적재정량</th><th>자가용(비영업용)</th><th>영업용</th></tr></thead><tbody>"
                  + rows + "</tbody></table></div>"
                  f'<p class="notice">{esc(rates["truck"]["over10tNote"])}</p>')
-        basis_desc = (f'<p>{esc(name)}는 적재정량 {v["payloadKg"]:,}kg 화물자동차입니다. '
+        basis_desc = (f'<p>{esc(name)}{josa(name, "는", "은")} 적재정량 {v["payloadKg"]:,}kg 화물자동차입니다. '
                       "화물자동차 자동차세는 배기량과 무관하게 적재정량 구간별 정액으로 부과됩니다.</p>")
     else:
         parts = []
@@ -553,7 +554,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
                  "<th>구분</th><th>자가용(비영업용)</th><th>영업용</th></tr></thead><tbody>"
                  + rows + "</tbody></table></div>"
                  f'<p class="notice">대형 기준: {esc(rates["van"]["largeCriteria"])}</p>')
-        basis_desc = (f'<p>{esc(name)}는 승차정원 11인 이상 승합자동차입니다. '
+        basis_desc = (f'<p>{esc(name)}{josa(name, "는", "은")} 승차정원 11인 이상 승합자동차입니다. '
                       "승합자동차 자동차세는 배기량과 무관하게 규모별 정액으로 부과됩니다.</p>")
 
     body = f"""{crumb}
@@ -567,7 +568,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
   <div class="spec-row"><span class="spec-label">과세 기준</span><span>{esc(t["basisLabel"])}</span></div>
   <div class="spec-row"><span class="spec-label">연료</span><span>{esc(FUEL_LABELS.get(v["fuelType"], v["fuelType"]))}</span></div>
 </div>
-<p class="compare-line"><strong>연식과 무관하게 정액입니다.</strong> 승용차와 달리 차령 경감(3년차부터 5%씩)이 적용되지 않고,
+{class_note_line(v)}<p class="compare-line"><strong>연식과 무관하게 정액입니다.</strong> 승용차와 달리 차령 경감(3년차부터 5%씩)이 적용되지 않고,
 지방교육세 30%도 붙지 않습니다. 따라서 신차든 10년차든 세액이 같습니다.</p>
 {compare}
 {table}
@@ -779,7 +780,7 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
     if (ev) {
       annual = T.evTax(rates);
       base = rates.displacement.ev.baseKrw;
-      label = '전기차 정액 (연식 무관)';
+      label = '전기차·수소전기차 정액 (연식 무관)';
       tableWrap.innerHTML = '';
     } else {
       cc = Math.round(cc);
