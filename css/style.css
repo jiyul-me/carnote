@@ -227,6 +227,73 @@ li:last-child > .part-row { border-bottom: none; }
 }
 .foot a { color: var(--ink-muted); }
 
+/* hidden 속성이 .field-row 등의 display 지정에 밀리지 않게 */
+[hidden] { display: none !important; }
+
+/* ---------- 지출 ---------- */
+/* 대시보드 카드: 금액(.big) + '자세히' 한 줄이 통째로 버튼 */
+.spend-link {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  width: 100%; padding: 0; text-align: left;
+  background: none; border: none; cursor: pointer; color: var(--ink); font: inherit;
+}
+.spend-link-more { font-size: 14px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.spend-sub { margin-top: 4px; }
+.quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+/* 지출 화면 히어로 금액 (DESIGN: 30px/700, 페이지당 1개) */
+.spend-hero { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; line-height: 1.3; }
+.cat-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.cat-list li {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 8px 0; border-top: 0.5px solid var(--border); font-size: 14px;
+}
+.cat-count { font-size: 12px; color: var(--ink-muted); }
+.cat-amt { white-space: nowrap; text-align: right; }
+.unit-suffix { font-size: 15px; font-weight: 400; color: var(--ink-muted); margin-left: 4px; }
+
+/* 분류 선택: 라디오를 칩 모양으로 (키보드·스크린리더는 라디오 그대로) */
+.chip-group { border: none; margin: 0 0 16px; padding: 0; min-width: 0; }
+.chip-group legend { font-size: 12px; font-weight: 500; color: var(--ink-muted); padding: 0; margin-bottom: 4px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-radio { position: relative; }
+.chip-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.chip-radio span {
+  display: inline-flex; align-items: center; min-height: 40px;
+  border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 500;
+  background: var(--bg); color: var(--ink); border: 0.5px solid var(--border);
+  cursor: pointer; white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.chip-radio input:checked + span { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-bg); }
+.chip-radio input:focus-visible + span { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+
+.check-row { display: flex; align-items: center; gap: 8px; min-height: 48px; font-size: 15px; cursor: pointer; }
+.check-row input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.field input[aria-invalid="true"] { border-color: var(--danger); }
+
+/* 최근 N개월 막대 — CSS만. 이번 달 막대만 accent */
+.bars { display: flex; margin-top: 8px; }
+.bar-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.bar-track {
+  width: 100%; height: 96px; padding: 0 4px;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  border-bottom: 0.5px solid var(--border);
+}
+.bar { display: block; width: 100%; max-width: 32px; min-height: 2px; background: var(--border); border-radius: 2px 2px 0 0; }
+.bar-col.current .bar { background: var(--accent); }
+.bar-val, .bar-label { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+.bar-label { margin-top: 4px; }
+.bar-col.current .bar-val, .bar-col.current .bar-label { color: var(--ink); font-weight: 500; }
+
+/* 기록 목록 */
+.list-month { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 16px 0 0; }
+.list-month:first-child { margin-top: 0; }
+.entry-main { flex: 1; min-width: 0; }
+.entry-amt { font-size: 14px; white-space: nowrap; text-align: right; }
+.entry-amt.muted { color: var(--ink-muted); }
+.more-btn { margin-top: 12px; }
+
 /* ---------- 토스트 ---------- */
 .msg-toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);

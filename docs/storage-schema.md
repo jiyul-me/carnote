@@ -2,8 +2,9 @@
 
 MVP는 로그인 없이 브라우저 로컬 저장. 데이터량이 작으므로(텍스트 기록뿐) **localStorage에 단일 JSON 문서**로 저장한다. 사진 첨부·대용량 기능이 생기면 그때 IndexedDB로 이전한다.
 
-- 저장 키: `chailji:v1`
+- 저장 키: `chailji:v1` (키 이름의 v1은 키 자체의 버전 — 문서 스키마 버전과 별개로 유지한다)
 - 최상위에 `schemaVersion`을 두고, 구조가 바뀌면 로드 시점에 마이그레이션 함수를 순차 적용한다 (`v1 → v2 → …`)
+- 현재 스키마: **v2** (아래 "버전 이력" 참고)
 - 쓰기는 항상 문서 전체를 직렬화해서 저장 (부분 쓰기 없음 — 단순함 우선)
 - **내보내기/가져오기(JSON 파일)를 MVP에 포함한다.** 로컬 저장은 브라우저 데이터 삭제로 유실되므로 백업 수단이 리텐션 보험이다. 추후 계정 동기화가 생기면 이 내보내기 포맷이 그대로 이관 포맷이 된다.
 
@@ -11,10 +12,11 @@ MVP는 로그인 없이 브라우저 로컬 저장. 데이터량이 작으므로
 
 ```typescript
 interface ChailjiDocument {
-  schemaVersion: 1;
+  schemaVersion: 2;
   cars: Car[];
   records: MaintenanceRecord[];
   fuelLogs: FuelLog[];
+  expenses: Expense[];           // v2 — 주유·정비 외 지출
   settings: Settings;
 }
 
@@ -61,12 +63,26 @@ interface FuelLog {
   id: string;
   carId: string;
   filledOn: string;              // "YYYY-MM-DD"
-  odometerKm: number;
-  amount: number;                // 주유·충전량
+  odometerKm: number | null;     // 선택 — 주유소에서 계기판을 못 봤을 수 있다. 없으면 실연비 구간의 끝점이 못 될 뿐
+                                 // (v1 시절에도 정규화가 null을 허용했으므로 스키마 버전 변경 없이 문서만 정정)
+                                 // 입력되면 정비 기록과 같은 규칙으로 odometerLog에 append (같은 날짜 대체, 과거 날짜·더 작은 값 미반영, 삭제 시 롤백)
+  amount: number | null;         // 주유·충전량(소수 둘째 자리까지). '5만원어치'처럼 금액만 아는 주유는 null
   unit: "L" | "kWh";             // 입력 시 차량 fuelType으로 기본값. 레코드가 자기완결적이어야 fuelType 정정·PHEV 확장 시 마이그레이션이 없다
-  unitPriceKrw: number | null;   // 단위당 단가
-  totalKrw: number | null;       // 총액 — 단가·총액 중 하나만 입력해도 됨
+  unitPriceKrw: number | null;   // 단위당 단가(소수 허용 — 전기 347.2원/kWh 등)
+  totalKrw: number | null;       // 총액 — 총액, 또는 주유량+단가 중 하나는 있어야 입력 가능(폼 검증)
   isFullTank: boolean;           // 실연비는 가득 주유(full-to-full) 구간에서만 계산
+  createdAt: string;
+}
+
+interface Expense {              // v2. 주유·충전(FuelLog)·정비(MaintenanceRecord) 외의 지출
+  id: string;
+  carId: string;
+  spentOn: string;               // "YYYY-MM-DD"
+  category: string | null;       // data/expense-categories.json의 id (wash, parking, tax, other …)
+                                 // 저장 층은 형식(id 문자 화이트리스트)만 검사 — 모르는 id·null은 화면에서 fallbackId(기타)로 표시
+                                 // 보험료 분류는 두지 않는다(보험은 만기일 외에는 다루지 않음) — 사용자는 '기타'로 기록
+  amountKrw: number;             // 원, 0 이상 정수. 없거나 숫자가 아니면 정규화에서 항목 제거
+  memo: string | null;
   createdAt: string;
 }
 
@@ -85,7 +101,17 @@ interface Settings {
 - **소모품 D-day**: 항목별 마지막 `MaintenanceRecord` + `parts.json`의 `intervalKm`/`intervalMonths` → 도래 시점. 기록이 없는 항목은 "기록 없음"으로 표시하고 첫 기록을 유도 (등록 시점 주행거리를 소모품 기준으로 삼지 않는다 — 중고차는 이전 이력을 모름)
 - **월평균 주행거리**: `odometerLog`와 주유·정비 기록의 (주행거리, 날짜) 쌍에서 추정 → km 기반 주기를 날짜로 환산해 "약 N월경" 예측. 관측이 등록 시점 1개뿐이면 예측 대신 "주행거리를 한 번 더 입력하면 예측이 시작돼요" 안내
 - **검사 D-day**: `lastInspectionOn`(없으면 `firstRegisteredOn` + `inspection.json` 규칙) → 다음 유효기간 만료일. 수검 가능 기간은 `windowBeforeDays`/`windowAfterDays`로 계산
-- **실연비**: `isFullTank`인 주유 사이 구간 = (주행거리 차) ÷ (구간 주유량 합)
+- **실연비** (`fuelEconomy`): `isFullTank`인 주유 사이 구간 = (주행거리 차) ÷ (구간 주유량 합)
+  - 끝점은 **주행거리가 있는** 가득 주유. 주유량 합은 앞 끝점 *다음* 주유부터 뒤 끝점까지(앞 끝점의 양은 그 전 구간 몫)
+  - 구간 안의 부분 주유와 주행거리 없는 가득 주유는 끝점이 못 될 뿐 양은 합산
+  - 주유량이 없으면 `totalKrw ÷ unitPriceKrw`로 추정. 그것도 안 되는 주유가 끼거나, 단위(L·kWh)가 섞이거나, 거리가 0 이하인 구간은 제외
+  - 합산 실연비 = 유효 구간 거리 합 ÷ 양 합 (단위가 섞인 이력이면 가장 최근 유효 구간의 단위로만). 유효 구간이 없으면 표시하지 않음
+- **지출 항목** (`spendEntries`): 차 한 대의 정비(`costKrw`가 있는 기록) + 주유·충전 + `expenses`를 한 목록으로. 최근순(날짜 내림차순, 같은 날은 `createdAt` 늦은 것 먼저)
+  - 분류: 정비 = `maintenance`, 주유 = `fuel`(예약 id), 그 외는 `Expense.category`
+  - 주유 금액 = `totalKrw`, 없으면 `amount × unitPriceKrw`(반올림). 둘 다 없으면 금액 미상 — 건수에는 포함, 합계에서는 제외
+- **월별 지출** (`monthSpend`): 달 키는 날짜 문자열의 앞 7자리(`YYYY-MM`, 로컬 날짜 기준). 합계·건수·분류별 합계(금액 큰 순)
+- **최근 N개월 시계열** (`spendSeries`): 이번 달 포함 N개월, 오래된 달 → 이번 달. N은 `data/expense-categories.json`의 `chartMonths`
+- **월평균** (`monthlyAverageSpend`): 진행 중인 이번 달은 빼고 직전 N개월(`averageMonths`) 중 **첫 기록 달 이후**의 달만 평균. 첫 기록 이후 기록이 없는 달은 0원으로 포함. 완결된 달이 없으면 표시하지 않음
 - **현재 추정 가치**: `purchasePriceKrw` × retention(현재 차령) ÷ retention(구입 시점 차령) — UI에 `disclaimerText` 필수 표기
   - 구입 시점 차령 = `purchasedOn` − `firstRegisteredOn` (`purchasedOn`이 null이면 차령 0 = 신차, retention(0) = 1.0이라 기존 식으로 수렴)
   - 구입가는 이미 감가된 가격이므로 구입 시점 잔존율로 나눠 신차가 기준으로 환원해야 이중 감가가 없다
@@ -93,13 +119,29 @@ interface Settings {
 
 ## 마이그레이션 정책
 
-1. 로드 시 `schemaVersion` 확인 → 현재 버전보다 낮으면 마이그레이션 체인 적용 → 저장
-2. 마이그레이션 직전 원본을 `chailji:backup:v<version>` 키에 1회 백업
+1. 로드 시 `schemaVersion` 확인 → 현재 버전보다 낮으면 마이그레이션 체인 적용 → 정규화 → 저장
+   - 순서는 **마이그레이션(원본 구조) → 정규화(현재 구조)**. 정규화를 먼저 하면 옛 필드가 지워져 필드 이름을 바꾸는 류의 마이그레이션이 옮길 값을 잃는다. 그래서 마이그레이션 함수는 필드가 없거나 타입이 틀린 입력에도 죽지 않게 쓴다
+2. 마이그레이션 직전 원본을 `chailji:backup:v<version>` 키에 1회 백업 (가져오기 미리보기·백업 복구 경로는 확정 전이므로 백업 키를 쓰지 않음)
 3. 파싱 실패(손상) 시: 손상 원본을 `chailji:v1:corrupt`에 보존 → 백업 키 복구 시도(최신 버전부터) → 모두 실패하면 빈 문서로 시작
+4. `schemaVersion`은 1 이상의 정수여야 문서로 인정한다 (0·소수·문자열은 마이그레이션 체인에 없으므로 형태 불일치로 취급)
+5. 미래 버전(`schemaVersion` > 현재):
+   - 가져오기: 거부하고 앱 업데이트 안내
+   - 로드(새 버전 앱이 저장한 문서를 캐시된 옛 앱이 연 경우 등): 버전 번호는 그대로 두고 아는 필드만 정규화해 사용. 모르는 최상위 필드는 보존, 아는 객체 안의 모르는 필드는 정규화에서 빠진다
+
+### 버전 이력
+
+| 버전 | 변경 | 마이그레이션 |
+|---|---|---|
+| v1 | 최초 (`cars`·`records`·`fuelLogs`·`settings`) | — |
+| v2 | `expenses: Expense[]` 추가 (세차·주차·통행료·자동차세·기타 지출). `FuelLog.odometerKm`·`amount` 선택 입력으로 명시 | v1 → v2: `expenses`가 배열이 아니면 빈 배열 |
+
+`isValidDoc`(최소 형태 검증)은 v1부터 있던 필드만 요구한다 — 구버전 백업에는 `expenses`가 없으므로, 없거나 배열이 아니면 문서 전체를 버리지 않고 마이그레이션·정규화가 빈 배열로 채운다.
 
 ## 외부 입력 정규화 (보안)
 
 가져온 백업 파일은 신뢰하지 않는다. `load()`와 `importJson()`은 필드 단위로 타입을 강제한다
-(숫자 필드 `Number` + 유한성 검사, 날짜 `YYYY-MM-DD` 정규식, id 문자 화이트리스트 — 불일치 시 null 또는 재발급).
+(숫자 필드는 숫자·숫자 문자열만 받아 `Number` + 유한성 검사(`[]`·공백 문자열이 0이 되는 암묵 변환 차단),
+날짜 `YYYY-MM-DD` 정규식, id 문자 화이트리스트 — 불일치 시 null 또는 재발급. 다른 객체를 가리키는 `carId`는 재발급 대신 비움,
+같은 배열 안의 중복 id는 뒤의 것을 재발급, `isFullTank`는 `true`일 때만 참).
 innerHTML 렌더 경로에 사용자 파일의 문자열이 원문으로 흘러가는 저장형 XSS를 저장 층에서 차단하고,
 렌더 층의 `esc()`와 이중 방어를 이룬다.

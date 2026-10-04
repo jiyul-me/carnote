@@ -8,13 +8,16 @@
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
   var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '—' };
 
-  var data = { parts: null, inspection: null, depreciation: null, vehicles: null, site: null, affiliate: null }; // /data/*.json
+  var data = { parts: null, inspection: null, depreciation: null, vehicles: null, site: null, affiliate: null, expenseCats: null }; // /data/*.json
   var doc = null;              // 저장 문서
   var demoMode = false;        // ?demo=1 — 저장하지 않는 시연용
   // carId = 대시보드에서 보고 있는 차, editingCarId = 차 폼이 편집 중인 차(null = 신규).
   // 분리해 두어야 '+ 차 추가' 후 취소해도 보던 차로 돌아온다.
   // prefill = 세금 페이지에서 넘어온 차종·배기량·연식 (TASKS #2)
-  var state = { view: 'dashboard', carId: null, partId: null, editingCarId: null, prefill: null };
+  // expenseCat = 지출 입력 폼에서 고른 분류, focusAmount = 다음 렌더에서 금액 칸에 포커스(빠른 기록),
+  // spendLimit = 지출 목록 표시 개수(더 보기)
+  var state = { view: 'dashboard', carId: null, partId: null, editingCarId: null, prefill: null,
+    expenseCat: null, focusAmount: false, spendLimit: null };
   var $app = document.getElementById('app');
 
   // ---------- 유틸 ----------
@@ -66,6 +69,7 @@
     if (el) el.remove();
     el = document.createElement('div');
     el.className = 'msg-toast';
+    el.setAttribute('role', 'status'); // 스크린리더에 저장·삭제 결과 전달
     el.textContent = msg;
     if (action) {
       var btn = document.createElement('button');
@@ -178,31 +182,57 @@
     toast('캘린더 파일을 받았어요 — 열면 일정·알림이 등록돼요');
   }
 
-  // 기록이 append했던 주행거리 관측 롤백 (기록 삭제·실행 취소 공용)
-  function rollbackOdometerEntry(rec) {
-    if (!rec || rec.odometerKm == null) return;
-    var c = carById(rec.carId);
-    if (!c || c.odometerLog.length <= 1) return;
+  // 기록·주유가 append했던 주행거리 관측 롤백 (삭제·실행 취소 공용).
+  // 되돌리기용으로 지운 항목을 {carId, entry}로 돌려준다 (없으면 null)
+  function rollbackOdometer(carId, date, km) {
+    if (km == null) return null;
+    var c = carById(carId);
+    if (!c || c.odometerLog.length <= 1) return null;
     for (var i = c.odometerLog.length - 1; i >= 0; i--) {
-      if (c.odometerLog[i].date === rec.doneOn && c.odometerLog[i].km === rec.odometerKm) {
-        c.odometerLog.splice(i, 1);
-        break;
+      if (c.odometerLog[i].date === date && c.odometerLog[i].km === km) {
+        return { carId: carId, entry: c.odometerLog.splice(i, 1)[0] };
       }
     }
+    return null;
+  }
+
+  function rollbackOdometerEntry(rec) {
+    if (rec) rollbackOdometer(rec.carId, rec.doneOn, rec.odometerKm);
+  }
+
+  // 롤백한 관측을 날짜순 자리에 되돌린다. 그사이 같은 날짜 관측이 새로 생겼으면 그쪽을 존중
+  function restoreOdometer(undo) {
+    var c = undo && carById(undo.carId);
+    if (!c) return;
+    var log = c.odometerLog;
+    var at = 0;
+    for (var i = 0; i < log.length; i++) {
+      if (log[i].date === undo.entry.date) return;
+      if (log[i].date < undo.entry.date) at = i + 1;
+    }
+    log.splice(at, 0, undo.entry);
   }
 
   // ---------- 렌더 ----------
 
-  function render() {
+  // opts.keepScroll: 같은 화면 안의 갱신(목록 삭제·되돌리기)은 보던 위치를 유지
+  function render(opts) {
     var views = {
       dashboard: renderDashboard,
       'car-form': renderCarForm,
       part: renderPartView,
+      expenses: renderExpenses,
       settings: renderSettings
     };
+    var y = window.pageYOffset;
     $app.innerHTML = (views[state.view] || renderDashboard)();
     bindViewEvents();
-    window.scrollTo(0, 0);
+    window.scrollTo(0, opts && opts.keepScroll ? y : 0);
+    if (state.focusAmount) {
+      state.focusAmount = false;
+      var amt = document.getElementById('x-amount');
+      if (amt) amt.focus();
+    }
   }
 
   function go(view, extra) {
@@ -211,6 +241,9 @@
     state.editingCarId = extra && extra.editingCarId !== undefined ? extra.editingCarId : null;
     if (view !== 'car-form') state.prefill = null; // 프리필은 등록 폼을 떠나면 소멸
     if (extra && extra.carId !== undefined) state.carId = extra.carId;
+    if (extra && extra.expenseCat !== undefined) state.expenseCat = extra.expenseCat;
+    state.focusAmount = !!(extra && extra.focusAmount);
+    state.spendLimit = null; // 화면을 옮기면 목록은 첫 페이지부터
     render();
   }
 
@@ -276,6 +309,9 @@
       '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
       '<p class="notice">교체 예정일·검사 만료일·연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
     '</div>';
+
+    // 이번 달 지출 — 지출 화면 진입점 + 빠른 기록
+    html += spendCard(car, today);
 
     // 감가 카드
     var value = D.estimateValue(data.depreciation, car, today);
@@ -358,6 +394,27 @@
     if (!spend.count) return '';
     return '<p class="notice">올해 정비 <strong>' + spend.count + '건</strong>' +
       (spend.costKrw > 0 ? ' · <strong>' + D.formatKrw(spend.costKrw) + '</strong>' : '') + '</p>';
+  }
+
+  // 대시보드 '이번 달 차에 쓴 돈' — 히어로(주행거리)와 겹치지 않게 카드 크기 숫자(.big)로
+  function spendCard(car, today) {
+    var month = today.slice(0, 7);
+    var entries = D.spendEntries(car.id, doc.records, doc.fuelLogs, doc.expenses);
+    var ms = D.monthSpend(entries, month);
+    var prev = D.monthSpend(entries, D.addMonthKey(month, -1));
+    var sub = ms.count ? ms.count + '건' : '이번 달 기록이 아직 없어요';
+    if (prev.totalKrw > 0) sub += ' · 지난달 ' + D.formatKrw(prev.totalKrw);
+    var quick = formCats().filter(function (c) { return c.quick; });
+    return '<div class="card"><h2>이번 달 차에 쓴 돈</h2>' +
+      '<button type="button" class="spend-link" data-action="go-expenses">' +
+        '<span class="big">' + D.formatKrw(ms.totalKrw) + '</span>' +
+        '<span class="spend-link-more">자세히</span>' +
+      '</button>' +
+      '<p class="notice spend-sub">' + esc(sub) + '</p>' +
+      (quick.length ? '<div class="quick-row">' + quick.map(function (c) {
+        return '<button type="button" class="quick-btn" data-action="quick-expense" data-id="' + esc(c.id) + '">+ ' + esc(c.label) + '</button>';
+      }).join('') + '</div>' : '') +
+    '</div>';
   }
 
   // 수검 가능·과태료 정보는 색만으로 전달하지 않고 문장으로도 알려준다
@@ -645,6 +702,298 @@
     car.updatedAt = nowISO();
   }
 
+  // ----- 지출 (주유·충전 + 기타 지출 + 정비 비용) -----
+  // 분류 목록·표시 개월 수 등은 data/expense-categories.json
+
+  function catById(id) {
+    var cats = data.expenseCats.categories;
+    for (var i = 0; i < cats.length; i++) if (cats[i].id === id) return cats[i];
+    return null;
+  }
+  // 모르는 분류 id(다른 버전에서 만든 백업 등)는 기타로 표시
+  function catLabel(id) {
+    var c = catById(id) || catById(data.expenseCats.fallbackId);
+    return c ? c.label : '';
+  }
+  // 입력 폼에서 고를 수 있는 분류 (정비는 소모품 화면에서 기록)
+  function formCats() {
+    return data.expenseCats.categories.filter(function (c) { return c.form === 'fuel' || c.form === 'expense'; });
+  }
+  function monthLabel(month) { return Number(month.slice(5)) + '월'; }
+  function fmtNum(n) { return n.toLocaleString('ko-KR', { maximumFractionDigits: 2 }); }
+  function vehicleById(id) {
+    if (!id || !data.vehicles) return null;
+    for (var i = 0; i < data.vehicles.length; i++) if (data.vehicles[i].id === id) return data.vehicles[i];
+    return null;
+  }
+  function lastFuelLog(car) {
+    var best = null;
+    doc.fuelLogs.forEach(function (l) {
+      if (l.carId !== car.id) return;
+      if (!best || l.filledOn > best.filledOn || (l.filledOn === best.filledOn && l.createdAt > best.createdAt)) best = l;
+    });
+    return best;
+  }
+
+  function renderExpenses() {
+    var car = activeCar();
+    if (!car) return renderDashboard();
+    var cfg = data.expenseCats;
+    var today = todayISO();
+    var month = today.slice(0, 7);
+    var isEv = car.fuelType === 'ev';
+    var fillWord = isEv ? '가득 충전' : '가득 주유';
+    var entries = D.spendEntries(car.id, doc.records, doc.fuelLogs, doc.expenses);
+    var ms = D.monthSpend(entries, month);
+
+    var html = '<div class="form-view">' +
+      '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' +
+      '<h1>' + (doc.cars.length > 1 ? esc(car.nickname || car.modelName) + ' 지출' : '지출') + '</h1>';
+
+    // 이번 달 합계 — 이 화면의 히어로 숫자 (DESIGN: 페이지당 1개)
+    html += '<div class="card"><h2>' + monthLabel(month) + ' 지출</h2>' +
+      '<div class="spend-hero">' + D.formatKrw(ms.totalKrw) + '</div>' +
+      (ms.count ?
+        '<ul class="cat-list">' + ms.byCategory.map(function (c) {
+          return '<li><span>' + esc(catLabel(c.category)) + ' <span class="cat-count">' + c.count + '건</span></span>' +
+            '<span class="cat-amt">' + D.formatKrw(c.totalKrw) + '</span></li>';
+        }).join('') + '</ul>' :
+        '<p class="notice">이번 달 기록이 아직 없어요. 아래에서 바로 추가해 보세요.</p>') +
+    '</div>';
+
+    // 빠른 입력 — 분류에 따라 주유 기록(FuelLog) 또는 일반 지출(Expense) 필드
+    var cats = formCats();
+    var sel = catById(state.expenseCat);
+    if (!sel || cats.indexOf(sel) === -1) sel = cats[0];
+    var isFuel = sel.form === 'fuel';
+    var odo = D.latestOdometer(car);
+    var lastFuel = lastFuelLog(car);
+    var unit = isEv ? 'kWh' : 'L';
+    html += '<div class="card"><h2>기록 추가</h2>' +
+      '<form id="expense-form" novalidate>' +
+      '<fieldset class="chip-group"><legend>분류</legend><div class="chip-wrap">' +
+        cats.map(function (c) {
+          return '<label class="chip-radio"><input type="radio" name="category" value="' + esc(c.id) + '" data-form="' + esc(c.form) + '"' +
+            (c === sel ? ' checked' : '') + '><span>' + esc(c.label) + '</span></label>';
+        }).join('') +
+      '</div></fieldset>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="x-date">날짜</label><input id="x-date" name="date" type="date" required value="' + today + '"></div>' +
+        '<div class="field"><label for="x-amount">금액(원)</label>' +
+          '<input id="x-amount" name="amountKrw" inputmode="numeric" autocomplete="off" placeholder="예: 50,000"></div>' +
+      '</div>' +
+      '<div class="fuel-fields"' + (isFuel ? '' : ' hidden') + '>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="x-qty">' + (isEv ? '충전량' : '주유량') + '</label>' +
+            '<input id="x-qty" name="amount" inputmode="decimal" autocomplete="off" placeholder="선택"></div>' +
+          '<div class="field"><label for="x-unit">단위</label><select id="x-unit" name="unit">' +
+            ['L', 'kWh'].map(function (u) {
+              return '<option value="' + u + '"' + (u === unit ? ' selected' : '') + '>' + u + '</option>';
+            }).join('') + '</select></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="x-price">단가(원)</label>' +
+            '<input id="x-price" name="unitPriceKrw" inputmode="decimal" autocomplete="off" placeholder="선택"></div>' +
+          // 마지막 값을 미리 채우지 않는다 — 계기판을 안 본 채 저장되면 실연비가 틀어진다
+          '<div class="field"><label for="x-odo">주행거리(km)</label>' +
+            '<input id="x-odo" name="odometerKm" type="number" min="0" inputmode="numeric" placeholder="' +
+            (odo ? '마지막 ' + odo.km.toLocaleString('ko-KR') : '선택') + '"></div>' +
+        '</div>' +
+        '<label class="check-row"><input type="checkbox" name="isFullTank"' + (lastFuel && lastFuel.isFullTank ? ' checked' : '') + '>' +
+          fillWord + '</label>' +
+        '<p class="notice">금액 대신 ' + (isEv ? '충전량' : '주유량') + '·단가만 적어도 돼요. ' +
+          fillWord + ' 때 주행거리를 함께 적으면 실연비를 계산해요.</p>' +
+      '</div>' +
+      '<div class="expense-fields"' + (isFuel ? ' hidden' : '') + '>' +
+        '<div class="field"><label for="x-memo">메모</label><input id="x-memo" name="memo" maxlength="100" placeholder="선택"></div>' +
+      '</div>' +
+      '<button type="submit" class="btn">저장</button>' +
+      '</form>' +
+      '<p class="notice">정비 비용은 소모품 기록에 입력하면 함께 합산돼요.</p>' +
+    '</div>';
+
+    // 최근 N개월 막대 (CSS만) — accent는 이번 달 막대 하나
+    if (entries.length) {
+      var series = D.spendSeries(entries, month, cfg.chartMonths);
+      var max = 0;
+      series.forEach(function (m) { if (m.totalKrw > max) max = m.totalKrw; });
+      var avg = D.monthlyAverageSpend(entries, month, cfg.averageMonths);
+      var summary = '최근 ' + cfg.chartMonths + '개월 지출: ' + series.map(function (m) {
+        return monthLabel(m.month) + ' ' + D.formatKrw(m.totalKrw);
+      }).join(', ');
+      html += '<div class="card"><h2>최근 ' + cfg.chartMonths + '개월</h2>' +
+        '<div class="bars" role="img" aria-label="' + esc(summary) + '">' +
+        series.map(function (m) {
+          // 막대 최대 75% — 위쪽은 금액 라벨 자리
+          var pct = max > 0 ? Math.round(m.totalKrw / max * 75) : 0;
+          return '<div class="bar-col' + (m.month === month ? ' current' : '') + '">' +
+            '<div class="bar-track">' +
+              (m.totalKrw > 0 ? '<span class="bar-val">' + D.formatKrwShort(m.totalKrw) + '</span>' +
+                '<span class="bar" style="height:' + pct + '%;"></span>' : '') +
+            '</div>' +
+            '<span class="bar-label">' + monthLabel(m.month) + '</span></div>';
+        }).join('') + '</div>' +
+        '<p class="notice">' + (avg != null ?
+          '월평균 <strong>' + D.formatKrw(avg) + '</strong> · 이번 달을 뺀 최근 ' + cfg.averageMonths + '개월(기록 시작 이후) 기준' :
+          '한 달이 지나면 월평균을 보여드려요') + '</p>' +
+      '</div>';
+    }
+
+    // 실연비 — 가득 주유 구간이 생겼을 때만
+    var econ = D.fuelEconomy(doc.fuelLogs, car.id);
+    if (econ) {
+      var unitTxt = 'km/' + econ.unit;
+      var v = vehicleById(car.vehicleId);
+      var official = v && v.fuelEconomy && ((v.fuelType === 'ev') === (econ.unit === 'kWh')) ? v.fuelEconomy : null;
+      html += '<div class="card"><h2>실연비</h2>' +
+        '<div class="big">' + econ.kmPerUnit.toFixed(1) + '<span class="unit-suffix">' + unitTxt + '</span></div>' +
+        '<p class="notice">' + fillWord + ' 사이 ' + econ.intervals + '구간 · ' +
+          fmtKm(Math.round(econ.distanceKm)) + ' 주행 기준' +
+          (econ.intervals > 1 ? ' · 최근 구간 ' + econ.latestKmPerUnit.toFixed(1) + unitTxt : '') +
+          (official ? ' · 공인연비 ' + official + unitTxt : '') + '</p>' +
+      '</div>';
+    } else if (lastFuel) {
+      html += '<p class="notice">' + fillWord + '할 때 주행거리를 함께 기록하면 두 번째부터 실연비를 계산해요.</p>';
+    }
+
+    // 기록 목록 (최근순, 달별 묶음)
+    var limit = state.spendLimit || cfg.listPageSize;
+    var lastMonth = null;
+    html += '<p class="section-title">기록 (' + entries.length + ')</p><div class="card">';
+    if (!entries.length) html += '<p class="empty">아직 기록이 없어요</p>';
+    entries.slice(0, limit).forEach(function (e) {
+      var m = D.monthKey(e.date);
+      if (m !== lastMonth) {
+        html += '<p class="list-month">' + (m.slice(0, 4) !== month.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + monthLabel(m) + '</p>';
+        lastMonth = m;
+      }
+      html += spendRow(e, isEv);
+    });
+    if (entries.length > limit) {
+      html += '<button type="button" class="btn secondary more-btn" data-action="spend-more">더 보기 (' + (entries.length - limit) + ')</button>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  // 지출 목록 한 줄. 주유·지출은 삭제(되돌리기 가능), 정비는 소모품 화면으로 (정비 기록 삭제는 그 화면에서)
+  function spendRow(e, isEv) {
+    var label = catLabel(e.category);
+    var sub = [fmtDate(e.date).slice(5)];
+    var action = '';
+    var src = e.source;
+    if (e.kind === 'fuel') {
+      if (src.amount != null) sub.push(fmtNum(src.amount) + src.unit);
+      if (src.unitPriceKrw != null) sub.push(fmtNum(src.unitPriceKrw) + '원/' + src.unit);
+      if (src.odometerKm != null) sub.push(fmtKm(src.odometerKm));
+      if (src.isFullTank) sub.push(isEv ? '가득 충전' : '가득');
+    } else if (e.kind === 'expense') {
+      if (src.memo) sub.push(src.memo);
+    } else {
+      var p = partById(src.partId);
+      label += ' · ' + (p ? p.name : (src.customLabel || '기타 정비'));
+      if (src.shop) sub.push(src.shop);
+      if (p) action = '<button type="button" class="history-del" data-action="open-part" data-id="' + esc(p.id) + '">보기</button>';
+    }
+    var amt = e.amountKrw != null ? D.formatKrw(e.amountKrw) : '금액 없음';
+    if (e.kind !== 'maintenance') {
+      action = '<button type="button" class="history-del" data-action="del-spend" data-kind="' + e.kind + '" data-id="' + esc(e.id) + '"' +
+        ' aria-label="' + esc(fmtDate(e.date) + ' ' + label + ' ' + amt + ' 삭제') + '">삭제</button>';
+    }
+    return '<div class="history-item">' +
+      '<div class="entry-main"><div class="history-main">' + esc(label) + '</div>' +
+        '<div class="history-sub">' + esc(sub.join(' · ')) + '</div></div>' +
+      '<span class="entry-amt' + (e.amountKrw == null ? ' muted' : '') + '">' + amt + '</span>' +
+      action +
+    '</div>';
+  }
+
+  function invalidField(el, msg) {
+    toast(msg);
+    if (!el) return;
+    el.setAttribute('aria-invalid', 'true');
+    el.focus();
+  }
+
+  function handleExpenseForm(form) {
+    var car = activeCar();
+    if (!car) return;
+    var f = new FormData(form);
+    Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid]'), function (el) { el.removeAttribute('aria-invalid'); });
+    var cat = catById(String(f.get('category') || ''));
+    if (!cat || formCats().indexOf(cat) === -1) { toast('분류를 골라 주세요'); return; }
+    var date = String(f.get('date') || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { invalidField(document.getElementById('x-date'), '날짜를 입력해 주세요'); return; }
+
+    var amountEl = document.getElementById('x-amount');
+    var rawKrw = String(f.get('amountKrw') || '').trim();
+    var krw = D.parseKrwInput(rawKrw);
+    if (rawKrw && krw == null) { invalidField(amountEl, '금액은 숫자로 입력해 주세요 (예: 50,000)'); return; }
+    if (krw === 0) krw = null; // 0원은 미입력과 같다
+
+    var isFuel = cat.form === 'fuel';
+    var entry;
+    var odoKm = null;
+    if (isFuel) {
+      var rawQty = String(f.get('amount') || '').trim();
+      var rawPrice = String(f.get('unitPriceKrw') || '').trim();
+      var qty = D.parseDecimalInput(rawQty);
+      var price = D.parseDecimalInput(rawPrice);
+      if (rawQty && qty == null) { invalidField(document.getElementById('x-qty'), '양은 숫자로 입력해 주세요 (예: 40.5)'); return; }
+      if (rawPrice && price == null) { invalidField(document.getElementById('x-price'), '단가는 숫자로 입력해 주세요 (예: 1,650)'); return; }
+      if (qty === 0) qty = null;
+      if (price === 0) price = null;
+      if (krw == null && (qty == null || price == null)) {
+        invalidField(amountEl, '금액을 입력해 주세요 — 양과 단가만 적어도 돼요');
+        return;
+      }
+      odoKm = numOrNull(f.get('odometerKm'));
+      entry = {
+        id: S.uuid(),
+        carId: car.id,
+        filledOn: date,
+        odometerKm: odoKm,
+        amount: qty,
+        unit: f.get('unit') === 'kWh' ? 'kWh' : 'L',
+        unitPriceKrw: price,
+        totalKrw: krw,
+        isFullTank: f.get('isFullTank') === 'on',
+        createdAt: nowISO()
+      };
+    } else {
+      if (krw == null) { invalidField(amountEl, '금액을 입력해 주세요'); return; }
+      entry = {
+        id: S.uuid(),
+        carId: car.id,
+        spentOn: date,
+        category: cat.id,
+        amountKrw: krw,
+        memo: String(f.get('memo') || '').trim() || null,
+        createdAt: nowISO()
+      };
+    }
+
+    // 자릿수 오타 방어 (금액·주행거리)
+    var cost = isFuel ? D.fuelLogCost(entry) : entry.amountKrw;
+    if (cost > data.expenseCats.confirmAboveKrw &&
+        !confirm('금액이 ' + D.formatKrw(cost) + '이에요. 입력이 맞나요?')) return;
+    var odo = D.latestOdometer(car);
+    if (odoKm != null && odo && odoKm - odo.km > 50000 &&
+        !confirm('주행거리가 마지막 기록보다 ' + fmtKm(odoKm - odo.km) + ' 늘었어요. 입력이 맞나요?')) return;
+
+    if (isFuel) {
+      doc.fuelLogs.push(entry);
+      // 정비 기록과 같은 규칙: 새 관측이면 주행거리 갱신, 과거 날짜·더 작은 값은 반영하지 않음
+      if (odoKm != null && (!odo || (date >= odo.date && odoKm >= odo.km))) appendOdometer(car, date, odoKm);
+    } else {
+      doc.expenses.push(entry);
+    }
+    state.expenseCat = cat.id; // 같은 분류를 연달아 기록하기 쉽게
+    persist();
+    toast('기록했어요');
+    render();
+  }
+
   // ----- 설정 -----
 
   function renderSettings() {
@@ -710,6 +1059,21 @@
     var recForm = document.getElementById('record-form');
     if (recForm) recForm.addEventListener('submit', function (e) { e.preventDefault(); handleRecordForm(recForm); });
 
+    var expForm = document.getElementById('expense-form');
+    if (expForm) {
+      expForm.addEventListener('submit', function (e) { e.preventDefault(); handleExpenseForm(expForm); });
+      // 분류 전환: 다시 그리지 않고 필드 묶음만 바꿔 입력 중인 날짜·금액을 보존
+      expForm.addEventListener('change', function (e) {
+        if (e.target.name !== 'category') return;
+        var fuel = e.target.getAttribute('data-form') === 'fuel';
+        expForm.querySelector('.fuel-fields').hidden = !fuel;
+        expForm.querySelector('.expense-fields').hidden = fuel;
+        state.expenseCat = e.target.value;
+      });
+      // 고쳐 쓰기 시작하면 오류 표시 해제
+      expForm.addEventListener('input', function (e) { e.target.removeAttribute('aria-invalid'); });
+    }
+
     var setForm = document.getElementById('settings-form');
     if (setForm) setForm.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -736,6 +1100,40 @@
       case 'edit-car': go('car-form', { editingCarId: car && car.id }); break;
       case 'switch-car': go('dashboard', { carId: id }); break;
       case 'open-part': go('part', { partId: id }); break;
+      case 'go-expenses': go('expenses'); break;
+      // 대시보드 빠른 기록: 분류를 고른 채 지출 화면으로, 금액 칸에 바로 포커스
+      case 'quick-expense': go('expenses', { expenseCat: id, focusAmount: true }); break;
+
+      case 'spend-more':
+        state.spendLimit = (state.spendLimit || data.expenseCats.listPageSize) + data.expenseCats.listPageSize;
+        render({ keepScroll: true });
+        break;
+
+      case 'del-spend': {
+        // 확인 창 대신 되돌리기 토스트 (실수 삭제를 한 탭으로 복구)
+        var listName = btn.getAttribute('data-kind') === 'fuel' ? 'fuelLogs' : 'expenses';
+        var list = doc[listName];
+        var removed = null;
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].id === id) { removed = list.splice(i, 1)[0]; break; }
+        }
+        if (!removed) break;
+        // 주유 기록이 갱신했던 주행거리도 함께 롤백
+        var odoUndo = listName === 'fuelLogs' ? rollbackOdometer(removed.carId, removed.filledOn, removed.odometerKm) : null;
+        persist();
+        render({ keepScroll: true });
+        toast('삭제했어요', {
+          label: '되돌리기',
+          fn: function () {
+            if (!carById(removed.carId)) return; // 그사이 차가 지워졌으면 복구할 곳이 없다
+            doc[listName].push(removed);
+            restoreOdometer(odoUndo);
+            persist();
+            render({ keepScroll: true });
+          }
+        });
+        break;
+      }
 
       case 'odo-form': {
         var slot = document.getElementById('odo-editor');
@@ -812,6 +1210,7 @@
         doc.cars = doc.cars.filter(function (c) { return c.id !== cid; });
         doc.records = doc.records.filter(function (r) { return r.carId !== cid; });
         doc.fuelLogs = doc.fuelLogs.filter(function (r) { return r.carId !== cid; });
+        doc.expenses = doc.expenses.filter(function (r) { return r.carId !== cid; });
         persist();
         toast('삭제했어요');
         go('dashboard', { carId: null });
@@ -901,6 +1300,19 @@
       { id: 'demo-r2', carId: carId, partId: 'cabin-filter', customLabel: null, doneOn: D.addMonths(t, -9), odometerKm: 32000, costKrw: 12000, shop: null, memo: '직접 교체', createdAt: nowISO() },
       { id: 'demo-r3', carId: carId, partId: 'wiper', customLabel: null, doneOn: D.addMonths(t, -11), odometerKm: null, costKrw: 25000, shop: null, memo: null, createdAt: nowISO() }
     );
+    // 주유: 가득 → 가득(실연비 1구간) → 금액만 부분 주유 → 가득(2구간). 실연비 약 14.9km/L
+    d.fuelLogs.push(
+      { id: 'demo-f1', carId: carId, filledOn: D.addDays(t, -45), odometerKm: 42100, amount: 40, unit: 'L', unitPriceKrw: 1640, totalKrw: 65600, isFullTank: true, createdAt: nowISO() },
+      { id: 'demo-f2', carId: carId, filledOn: D.addDays(t, -26), odometerKm: 42700, amount: 40.5, unit: 'L', unitPriceKrw: 1650, totalKrw: 66825, isFullTank: true, createdAt: nowISO() },
+      { id: 'demo-f3', carId: carId, filledOn: D.addDays(t, -12), odometerKm: null, amount: null, unit: 'L', unitPriceKrw: 1660, totalKrw: 30000, isFullTank: false, createdAt: nowISO() },
+      { id: 'demo-f4', carId: carId, filledOn: D.addDays(t, -3), odometerKm: 43300, amount: 22, unit: 'L', unitPriceKrw: 1650, totalKrw: 36300, isFullTank: true, createdAt: nowISO() }
+    );
+    d.expenses.push(
+      { id: 'demo-x1', carId: carId, spentOn: t, category: 'wash', amountKrw: 15000, memo: '자동 세차', createdAt: nowISO() },
+      { id: 'demo-x2', carId: carId, spentOn: D.addDays(t, -8), category: 'parking', amountKrw: 4000, memo: '공영주차장', createdAt: nowISO() },
+      { id: 'demo-x3', carId: carId, spentOn: D.addDays(t, -20), category: 'parking', amountKrw: 12300, memo: '고속도로 통행료', createdAt: nowISO() },
+      { id: 'demo-x4', carId: carId, spentOn: D.addDays(t, -40), category: 'wash', amountKrw: 15000, memo: null, createdAt: nowISO() }
+    );
     return d;
   }
 
@@ -916,7 +1328,7 @@
   });
 
   function init() {
-    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json', 'data/site.json', 'data/affiliate.json'].map(function (u) {
+    Promise.all(['data/parts.json', 'data/inspection.json', 'data/depreciation.json', 'data/vehicles.json', 'data/site.json', 'data/affiliate.json', 'data/expense-categories.json'].map(function (u) {
       return fetch(u).then(function (r) {
         if (!r.ok) throw new Error(u + ' 로드 실패(' + r.status + ')');
         return r.json();
@@ -928,6 +1340,7 @@
       data.vehicles = res[3].vehicles.filter(function (v) { return v.status === 'active'; });
       data.site = res[4];
       data.affiliate = res[5];
+      data.expenseCats = res[6];
       demoMode = /[?&]demo=1/.test(location.search);
       if (demoMode) {
         window.__DEMO_PARTS__ = data.parts;

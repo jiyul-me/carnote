@@ -5,10 +5,17 @@
 
   var KEY = 'chailji:v1';
   var BACKUP_PREFIX = 'chailji:backup:v'; // 마이그레이션 직전 1회 백업 (docs/storage-schema.md)
-  var CURRENT_VERSION = 1;
+  var CURRENT_VERSION = 2;
 
-  // v(n) → v(n+1) 마이그레이션 함수를 버전 키로 등록. 로드 시 순차 적용
-  var migrations = {};
+  // v(n) → v(n+1) 마이그레이션 함수를 버전 키로 등록. 로드 시 순차 적용.
+  // 마이그레이션은 원본(정규화 전) 구조에 적용되므로 필드가 없거나 타입이 틀려도 죽지 않게 쓴다
+  var migrations = {
+    // v1 → v2: 주유 외 지출(세차·주차·통행료·자동차세·기타) 기록 배열 추가
+    1: function (doc) {
+      if (!Array.isArray(doc.expenses)) doc.expenses = [];
+      return doc;
+    }
+  };
 
   var memoryStore = {}; // localStorage 부재 시(테스트) 폴백
   function backend() {
@@ -33,6 +40,7 @@
       cars: [],
       records: [],
       fuelLogs: [],
+      expenses: [],
       settings: { reminderLeadDays: 30, reminderLeadKm: 1000, lastExportAt: null }
     };
   }
@@ -45,14 +53,36 @@
   var ID_RE = /^[A-Za-z0-9_.:-]+$/;
   var FUELS = ['gasoline', 'diesel', 'lpg', 'hybrid', 'ev'];
 
+  // 숫자·숫자 문자열만 받는다 (Number([])=0, Number(' ')=0 같은 암묵 변환 차단)
+  function nonNeg(v) {
+    var ok = typeof v === 'number' || (typeof v === 'string' && v.trim() !== '');
+    var n = ok ? Number(v) : NaN;
+    return isFinite(n) && n >= 0 ? n : null;
+  }
   function posInt(v) {
-    var n = Number(v);
-    return typeof v !== 'boolean' && v !== '' && v != null && isFinite(n) && n >= 0 ? Math.round(n) : null;
+    var n = nonNeg(v);
+    return n == null ? null : Math.round(n);
+  }
+  // 소수 허용 (주유량 L·kWh, 전기 단가 347.2원/kWh 등) — 소수 둘째 자리까지
+  function posNum(v) {
+    var n = nonNeg(v);
+    return n == null ? null : Math.round(n * 100) / 100;
   }
   function dateStr(v) { return typeof v === 'string' && DATE_RE.test(v) ? v : null; }
   function idStr(v) { return typeof v === 'string' && v && ID_RE.test(v) ? v : uuid(); }
+  // 다른 객체를 가리키는 id(carId): 형식이 틀리면 재발급하지 않고 비운다 (어느 차에도 붙지 않음)
+  function refStr(v) { return typeof v === 'string' && ID_RE.test(v) ? v : ''; }
   function str(v) { return v == null ? null : String(v); }
   function arr(v) { return Array.isArray(v) ? v : []; }
+  // 같은 id가 둘이면 삭제 한 번에 둘 다 지워진다 — 뒤의 것을 재발급
+  function uniqueIds(list) {
+    var seen = Object.create(null);
+    list.forEach(function (x) {
+      if (x.id in seen) x.id = uuid();
+      seen[x.id] = true;
+    });
+    return list;
+  }
 
   function sanitizeDoc(doc) {
     doc.cars = arr(doc.cars).filter(Boolean).map(function (c) {
@@ -78,10 +108,10 @@
         updatedAt: str(c.updatedAt)
       };
     });
-    doc.records = arr(doc.records).filter(Boolean).map(function (r) {
+    doc.records = uniqueIds(arr(doc.records).filter(Boolean).map(function (r) {
       return {
         id: idStr(r.id),
-        carId: str(r.carId) || '',
+        carId: refStr(r.carId),
         partId: r.partId == null ? null : String(r.partId),
         customLabel: str(r.customLabel),
         doneOn: dateStr(r.doneOn),
@@ -91,47 +121,72 @@
         memo: str(r.memo),
         createdAt: str(r.createdAt)
       };
-    }).filter(function (r) { return r.doneOn; });
-    doc.fuelLogs = arr(doc.fuelLogs).filter(Boolean).map(function (l) {
+    }).filter(function (r) { return r.doneOn; }));
+    doc.fuelLogs = uniqueIds(arr(doc.fuelLogs).filter(Boolean).map(function (l) {
       return {
         id: idStr(l.id),
-        carId: str(l.carId) || '',
+        carId: refStr(l.carId),
         filledOn: dateStr(l.filledOn),
-        odometerKm: posInt(l.odometerKm),
-        amount: posInt(l.amount),
+        odometerKm: posInt(l.odometerKm),     // 선택 — 주유소에서 계기판을 못 봤을 수 있다
+        amount: posNum(l.amount),             // 선택 — 금액만 아는 주유('5만원어치')
         unit: l.unit === 'kWh' ? 'kWh' : 'L',
-        unitPriceKrw: posInt(l.unitPriceKrw),
+        unitPriceKrw: posNum(l.unitPriceKrw),
         totalKrw: posInt(l.totalKrw),
-        isFullTank: !!l.isFullTank,
+        isFullTank: l.isFullTank === true,
         createdAt: str(l.createdAt)
       };
-    }).filter(function (l) { return l.filledOn; });
+    }).filter(function (l) { return l.filledOn; }));
+    doc.expenses = uniqueIds(arr(doc.expenses).filter(function (e) {
+      return e && typeof e === 'object';
+    }).map(function (e) {
+      return {
+        id: idStr(e.id),
+        carId: refStr(e.carId),
+        spentOn: dateStr(e.spentOn),
+        // 분류 목록은 data/expense-categories.json(화면 층)에 있다 — 저장 층은 형식만 검사,
+        // 모르는 id는 화면에서 '기타'로 표시된다
+        category: typeof e.category === 'string' && ID_RE.test(e.category) ? e.category : null,
+        amountKrw: posInt(e.amountKrw),
+        memo: str(e.memo),
+        createdAt: str(e.createdAt)
+      };
+    }).filter(function (e) { return e.spentOn && e.amountKrw != null; }));
+    var settings = doc.settings && typeof doc.settings === 'object' ? doc.settings : {};
     doc.settings = {
-      reminderLeadDays: posInt(doc.settings.reminderLeadDays) || 30,
-      reminderLeadKm: posInt(doc.settings.reminderLeadKm) || 1000,
-      lastExportAt: str(doc.settings.lastExportAt)
+      reminderLeadDays: posInt(settings.reminderLeadDays) || 30,
+      reminderLeadKm: posInt(settings.reminderLeadKm) || 1000,
+      lastExportAt: str(settings.lastExportAt)
     };
     return doc;
   }
 
-  // 최소 형태 검증 — 가져오기(import)와 로드 공용
+  // 최소 형태 검증 — 가져오기(import)와 로드 공용.
+  // v1부터 있던 필드만 요구한다: v2의 expenses는 구버전 백업에 없으므로 마이그레이션·정규화가 채운다
   function isValidDoc(doc) {
     return !!doc && typeof doc === 'object' &&
       typeof doc.schemaVersion === 'number' &&
+      doc.schemaVersion % 1 === 0 && doc.schemaVersion >= 1 && // 0·1.5·Infinity는 마이그레이션 체인에 없다
       Array.isArray(doc.cars) && Array.isArray(doc.records) &&
       Array.isArray(doc.fuelLogs) &&
       !!doc.settings && typeof doc.settings === 'object';
   }
 
-  function migrate(doc) {
+  // skipBackup: 가져오기 미리보기처럼 아직 확정되지 않은 문서는 백업 키를 덮어쓰지 않는다
+  function migrate(doc, skipBackup) {
     while (doc.schemaVersion < CURRENT_VERSION) {
       var fn = migrations[doc.schemaVersion];
       if (!fn) throw new Error('마이그레이션 없음: v' + doc.schemaVersion);
-      backend().setItem(BACKUP_PREFIX + doc.schemaVersion, JSON.stringify(doc));
+      if (!skipBackup) backend().setItem(BACKUP_PREFIX + doc.schemaVersion, JSON.stringify(doc));
       doc = fn(doc);
       doc.schemaVersion += 1;
     }
     return doc;
+  }
+
+  // 마이그레이션(원본 구조) → 정규화(현재 구조) 순서. 거꾸로 하면 정규화가 옛 필드를 지운 뒤라
+  // 이름이 바뀌는 류의 마이그레이션이 옮길 값을 잃는다
+  function upgrade(doc, skipBackup) {
+    return sanitizeDoc(migrate(doc, skipBackup));
   }
 
   // 손상 시 마이그레이션 백업 키에서 복구 시도 (최신 버전부터)
@@ -141,7 +196,7 @@
       if (raw == null) continue;
       try {
         var doc = JSON.parse(raw);
-        if (isValidDoc(doc)) return migrate(sanitizeDoc(doc));
+        if (isValidDoc(doc)) return upgrade(doc, true);
       } catch (e) { /* 다음 백업 시도 */ }
     }
     return null;
@@ -160,11 +215,18 @@
       return restoreFromBackups() || emptyDoc();
     }
     if (doc.schemaVersion > CURRENT_VERSION) {
-      // 미래 버전(다른 기기에서 만든 백업 가져오기 등) — 버전은 건드리지 않고 사용 시도
-      return doc;
+      // 미래 버전(새 버전 앱이 같은 브라우저에 저장한 뒤 캐시된 옛 앱이 열린 경우 등) —
+      // 버전 번호는 그대로 두고 아는 필드만 정규화해 사용한다(모르는 최상위 필드는 보존).
+      // 원문 그대로 쓰면 저장형 XSS 방어와 화면이 기대하는 배열 보장이 빠진다
+      return sanitizeDoc(doc);
     }
     var fromVersion = doc.schemaVersion;
-    doc = migrate(sanitizeDoc(doc));
+    try {
+      doc = upgrade(doc, false);
+    } catch (e) {
+      backend().setItem(KEY + ':corrupt', raw);
+      return restoreFromBackups() || emptyDoc();
+    }
     if (doc.schemaVersion !== fromVersion) save(doc); // 마이그레이션 결과 즉시 반영
     return doc;
   }
@@ -187,7 +249,12 @@
     }
     if (!isValidDoc(doc)) return { error: '차일지 백업 파일이 아닙니다' };
     if (doc.schemaVersion > CURRENT_VERSION) return { error: '더 새로운 버전의 백업입니다. 앱을 업데이트한 뒤 가져와 주세요' };
-    return { doc: migrate(sanitizeDoc(doc)) };
+    try {
+      // 구버전 백업은 현재 버전으로 올려서 돌려준다. 사용자가 덮어쓰기를 확정하기 전이라 백업 키는 건드리지 않음
+      return { doc: upgrade(doc, true) };
+    } catch (e) {
+      return { error: '백업 파일을 변환할 수 없습니다' };
+    }
   }
 
   global.ChailjiStorage = {
