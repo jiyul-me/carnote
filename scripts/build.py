@@ -457,12 +457,15 @@ def spec_box(v, site):
 def notebook_cta(v):
     """세금 페이지 → 수첩 프리필 등록 CTA (TASKS #2). 연식 선택 시 JS가 &year= 추가.
     유지비 비교(js/tco.js)는 승용만 목록에 넣으므로 화물·승합 페이지에는 비교 링크를 붙이지 않는다."""
+    # 수첩은 화물·승합차에 승용 검사 주기를 적용하지 않는다(js/derive.js passengerInspectionApplies) — 검사 D-day를 약속하지 않는다
+    promise = ("소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요." if v.get("vehicleClass", "passenger") == "passenger"
+               else "소모품 교체 주기를 수첩이 챙겨드려요.")
     params = f"model={v['slug']}&fuel={v['fuelType']}"
     if v["displacementCc"]:
         params += f"&cc={v['displacementCc']}"
     return f"""<div class="card" style="border-color:var(--accent);margin:18px 0;">
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
-  <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>
+  <p style="margin:6px 0 12px;">{promise} 차종·배기량은 미리 채워둘게요.</p>
   <a id="start-notebook" class="btn" style="display:block;text-align:center;text-decoration:none;" href="../index.html?{params}">이 차로 수첩 시작하기</a>
 </div>""" + ("" if v.get("vehicleClass", "passenger") != "passenger" else f"""
 <a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car={v["slug"]}">이 차와 다른 차 유지비 비교하기</a>""")
