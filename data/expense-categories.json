@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-04",
+  "conventions": {
+    "id": "저장 문서(Expense.category)에 그대로 들어간다 — 한 번 쓴 id는 바꾸지 말 것(표시 이름 label만 수정). 영문·숫자·-_만",
+    "form": "fuel=주유·충전 기록(FuelLog) 입력 폼, expense=날짜·금액·메모 폼(Expense), none=입력 폼에 안 나옴(다른 화면에서 생긴 기록의 집계용)",
+    "reserved": "fuel·maintenance는 derive.js가 주유 기록·정비 기록 비용에 붙이는 예약 id",
+    "quick": "true면 대시보드 '이번 달 차에 쓴 돈' 카드에 빠른 기록 버튼으로 노출",
+    "insurance": "보험료 분류는 두지 않는다 — 보험은 만기일 외에는 다루지 않는다(docs/storage-schema.md). 필요하면 '기타'로 기록",
+    "fallbackId": "모르는 분류 id(다른 버전에서 만든 백업 등)를 화면에 표시할 때 쓰는 분류",
+    "chartMonths": "지출 화면 막대 그래프 개월 수(이번 달 포함)",
+    "averageMonths": "월평균 계산 대상 개월 수(이번 달 제외, 첫 기록 달 이전 제외)",
+    "confirmAboveKrw": "한 건 금액이 이 값을 넘으면 저장 전에 확인(자릿수 오타 방어)",
+    "listPageSize": "지출 화면 기록 목록을 한 번에 보여주는 개수(더 보기 단위)"
+  },
+  "categories": [
+    { "id": "fuel", "label": "주유·충전", "form": "fuel", "quick": true },
+    { "id": "wash", "label": "세차", "form": "expense", "quick": true },
+    { "id": "parking", "label": "주차·통행료", "form": "expense", "quick": true },
+    { "id": "tax", "label": "자동차세", "form": "expense", "quick": false },
+    { "id": "other", "label": "기타", "form": "expense", "quick": false },
+    { "id": "maintenance", "label": "정비", "form": "none", "quick": false }
+  ],
+  "fallbackId": "other",
+  "chartMonths": 6,
+  "averageMonths": 6,
+  "confirmAboveKrw": 10000000,
+  "listPageSize": 30
+}
