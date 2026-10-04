@@ -178,6 +178,8 @@ def main():
     print("")
     print("고치는 법:")
     print("  - tax/ 안의 페이지라면 손으로 고치지 말고 scripts/build.py의 템플릿을 고친 뒤 python3 scripts/build.py 를 돌리세요.")
+    print("    차종을 빼거나 slug를 바꿔 빌드가 더 이상 만들지 않는 페이지(썸네일이 없어 og:image가 깨짐)는 build.py가 지워 줘요")
+    print("    — 돌린 뒤 지워진 파일까지 같이 커밋하세요: git add tax og icons favicon.ico robots.txt sitemap.xml")
     print("  - 직접 쓴 페이지(index.html·tco.html 등)라면 링크 주소의 파일 이름·폴더(../)·대소문자를 확인하세요.")
     print("  - 파일을 지우거나 이름을 바꿨다면 그 파일을 가리키는 링크도 같이 고치세요.")
     print("  - 다시 확인: python3 scripts/check_links.py")

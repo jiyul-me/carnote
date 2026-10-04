@@ -8,17 +8,20 @@
   data    data/*.json 실수 (scripts/validate_data.py)
   tests   JS 로직 테스트 (tests/run.js — node가 없으면 macOS jsc로, 둘 다 없으면 건너뜀)
   parity  세액 계산 일치: build.py ↔ js/tax-calc.js (scripts/check_tax_parity.py)
-  build   빌드 결과 최신 여부: 지금 data로 빌드하면 커밋된 tax/·og/·icons/와 똑같이 나오나
+  build   빌드 결과 최신 여부: 지금 data로 빌드하면 커밋된 tax/·og/·icons/·sitemap.xml과 똑같이 나오나
+          (빌드가 더 이상 만들지 않는 tax/ 페이지·썸네일이 남아 있어도 '지워짐'으로 잡는다)
   links   깨진 링크 (scripts/check_links.py)
 
 빌드 검사는 저장소를 임시 폴더에 복사해 거기서 build.py를 돌리고 비교한다 —
-작업 중인 파일(tax/·og/ 포함)은 절대 건드리지 않는다. sitemap.xml은 lastmod가 매일 바뀌어서 비교에서 뺀다.
+작업 중인 파일(tax/·og/ 포함)은 절대 건드리지 않는다. sitemap.xml은 <lastmod> 날짜가 빌드한 날로
+매일 바뀌므로 그 날짜만 지우고 비교한다 — 주소 목록(차종 추가·삭제 반영)은 그대로 비교된다.
 Python 3.9 호환 (사용자 Mac 기본 python3).
 """
 import datetime
 import difflib
 import filecmp
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -31,9 +34,14 @@ from checklib import (ROOT, NO_JS_RUNTIME_HELP, annotate, find_js_runtime, headi
 
 PASS, FAIL, SKIP = "통과", "실패", "건너뜀"
 
-# build.py가 쓰는 생성물. sitemap.xml은 날짜(lastmod)만 매일 바뀌므로 비교 제외 — 복사는 한다
+# build.py가 쓰는 생성물. build.py가 og/tax/*.png·tax/*.html 중 더 이상 안 만드는 것을 지우므로
+# 지금 것을 복사해 둔 위에 빌드하면 남은 옛 파일이 '지워짐'으로 드러난다
 GEN_DIRS = ("tax", "og", "icons")
-GEN_FILES = ("favicon.ico", "robots.txt")
+GEN_FILES = ("favicon.ico", "robots.txt", "sitemap.xml")
+# sitemap.xml은 <lastmod>에 빌드한 날짜가 들어가 매일 바뀐다 — 그 날짜만 지우고 비교
+SITEMAP = "sitemap.xml"
+SITEMAP_LASTMOD = re.compile(r"<lastmod>[^<]*</lastmod>")
+SITEMAP_LOC = re.compile(r"<loc>([^<]*)</loc>")
 # 빌드에 필요한 입력 (임시 복사본에 넣을 것)
 BUILD_INPUTS = ("scripts", "data")
 IGNORE_NAMES = (".DS_Store", "__pycache__")
@@ -123,6 +131,44 @@ def _gen_files(root):
     return out
 
 
+def _read_text(path):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return None
+
+
+def _sitemap_norm(text):
+    """sitemap.xml에서 날짜(<lastmod> 값)만 지운 내용 — 주소 목록·순서·형식은 그대로 남는다."""
+    return SITEMAP_LASTMOD.sub("<lastmod></lastmod>", text)
+
+
+def _same(rel, a, b):
+    """생성물 하나가 같은가. sitemap.xml은 날짜만 다르면 같다고 본다."""
+    if rel == SITEMAP:
+        ta, tb = _read_text(a), _read_text(b)
+        if ta is not None and tb is not None:
+            return _sitemap_norm(ta) == _sitemap_norm(tb)
+    return filecmp.cmp(str(a), str(b), shallow=False)
+
+
+def _sitemap_diff(old, new):
+    """sitemap.xml 주소 목록 차이 — 한 줄짜리 XML이라 줄 단위 diff로는 안 보여서 주소로 비교한다."""
+    a = SITEMAP_LOC.findall(_read_text(old) or "")
+    b = SITEMAP_LOC.findall(_read_text(new) or "")
+    in_a, in_b = set(a), set(b)
+    lines = []
+    for label, urls in (("빠져 있는 주소 (빌드하면 들어가요)", [u for u in b if u not in in_a]),
+                        ("남아 있는 옛 주소 (빌드하면 빠져요)", [u for u in a if u not in in_b])):
+        if not urls:
+            continue
+        lines.append("{} {}개:".format(label, len(urls)))
+        lines += ["  " + u for u in urls[:5]]
+        if len(urls) > 5:
+            lines.append("  … 외 {}개".format(len(urls) - 5))
+    return lines or ["주소 목록은 같고 순서·형식만 달라요"]
+
+
 def _text_diff(old, new, rel):
     """바뀐 텍스트 파일의 앞부분 몇 줄 (무엇이 바뀌는지 감 잡기용)."""
     try:
@@ -135,8 +181,19 @@ def _text_diff(old, new, rel):
     return [ln[:160] + ("…" if len(ln) > 160 else "") for ln in lines[:8]]
 
 
+def _sitemap_date_only_changed():
+    """작업 폴더의 sitemap.xml이 커밋된 것과 날짜(lastmod)만 다른가 — 그렇다면 커밋 안 해도 CI는 통과한다."""
+    try:
+        head = subprocess.check_output(["git", "show", "HEAD:" + SITEMAP], cwd=str(ROOT), stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, OSError):
+        return False
+    cur = _read_text(ROOT / SITEMAP)
+    return cur is not None and _sitemap_norm(head.decode("utf-8", "replace")) == _sitemap_norm(cur)
+
+
 def _uncommitted_generated():
-    """생성물 중 git에 아직 안 올라간(수정·새 파일) 것. git이 없으면 None."""
+    """생성물 중 git에 아직 안 올라간(수정·새 파일·삭제) 것. git이 없으면 None.
+    sitemap.xml은 날짜(lastmod)만 바뀐 경우 빼고 센다."""
     if not (ROOT / ".git").exists() or not shutil.which("git"):
         return None
     try:
@@ -145,14 +202,15 @@ def _uncommitted_generated():
             cwd=str(ROOT), stderr=subprocess.DEVNULL, encoding="utf-8")
     except (subprocess.CalledProcessError, OSError):
         return None
-    return [ln[3:] for ln in out.splitlines() if ln.strip()]
+    paths = [ln[3:] for ln in out.splitlines() if ln.strip()]
+    return [r for r in paths if not (r == SITEMAP and _sitemap_date_only_changed())]
 
 
 def check_build():
     tmp = Path(tempfile.mkdtemp(prefix="chailji-build-"))
     try:
         # 1) 지금 작업 폴더 그대로(커밋 안 한 data 변경 포함) 임시 폴더에 복사
-        for name in BUILD_INPUTS + GEN_DIRS + GEN_FILES + ("sitemap.xml",):
+        for name in BUILD_INPUTS + GEN_DIRS + GEN_FILES:
             _copy_tree(ROOT / name, tmp / name)
         # 2) 임시 폴더에서 빌드 — 작업 폴더의 파일은 건드리지 않는다
         sys.stdout.flush()
@@ -168,13 +226,13 @@ def check_build():
             return FAIL
         print("\n".join("  " + ln for ln in proc.stdout.strip().splitlines()))
 
-        # 3) 비교 (sitemap.xml 제외)
+        # 3) 비교 (sitemap.xml은 lastmod 날짜만 빼고). 빌드가 지운 옛 파일은 removed로 잡힌다
         now, built = _gen_files(ROOT), _gen_files(tmp)
-        changed = sorted(r for r in now.keys() & built.keys() if not filecmp.cmp(str(now[r]), str(built[r]), shallow=False))
+        changed = sorted(r for r in now.keys() & built.keys() if not _same(r, now[r], built[r]))
         added = sorted(built.keys() - now.keys())
         removed = sorted(now.keys() - built.keys())
         if not (changed or added or removed):
-            print("결과: 지금 data/*.json·build.py로 빌드한 결과가 tax/·og/·icons/ 등과 똑같아요 — 통과")
+            print("결과: 지금 data/*.json·build.py로 빌드한 결과가 tax/·og/·icons/·sitemap.xml 등과 똑같아요 — 통과")
             pending = _uncommitted_generated()
             if pending:
                 print("참고: 생성물 중 아직 커밋하지 않은 파일이 {}개 있어요 (예: {}).".format(len(pending), pending[0]))
@@ -194,9 +252,18 @@ def check_build():
             print("  {} 에서 바뀌는 줄 (앞부분):".format(first_text))
             for ln in _text_diff(now[first_text], built[first_text], first_text):
                 print("    " + ln)
+        if SITEMAP in changed:
+            print("  {} 차이:".format(SITEMAP))
+            for ln in _sitemap_diff(now[SITEMAP], built[SITEMAP]):
+                print("    " + ln)
+        if removed:
+            print("  [지워짐]은 빌드가 더 이상 만들지 않는 파일이에요 (차종 삭제·slug 변경·sample 전환 등).")
+            print("  그대로 두면 목록에도 sitemap에도 없는 낡은 페이지가 계속 공개돼요.")
         print("")
         print("고치는 법:")
         print("  data/*.json이나 build.py를 바꾼 뒤 python3 scripts/build.py를 돌리고 결과를 같이 커밋하세요.")
+        if removed:
+            print("  빌드가 [지워짐] 파일도 지워 주고, 아래 git add가 그 삭제까지 담아요.")
         print("    python3 scripts/build.py")
         print("    git add tax og icons favicon.ico robots.txt sitemap.xml")
         print("  tax/ 파일을 손으로 고쳤다면 다음 빌드 때 사라져요 — scripts/build.py의 템플릿을 고치세요.")
@@ -224,7 +291,7 @@ CHECKS = (
     ("data", "데이터 검사 (data/*.json)"),
     ("tests", "JS 테스트 (tests/*.test.js)"),
     ("parity", "세액 계산 일치 (build.py ↔ js/tax-calc.js)"),
-    ("build", "빌드 결과 최신 여부 (tax/·og/·icons/)"),
+    ("build", "빌드 결과 최신 여부 (tax/·og/·icons/·sitemap.xml)"),
     ("links", "깨진 링크"),
 )
 
