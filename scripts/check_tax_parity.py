@@ -30,13 +30,15 @@ SHOW_MAX = 10
 
 TAX_FIELDS = (("annual", "연세액"), ("base", "본세"), ("edu", "지방교육세"),
               ("perCc", "cc당 세율"), ("discountRate", "차령 경감률"))
-PREPAY_FIELDS = (("pay", "연납 납부액"), ("discount", "연납 공제액"), ("rate", "공제율"), ("year", "공제율 기준 연도"))
+PREPAY_FIELDS = (("pay", "연납 납부액"), ("discount", "연납 공제액"), ("rate", "공제율"), ("year", "공제율 기준 연도"),
+                 ("fallback", "공제율 폴백 여부"))
 
 JS_DRIVER = """
 var T = globalThis.ChailjiTax;
 var out = { ev: T.evTax(RATES), tax: [], prepay: [] };
 for (var i = 0; i < CASES.length; i++) out.tax.push(T.taxFor(RATES, CASES[i][0], CASES[i][1]));
-for (var j = 0; j < ANNUALS.length; j++) out.prepay.push(T.prepay(RATES, ANNUALS[j]));
+for (var y = 0; y < YEARS.length; y++)
+  for (var j = 0; j < ANNUALS.length; j++) out.prepay.push(T.prepay(RATES, ANNUALS[j], YEARS[y]));
 print(JSON.stringify(out));
 """
 
@@ -66,13 +68,14 @@ def collect_cases(rates):
     return cases, annuals, len(ccs)
 
 
-def run_js(kind, exe, rates, cases, annuals):
+def run_js(kind, exe, rates, cases, annuals, years):
     src = (
         "if (typeof print === 'undefined') { globalThis.print = function (s) { console.log(s); }; }\n"
         + (ROOT / "js" / "tax-calc.js").read_text(encoding="utf-8")
         + "\nvar RATES = " + json.dumps(rates, ensure_ascii=False) + ";\n"
         + "var CASES = " + json.dumps(cases) + ";\n"
         + "var ANNUALS = " + json.dumps(annuals) + ";\n"
+        + "var YEARS = " + json.dumps(years) + ";\n"
         + JS_DRIVER
     )
     with tempfile.TemporaryDirectory(prefix="chailji-parity-") as tmp:
@@ -97,6 +100,12 @@ def fmt(field, val):
     if field in ("annual", "base", "edu", "pay", "discount") and isinstance(val, (int, float)):
         return "{:,}원".format(val)
     return json.dumps(val, ensure_ascii=False)
+
+
+def prepay_years(rates):
+    """공제율이 있는 연도 전부 + 그 앞뒤(데이터에 없는 해 → 폴백 규칙)까지 비교한다."""
+    keys = sorted(int(y) for y in rates["prepayDiscount"]["rateByYear"])
+    return sorted(set(keys) | {keys[0] - 1, keys[-1] + 1})
 
 
 def diff_fields(py, js, fields):
@@ -124,7 +133,8 @@ def main():
     annual_set.update(t["annual"] for t in py_tax)
     annuals = sorted(annual_set)
 
-    js = run_js(kind, exe, rates, cases, annuals)
+    years = prepay_years(rates)
+    js = run_js(kind, exe, rates, cases, annuals, years)
     if js is None:
         return 1
 
@@ -133,17 +143,18 @@ def main():
         d = diff_fields(py, jt, TAX_FIELDS)
         if d:
             problems.append("배기량 {:,}cc · 차령 {}년차 — {}".format(cc, age, " · ".join(d)))
-    for a, jp in zip(annuals, js["prepay"]):
-        d = diff_fields(build.prepay(a, rates), jp, PREPAY_FIELDS)
+    py_prepay = [(y, a, build.prepay(a, rates, y)) for y in years for a in annuals]
+    for (y, a, pp), jp in zip(py_prepay, js["prepay"]):
+        d = diff_fields(pp, jp, PREPAY_FIELDS)
         if d:
-            problems.append("연세액 {:,}원의 1월 연납 — {}".format(a, " · ".join(d)))
+            problems.append("{}년 기준 연세액 {:,}원의 1월 연납 — {}".format(y, a, " · ".join(d)))
     py_ev = rates["displacement"]["ev"]["annualTotalKrw"]  # build.py는 전기차 정액을 이 값 그대로 쓴다
     if js["ev"] != py_ev:
         problems.append("전기차 정액 — build.py {} / tax-calc.js {}".format(fmt("annual", py_ev), fmt("annual", js["ev"])))
 
-    total = len(cases) + len(annuals) + 1
-    print("비교: 배기량 {}종 × 차령 {}~{}년 = {}건, 연납 {}건, 전기차 정액 1건 ({} 사용)".format(
-        n_cc, AGES[0], AGES[-1], len(cases), len(annuals), kind))
+    total = len(cases) + len(py_prepay) + 1
+    print("비교: 배기량 {}종 × 차령 {}~{}년 = {}건, 연납 {}건(연도 {}), 전기차 정액 1건 ({} 사용)".format(
+        n_cc, AGES[0], AGES[-1], len(cases), len(py_prepay), "·".join(map(str, years)), kind))
     if not problems:
         print("결과: {:,}건 모두 build.py와 js/tax-calc.js가 같은 값을 내요 — 통과".format(total))
         return 0
