@@ -12,6 +12,7 @@ import sys
 import json
 import html
 import re
+import calendar
 import datetime
 from pathlib import Path
 
@@ -80,14 +81,80 @@ def nonpassenger_tax(v, rates):
     return None
 
 
-def prepay(annual, rates):
-    """1월 연납 시 공제액·납부액. 공제율은 rateByYear의 가장 최근 연도."""
-    p = rates["prepayDiscount"]
-    year = max(p["rateByYear"].keys())
-    rate = p["rateByYear"][year]
-    pr = p["januaryProration"]
+def prepay_rate(rates, this_year):
+    """연납 공제율 선택 (tax-rates.json fallbackRule — js/tax-calc.js rateFor와 같은 규칙).
+    당해 연도 키가 있으면 그 해, 없으면 가장 최근 연도의 공제율 + fallback=True('YYYY년 기준' 표기 강제).
+    반환: (공제율 연도 문자열, 공제율, fallback)"""
+    by_year = rates["prepayDiscount"]["rateByYear"]
+    key = str(this_year)
+    if key in by_year:
+        return key, by_year[key], False
+    latest = max(by_year, key=int)
+    return latest, by_year[latest], True
+
+
+def prepay(annual, rates, this_year):
+    """1월 연납 시 공제액·납부액. this_year = 빌드 연도 (공제율 선택 기준)."""
+    year, rate, fallback = prepay_rate(rates, this_year)
+    pr = rates["prepayDiscount"]["januaryProration"]
     discount = floor10(annual * pr["coveredMonths"] / pr["totalMonths"] * rate)
-    return {"year": year, "rate": rate, "discount": discount, "pay": annual - discount}
+    return {"year": year, "rate": rate, "fallback": fallback, "discount": discount, "pay": annual - discount}
+
+
+def prepay_basis(rates, this_year, sep=" · "):
+    """폴백일 때 연납 금액 옆에 붙이는 '2026년 공제율 기준' 문구. 당해 연도 공제율이 있으면 빈 문자열."""
+    year, _, fallback = prepay_rate(rates, this_year)
+    return f"{sep}{year}년 공제율 기준" if fallback else ""
+
+
+def prepay_windows(rates):
+    """연납 신청 기간 (tax-rates.json applicationWindows). 값이 이상하면 빌드를 멈춘다 —
+    잘못된 날짜는 잘못된 안내로 직결된다. 1월분 공제 월 수는 금액 계산(januaryProration)과 같아야 한다."""
+    p = rates["prepayDiscount"]
+    windows = p.get("applicationWindows") or []
+    for w in windows:
+        last_day = calendar.monthrange(2024, w["month"])[1] if 1 <= w["month"] <= 12 else 0  # 윤년 기준 말일
+        if not (1 <= w["startDay"] <= w["endDay"] <= last_day and 0 < w["coveredMonths"] < 12):
+            raise ValueError(f"tax-rates.json applicationWindows 값 오류: {w}")
+    jan = next((w for w in windows if w["month"] == 1), None)
+    if jan and jan["coveredMonths"] != p["januaryProration"]["coveredMonths"]:
+        raise ValueError("applicationWindows 1월 coveredMonths가 januaryProration.coveredMonths와 다릅니다")
+    return windows
+
+
+def lump_sum_only(base, rates):
+    """본세(지방교육세 제외)가 기준 이하면 지자체가 6월에 1년치를 부과한다(지방세법 제128조 제4항) —
+    이런 차는 6·9월 연납이 없다 (applicationWindows.lumpSumEligible)."""
+    th = rates["prepayDiscount"].get("lumpSumThresholdKrw")
+    return bool(th) and base <= th
+
+
+def prepay_banner(rates, lump_sum=False, amount_note=True, css_prefix="../"):
+    """연납 신청 기간 안내 줄 자리 (연납 한 줄 바로 아래). 날짜 판단은 js/prepay-banner.js가 오늘 날짜로 한다.
+    기본 hidden — JS가 꺼져 있거나 기간 밖이면 아무것도 보이지 않는다.
+    lump_sum: 6월 일괄부과 차량이면 6·9월 기간을 빼고 심는다.
+    amount_note: 페이지에 '1월 연납 시' 금액이 있는지 (문구가 그 금액을 가리킨다)."""
+    p = rates["prepayDiscount"]
+    windows = [w for w in prepay_windows(rates) if not lump_sum or w.get("lumpSumEligible", True)]
+    if not windows:
+        return ""
+    data = [{k: w[k] for k in ("month", "startDay", "endDay", "coveredMonths", "label")} for w in windows]
+    attrs = (
+        f' data-windows="{esc(json.dumps(data, ensure_ascii=False, separators=(",", ":")))}"'
+        f' data-rates="{esc(json.dumps(p["rateByYear"], separators=(",", ":")))}"'
+        f' data-lead-days="{int(p.get("bannerLeadDays", 0))}"'
+        + (" data-amount-note" if amount_note else "")
+    )
+    # 신청 링크는 sources의 위택스 항목을 그대로 쓴다 (URL 단일 출처)
+    src = next((s for s in rates.get("sources", []) if s.get("key") == "wetax"), None)
+    link = ""
+    if src:
+        link = (f' <a class="prepay-apply" href="{esc(src["url"])}" rel="noopener" target="_blank" hidden>'
+                f'{esc(src.get("shortLabel", src["label"]))}에서 신청</a>')
+    return (f'<div class="prepay-banner"{attrs} hidden>'
+            f'<span class="prepay-badge"></span><span class="prepay-main"></span>{link}'
+            f'<span class="prepay-note"></span></div>\n'
+            f'<script src="{css_prefix}js/prepay-banner.js" defer></script>')
 
 
 def won(n):
@@ -169,26 +236,29 @@ def jsonld_block(v, rates, site, this_year):
     base = site.get("baseUrl", "").rstrip("/")
     page_url = f"{base}/tax/{v['slug']}.html" if base else ""
     name = v["name"]
+    basis = prepay_basis(rates, this_year, sep="")
+    basis = f"({basis})" if basis else ""
     if v["fuelType"] == "ev":
         ev = rates["displacement"]["ev"]
         annual = ev["annualTotalKrw"]
+        pe = prepay(annual, rates, this_year)
         faqs = [
             (f"{name} 자동차세는 얼마인가요?",
              f"전기차(비영업용 승용)는 배기량이 없어 연 {annual:,}원 정액입니다 (본세 {ev['baseKrw']:,}원 + 지방교육세 {ev['educationTaxKrw']:,}원). 연식과 무관하게 같습니다."),
             ("1월에 연납하면 얼마나 할인되나요?",
-             f"1월에 연납 신청하면 2~12월분 세액의 {list(rates['prepayDiscount']['rateByYear'].values())[-1]*100:.0f}%를 공제받습니다. 연 {annual:,}원 기준 {prepay(annual, rates)['pay']:,}원을 냅니다."),
+             f"1월에 연납 신청하면 2~12월분 세액의 {pe['rate']*100:.0f}%{basis}를 공제받습니다. 연 {annual:,}원 기준 {pe['pay']:,}원을 냅니다."),
             ("전기차도 차령 경감이 되나요?",
              "아니요. 차령 경감은 배기량 기준 승용차에 적용되며, 전기차는 정액이라 연식이 지나도 세액이 같습니다."),
         ]
     else:
         t1 = tax_for(v["displacementCc"], 1, rates)
         t13 = tax_for(v["displacementCc"], 13, rates)
-        p1 = prepay(t1["annual"], rates)
+        p1 = prepay(t1["annual"], rates, this_year)
         faqs = [
             (f"{name} 자동차세는 얼마인가요?",
              f"배기량 {v['displacementCc']:,}cc 기준 신차는 연 {t1['annual']:,}원(본세+지방교육세)입니다. 3년차부터 차령 경감이 적용되어 12년 이상이면 연 {t13['annual']:,}원까지 줄어듭니다."),
             ("1월에 연납하면 얼마나 할인되나요?",
-             f"1월 연납 시 2~12월분 세액의 {p1['rate']*100:.0f}%를 공제받습니다. 신차 기준 연 {t1['annual']:,}원에서 {p1['discount']:,}원을 공제받아 {p1['pay']:,}원을 냅니다."),
+             f"1월 연납 시 2~12월분 세액의 {p1['rate']*100:.0f}%{basis}를 공제받습니다. 신차 기준 연 {t1['annual']:,}원에서 {p1['discount']:,}원을 공제받아 {p1['pay']:,}원을 냅니다."),
             ("차령 경감은 언제부터 적용되나요?",
              "최초 등록 후 3년차부터 (차령 − 2) × 5%씩 경감되고, 12년 이상이면 최대 50%가 경감됩니다."),
         ]
@@ -322,45 +392,54 @@ def notebook_cta(v):
 <a class="btn secondary" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;" href="../tco.html?car={v["slug"]}">이 차와 다른 차 유지비 비교하기</a>"""
 
 
-def sources_block(rates):
+def sources_block(rates, this_year):
     links = " · ".join(
         f'<a href="{esc(s["url"])}" rel="noopener" target="_blank">{esc(s["label"])}</a>'
         for s in rates["sources"]
     )
-    this_year = datetime.date.today().year
+    # 연납 공제율이 당해 연도 것이 아니면(폴백) 여기서도 밝힌다. 연납 항목만 따로 재확인했으면 그 시점도 표기
+    basis = prepay_basis(rates, this_year, sep="")
+    basis = f"(연납은 {basis})" if basis else ""
+    pv = rates["prepayDiscount"].get("lastVerified")
+    checked = f" · 연납 기준 확인 {pv}" if pv and pv != rates["lastVerified"] else ""
     return (
         '<div class="sources"><p>근거 법령·출처: ' + links + "</p>"
-        f"<p>{this_year}년 세율 기준 · 최종 확인 {rates['lastVerified']}. "
+        f"<p>{this_year}년 세율 기준{basis} · 최종 확인 {rates['lastVerified']}{checked}. "
         "세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>"
     )
 
 
-def table_img_script(v, site, this_year):
+def table_img_script(v, site, rates, this_year):
     base = site.get("baseUrl", "").rstrip("/")
     watermark = base.replace("https://", "").replace("http://", "") if base else site["siteName"]
     return (
         TABLE_IMG_SCRIPT
         .replace("__TITLE__", f"{v['name']} 자동차세")
-        .replace("__META__", f"{v['displacementCc']:,}cc · {this_year}년 세율 기준 · 연납은 1월 신청 기준")
+        .replace("__META__", f"{v['displacementCc']:,}cc · {this_year}년 세율 기준 · 연납은 1월 신청"
+                             + (prepay_basis(rates, this_year, sep="·") or " 기준"))
         .replace("__WATERMARK__", watermark)
         .replace("__SLUG__", v["slug"])
     )
 
 
-def lump_sum_note(annual, rates):
-    """연세액이 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능."""
+def lump_sum_note(base, rates):
+    """본세(지방교육세 제외)가 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능.
+    base = 본세. 승용은 지방교육세를 뺀 값을 넘길 것 (기준이 '지방교육세 별도' 연세액)."""
     p = rates["prepayDiscount"]
     th = p.get("lumpSumThresholdKrw")
-    if not th or annual > th:
+    if not lump_sum_only(base, rates):
         return ""
-    return ('<p class="notice">연세액이 10만원 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 '
-            "공제를 자동 반영하는 경우가 있습니다. 이때는 1월·3월에만 연납 신청이 가능합니다.</p>")
+    th_label = f"{th // 10000}만원" if th % 10000 == 0 else f"{th:,}원"
+    months = "·".join(f"{w['month']}월" for w in prepay_windows(rates) if w.get("lumpSumEligible", True))
+    tail = f" 이때는 {months}에만 연납 신청이 가능합니다." if months else ""
+    return (f'<p class="notice">자동차세 본세(지방교육세 제외)가 연 {th_label} 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 '
+            f"공제를 자동 반영하는 경우가 있습니다.{tail}</p>")
 
 
 def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
     """화물·승합 페이지. 정액이라 연식별 표를 만들지 않는다(전 행이 같은 값이라 무의미)."""
     t = nonpassenger_tax(v, rates)
-    pp = prepay(t["nonBusiness"], rates)  # 연납은 차종 구분 없이 적용(지방세법 제128조 제3항)
+    pp = prepay(t["nonBusiness"], rates, this_year)  # 연납은 차종 구분 없이 적용(지방세법 제128조 제3항)
     name = v["name"]
     is_truck = t["kind"] == "truck"
     kind_label = "화물자동차" if is_truck else "승합자동차"
@@ -407,7 +486,8 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption">{esc(kind_label)} · {esc(t["basisLabel"])} · 자가용 기준</p>
 <div class="tax-hero">연 {t["nonBusiness"]:,}원</div>
-<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인 &nbsp;|&nbsp; 영업용 {t["business"]:,}원</p>
+<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인{prepay_basis(rates, this_year)} &nbsp;|&nbsp; 영업용 {t["business"]:,}원</p>
+{prepay_banner(rates, lump_sum=lump_sum_only(t["nonBusiness"], rates))}
 <div class="card spec-box">
   <div class="spec-row"><span class="spec-label">분류</span><span>{esc(kind_label)}</span></div>
   <div class="spec-row"><span class="spec-label">과세 기준</span><span>{esc(t["basisLabel"])}</span></div>
@@ -420,7 +500,7 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
 {basis_desc}
 {lump_sum_note(t["nonBusiness"], rates)}
 {notebook_cta(v)}
-{sources_block(rates)}
+{sources_block(rates, this_year)}
 <p>소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서 하실 수 있어요.</p>"""
     title = f"{name} 자동차세 — 연 {t['nonBusiness']:,}원 (자가용) | {site['siteName']}"
     desc = (f"{name}({kind_label}) 자동차세는 자가용 연 {t['nonBusiness']:,}원, 영업용 {t['business']:,}원. "
@@ -437,16 +517,18 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
     if v["fuelType"] == "ev":
         ev = rates["displacement"]["ev"]
         annual = ev["annualTotalKrw"]
-        pp = prepay(annual, rates)
+        pp = prepay(annual, rates, this_year)
         body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption">전기 · 비영업용 승용 · 연식 무관 정액</p>
 <div class="tax-hero">연 {annual:,}원</div>
-<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인</p>
+<p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인{prepay_basis(rates, this_year)}</p>
+{prepay_banner(rates, lump_sum=lump_sum_only(ev["baseKrw"], rates))}
 {spec_box(v, site)}
 {class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
+{lump_sum_note(ev["baseKrw"], rates)}
 {notebook_cta(v)}
-{sources_block(rates)}
+{sources_block(rates, this_year)}
 <h2>계산 방법</h2>
 <p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액(본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])})이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
 <p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
@@ -456,12 +538,14 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
         return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"), og=og)
 
     new_tax = tax_for(cc, 1, rates)
-    new_prepay = prepay(new_tax["annual"], rates)
+    new_prepay = prepay(new_tax["annual"], rates, this_year)
+    basis = prepay_basis(rates, this_year)  # 폴백이면 " · 2026년 공제율 기준"
+    basis_paren = f"({prepay_basis(rates, this_year, sep='')})" if basis else ""
 
     rows = []
     for age in range(1, 14):
         t = tax_for(cc, age, rates)
-        p = prepay(t["annual"], rates)
+        p = prepay(t["annual"], rates, this_year)
         label = f"{age}년차" + (" (신차)" if age == 1 else "") + (" 이상" if age == 13 else "")
         reg_year = this_year - age + 1
         rows.append(
@@ -485,7 +569,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 </div>
 <script>
 (function () {{
-  var rows = {json.dumps({str(a): {"annual": tax_for(cc, a, rates)["annual"], "pay": prepay(tax_for(cc, a, rates)["annual"], rates)["pay"]} for a in range(1, 14)}, ensure_ascii=False)};
+  var rows = {json.dumps({str(a): {"annual": tax_for(cc, a, rates)["annual"], "pay": prepay(tax_for(cc, a, rates)["annual"], rates, this_year)["pay"]} for a in range(1, 14)}, ensure_ascii=False)};
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {{
@@ -494,7 +578,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
     var d = rows[String(age)];
     document.getElementById('hero-amount').textContent = '연 ' + d.annual.toLocaleString('ko-KR') + '원';
     document.getElementById('prepay-line').innerHTML = '1월 연납 시 <span class="accent">' +
-      d.pay.toLocaleString('ko-KR') + '원</span> · ' + (d.annual - d.pay).toLocaleString('ko-KR') + '원 할인';
+      d.pay.toLocaleString('ko-KR') + '원</span> · ' + (d.annual - d.pay).toLocaleString('ko-KR') + '원 할인__BASIS__';
     document.getElementById('tax-caption').textContent = '__CAPTION__ · ' +
       (sel.value ? sel.value + '년 등록 (' + age + '년차) 기준' : '신차 기준');
     if (sel.value) {{
@@ -511,25 +595,27 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
     }}
   }});
 }})();
-</script>""".replace("__CAPTION__", f"{esc(fuel)} · {cc:,}cc · 비영업용 승용")
+</script>""".replace("__CAPTION__", f"{esc(fuel)} · {cc:,}cc · 비영업용 승용").replace("__BASIS__", esc(basis))
 
     aging = rates["displacement"]["agingDiscount"]
-    # DESIGN.md 페이지 순서 고정: 브레드크럼 → 제목 → 히어로 금액 → 연납 한 줄 → 연식 select → 표 → primary CTA → 기준일 캡션
+    # DESIGN.md 페이지 순서 고정: 브레드크럼 → 제목 → 히어로 금액 → 연납 한 줄(+ 신청 기간 안내 줄) → 연식 select → 표 → primary CTA → 기준일 캡션
     body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption" id="tax-caption">{esc(fuel)} · {cc:,}cc · 비영업용 승용 · 신차 기준</p>
 <div class="tax-hero" id="hero-amount">연 {new_tax["annual"]:,}원</div>
-<p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인</p>
+<p class="prepay-line" id="prepay-line">1월 연납 시 <span class="accent">{new_prepay["pay"]:,}원</span> · {new_prepay["discount"]:,}원 할인{basis}</p>
+{prepay_banner(rates, lump_sum=lump_sum_only(new_tax["base"], rates))}
 {spec_box(v, site)}
 {class_note_line(v)}{trim_compare_line(v, all_vehicles, rates)}
 {picker}
 {table}
 <button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
-{table_img_script(v, site, this_year)}
+{table_img_script(v, site, rates, this_year)}
+{lump_sum_note(new_tax["base"], rates)}
 {notebook_cta(v)}
-{sources_block(rates)}
+{sources_block(rates, this_year)}
 <h2>계산 방법</h2>
-<p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요.</p>
+<p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {aging["startCarAge"]}년차부터 (차령 − 2) × {aging["ratePerYear"]*100:.0f}% 경감(최대 {aging["maxRate"]*100:.0f}%) → 지방교육세 {rates["displacement"]["educationTaxRate"]*100:.0f}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 2~12월분의 {new_prepay["rate"]*100:.0f}%를 공제받아요{basis_paren}.</p>
 <p>차령은 대략 <em>올해 − 등록 연도 + 1</em>로 계산합니다.</p>
 <p>차값·연료비·보험까지 묶어 보려면 <a href="../tco.html">유지비 비교</a>, 소모품·검사 일정 관리는 <a href="../index.html">내 차 수첩</a>에서.</p>
 {jsonld_block(v, rates, site, this_year)}"""
@@ -611,6 +697,7 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
     if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; return; }
     var yearSel = $('calc-year').value;
     var thisYear = __THIS_YEAR__;
+    var nowYear = new Date().getFullYear(); // 연납 공제율 선택 기준 (tax-rates.json fallbackRule)
     var age = yearSel ? Math.min(13, Math.max(1, thisYear - Number(yearSel) + 1)) : 1;
     var annual, label;
     if (ev) {
@@ -627,16 +714,17 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
       var rows = '';
       for (var a = 1; a <= 13; a++) {
         var ta = T.taxFor(rates, cc, a);
-        var pa = T.prepay(rates, ta.annual);
+        var pa = T.prepay(rates, ta.annual, nowYear);
         rows += '<tr' + (yearSel && a === age ? ' class="hl"' : '') + '><td>' + a + '년차' + (a === 13 ? ' 이상' : '') +
           '</td><td>' + Math.round(ta.discountRate * 100) + '%</td><td>' + won(ta.annual) + '</td><td>' + won(pa.pay) + '</td></tr>';
       }
       tableWrap.innerHTML = '<table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
-    var p = T.prepay(rates, annual);
+    var p = T.prepay(rates, annual, nowYear);
     $('cr-label').textContent = label;
     $('cr-amount').textContent = '연 ' + won(annual);
-    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)';
+    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)' +
+      (p.fallback ? ' · ' + p.year + '년 공제율 기준' : '');
     card.hidden = false;
   }
   document.addEventListener('input', render);
@@ -658,6 +746,7 @@ def calculator_page(rates, site, this_year, og=None):
     body = f"""<p class="crumb"><a href="index.html">자동차세 계산</a> › 계산기</p>
 <h1>자동차세 계산기</h1>
 <p class="lede">배기량(cc)과 등록 연도만 넣으면 자동차세와 1월 연납액을 바로 계산해요. 비영업용 승용 기준.</p>
+{prepay_banner(rates)}
 <div class="card">
   <div class="field-row">
     <div class="field"><label for="calc-cc">배기량(cc)</label>
@@ -679,14 +768,14 @@ def calculator_page(rates, site, this_year, og=None):
 <tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.
   내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
-{sources_block(rates)}
+{sources_block(rates, this_year)}
 {CALC_SCRIPT.replace("__THIS_YEAR__", str(this_year))}"""
     title = f"자동차세 계산기 — 배기량·연식으로 바로 계산 | {site['siteName']}"
     desc = "배기량(cc)과 등록 연도만 넣으면 자동차세 연세액·1월 연납 할인액을 계산합니다. 차령 경감·전기차 정액 반영."
     return page(site, title, desc, body, canonical=page_canonical(site, "tax/calculator.html"), og=og)
 
 
-def index_page(vehicles, rates, site, og=None):
+def index_page(vehicles, rates, site, this_year, og=None):
     by_brand = {}
     for v in vehicles:
         by_brand.setdefault(v["brand"], []).append(v)
@@ -767,13 +856,14 @@ def index_page(vehicles, rates, site, og=None):
     )
     body = f"""<h1>차종별 자동차세 계산</h1>
 <p class="lede">배기량과 연식만으로 정해지는 자동차세, 차종별로 미리 계산해 뒀습니다. 비영업용 승용 기준.</p>
+{prepay_banner(rates, amount_note=False)}
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
 <tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.</p>
 <p class="notice">차종 옆 금액은 신차 기준 연세액 — 연식이 오래될수록 줄어들어요.</p>
 {"".join(sections)}
 <p style="margin-top:24px;">찾는 차종이 없나요? <a href="calculator.html">자동차세 계산기</a>에서 배기량만 넣으면 바로 계산할 수 있어요.</p>
-{sources_block(rates)}"""
+{sources_block(rates, this_year)}"""
     title = f"차종별 자동차세 계산 — 연식별 세액·연납 할인 | {site['siteName']}"
     desc = "아반떼·그랜저·쏘렌토 등 인기 차종의 자동차세를 연식별로 계산. cc당 세율, 차령 경감, 연납 할인까지."
     return page(site, title, desc, body, canonical=page_canonical(site, "tax/index.html"), og=og)
@@ -783,26 +873,29 @@ def vehicle_og_spec(v, rates, this_year):
     """차종 페이지 썸네일 문구. 페이지 히어로와 같은 숫자를 보여준다 (신차 기준)."""
     name = v["name"]
     foot = f"{this_year}년 세율 기준"
+    # 연납 공제율이 당해 연도 것이 아니면 썸네일에도 밝힌다 (차종별 보조 문구보다 우선)
+    basis = prepay_basis(rates, this_year, sep=" · 연납은 ")
     if v.get("vehicleClass", "passenger") != "passenger":
         t = nonpassenger_tax(v, rates)
         kind_label = "화물자동차" if t["kind"] == "truck" else "승합자동차"
         hero = f"연 {t['nonBusiness']:,}원"
         caption = f"{kind_label} · {t['basisLabel']} · 자가용"
-        sub = f"1월 연납 시 {prepay(t['nonBusiness'], rates)['pay']:,}원 · 영업용 연 {t['business']:,}원"
-        foot += " · 연식과 무관한 정액"
+        sub = f"1월 연납 시 {prepay(t['nonBusiness'], rates, this_year)['pay']:,}원 · 영업용 연 {t['business']:,}원"
+        foot += basis or " · 연식과 무관한 정액"
     elif v["fuelType"] == "ev":
         annual = rates["displacement"]["ev"]["annualTotalKrw"]
         hero = f"연 {annual:,}원"
         caption = "전기 · 비영업용 승용 · 연식 무관 정액"
-        sub = f"1월 연납 시 {prepay(annual, rates)['pay']:,}원"
+        sub = f"1월 연납 시 {prepay(annual, rates, this_year)['pay']:,}원"
+        foot += basis
     else:
         cc = v["displacementCc"]
         t1 = tax_for(cc, 1, rates)
         t13 = tax_for(cc, 13, rates)
         hero = f"연 {t1['annual']:,}원"
         caption = f"{FUEL_LABELS.get(v['fuelType'], v['fuelType'])} · {cc:,}cc · 신차 기준"
-        sub = f"1월 연납 시 {prepay(t1['annual'], rates)['pay']:,}원 · 12년 이상이면 연 {t13['annual']:,}원"
-        foot += " · 연식별 경감표는 사이트에서"
+        sub = f"1월 연납 시 {prepay(t1['annual'], rates, this_year)['pay']:,}원 · 12년 이상이면 연 {t13['annual']:,}원"
+        foot += basis or " · 연식별 경감표는 사이트에서"
     return {"kind": "amount", "label": "자동차세", "name": name, "caption": caption,
             "hero": hero, "sub": sub, "foot": foot, "alt": f"{name} 자동차세 {hero}"}
 
@@ -872,6 +965,7 @@ def build_sitemap(site, slugs):
 def main():
     site = load("site.json")
     rates = load("tax-rates.json")
+    prepay_windows(rates)
     all_active = [v for v in load("vehicles.json")["vehicles"] if v["status"] == "active"]
     # 분류 가드: 승용(passenger)이 아닌 차종은 배기량 과세 대상이 아니다.
     # 화물은 적재량 기준, 승합은 규모별 정액이라 이 사이트의 계산이 성립하지 않는다.
@@ -900,7 +994,7 @@ def main():
             html_out = nonpassenger_page(v, rates, site, this_year, vehicles, og=og.get(v["slug"]))
         out.write_text(html_out, encoding="utf-8")
         slugs.append(v["slug"])
-    (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site, og=og.get("index")), encoding="utf-8")
+    (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site, this_year, og=og.get("index")), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(
         calculator_page(rates, site, this_year, og=og.get("calculator")), encoding="utf-8")
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")

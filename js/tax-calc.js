@@ -26,16 +26,26 @@
 
   function evTax(rates) { return rates.displacement.ev.annualTotalKrw; }
 
-  // 1월 연납 공제 (가장 최근 연도의 공제율)
-  function prepay(rates, annual) {
-    var p = rates.prepayDiscount;
-    var years = Object.keys(p.rateByYear).sort();
-    var year = years[years.length - 1];
-    var rate = p.rateByYear[year];
-    var pr = p.januaryProration;
-    var discount = floor10(annual * pr.coveredMonths / pr.totalMonths * rate);
-    return { year: year, rate: rate, discount: discount, pay: annual - discount };
+  // 연납 공제율 선택 — tax-rates.json fallbackRule (build.py prepay_rate와 같은 규칙):
+  // year 키가 있으면 그 해 공제율, 없으면 가장 최근 연도의 공제율 + fallback=true ('YYYY년 기준' 표기 강제).
+  // year를 생략하면 가장 최근 연도 (폴백 아님 — 기존 호출 호환)
+  function rateFor(rates, year) {
+    var byYear = rates.prepayDiscount.rateByYear;
+    if (year != null && byYear[String(year)] != null) {
+      return { year: String(year), rate: byYear[String(year)], fallback: false };
+    }
+    var years = Object.keys(byYear).sort();
+    var latest = years[years.length - 1];
+    return { year: latest, rate: byYear[latest], fallback: year != null };
   }
 
-  global.ChailjiTax = { floor10: floor10, taxFor: taxFor, evTax: evTax, prepay: prepay };
+  // 1월 연납 공제. year = 기준 연도(계산기는 브라우저의 올해). 반환 year = 실제로 쓴 공제율의 연도(문자열)
+  function prepay(rates, annual, year) {
+    var r = rateFor(rates, year);
+    var pr = rates.prepayDiscount.januaryProration;
+    var discount = floor10(annual * pr.coveredMonths / pr.totalMonths * r.rate);
+    return { year: r.year, rate: r.rate, fallback: r.fallback, discount: discount, pay: annual - discount };
+  }
+
+  global.ChailjiTax = { floor10: floor10, taxFor: taxFor, evTax: evTax, rateFor: rateFor, prepay: prepay };
 })(typeof window !== 'undefined' ? window : globalThis);
