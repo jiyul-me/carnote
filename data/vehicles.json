@@ -11,12 +11,13 @@
     "slug": "정적 페이지 URL용 (예: /tax/avante-1.6). 파일 전체에서 유일해야 함 — 같은 모델·배기량의 세대 교체는 기존 항목의 modelYearTo를 닫고 같은 slug 페이지에서 연식 구간으로 함께 다룸(세율은 배기량만 의존). 배기량이 달라지면 새 slug",
     "aliases": "검색 매칭용 표기 변형",
     "status": "active=페이지 생성 대상, sample=구조 예시",
-    "fuelEconomy": "공인 복합연비 — 가솔린·디젤·LPG·하이브리드 km/L, 전기 km/kWh. 추정 기입 금지: 공식 수치 확인 후만 채움. null이면 차종 페이지에서 연비·연료비 줄 미노출",
+    "fuelEconomy": "공인 복합연비 — 단위는 energySource를 따른다: 가솔린·디젤·LPG·하이브리드 km/L, 전기 km/kWh, 수소 km/kg. 추정 기입 금지: 공식 수치 확인 후만 채움. 세대·트림마다 값이 다르면(예: 넥쏘 FE·NH2) 항목을 나누기 전까지 null. null이면 차종 페이지에서 연비·연료비 줄 미노출",
+    "energySource": "실제로 넣는 에너지 — 연비 단위·연료 단가(site.json fuelPrices)·수첩 주유/충전량 단위를 정한다. gasoline·diesel·lpg(L) / electricity(kWh, 단가 키 ev) / hydrogen(kg, 단가 키 hydrogen). 생략하면 fuelType에서 유도(ev→electricity, hybrid→gasoline, 나머지는 같은 이름). fuelType은 과세 구분이라 수소전기차(넥쏘)는 fuelType ev(세법상 전기차와 같은 '그 밖의 승용자동차' 정액) + energySource hydrogen으로 둔다. hydrogen은 fuelType ev에만 쓸 수 있다",
     "rangeKm": "전기차 인증 주행거리(상온 복합, km). null이면 미노출",
     "vehicleClass": "자동차관리법상 분류. passenger=승용(배기량 과세, 페이지 생성) / van=승합 / truck=화물. passenger가 아니면 배기량 기준 계산이 성립하지 않으므로 빌드에서 제외한다(화물은 적재량, 승합은 규모별 정액 과세). 값이 없으면 passenger로 간주",
     "payloadKg": "화물자동차 적재정량(kg). vehicleClass=truck이면 필수 — 이 값으로 세액 구간이 정해진다",
     "vanSize": "승합자동차 규모(small=소형일반버스 65,000원 / large=대형일반버스 115,000원). vehicleClass=van이면 필수",
-    "classNote": "같은 모델 안에서 승차정원·차체에 따라 분류가 갈리는 경우의 안내문(카니발·스타리아·PV5). 수소전기차(넥쏘)는 fuelType을 ev로 두고(세법상 전기차와 같은 '그 밖의 승용자동차' 정액) 이 필드로 과세 근거를 밝힌다. 페이지에 표시된다",
+    "classNote": "같은 모델 안에서 승차정원·차체에 따라 분류가 갈리는 경우의 안내문(카니발·스타리아·PV5). 수소전기차(넥쏘)는 이 필드로 정액 과세 근거(그 밖의 승용 — 전기·수소 동일)를 밝힌다(연료 표기는 energySource가 맡는다). 페이지에 표시된다",
     "trimGroup": "N Line 등 패키지 트림. 값이 있으면 허브의 모델 그룹 안에서 다시 하위 그룹으로 묶이고(2개 이상일 때만 접힘), 차종 페이지에 일반 트림과의 세액 비교 줄이 붙는다. 고성능 N 브랜드는 별도 brand('현대 N')이며 trimGroup이 아니다"
   },
   "vehicles": [
@@ -45,7 +46,7 @@
     { "id": "porter2-d4bh", "status": "active", "vehicleClass": "truck", "payloadKg": 1000, "name": "포터2 2.5 터보인터쿨러 (2004~2006)", "brand": "현대", "modelFamily": "포터", "generation": "포터2", "slug": "porter2-d4bh", "aliases": ["포터2 tci", "포터 터보인터쿨러"], "fuelType": "diesel", "displacementCc": null, "fuelEconomy": null, "modelYearFrom": 2004, "modelYearTo": 2006 },
     { "id": "ioniq5-ne", "status": "active", "name": "아이오닉 5", "brand": "현대", "modelFamily": "아이오닉 5", "generation": "NE", "slug": "ioniq5", "aliases": ["아이오닉5", "ioniq5", "아이오닉 5"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 5.2, "rangeKm": 485, "modelYearFrom": 2021, "modelYearTo": null },
     { "id": "ioniq6-ce", "status": "active", "name": "아이오닉 6", "brand": "현대", "modelFamily": "아이오닉 6", "generation": "CE", "slug": "ioniq6", "aliases": ["아이오닉6", "ioniq6"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 6.0, "rangeKm": 562, "modelYearFrom": 2022, "modelYearTo": null },
-    { "id": "nexo", "status": "active", "classNote": "넥쏘는 수소로 전기를 만들어 달리는 수소전기차입니다. 배기량이 없어 전기차와 같은 '그 밖의 승용자동차' 정액이 적용되며, 위 '연료: 전기'는 이 과세 구분을 뜻합니다.", "name": "넥쏘 수소전기차", "brand": "현대", "modelFamily": "넥쏘", "generation": "FE·NH2", "slug": "nexo", "aliases": ["넥쏘", "nexo", "넥소", "넥쏘 수소차", "수소차 넥쏘"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": null, "rangeKm": null, "modelYearFrom": 2018, "modelYearTo": null },
+    { "id": "nexo", "status": "active", "classNote": "넥쏘는 수소로 전기를 만들어 달리는 수소전기차입니다. 배기량이 없어 전기차와 함께 지방세법상 '그 밖의 승용자동차'로 분류되므로, 세액도 전기차와 같은 정액입니다.", "name": "넥쏘 수소전기차", "brand": "현대", "modelFamily": "넥쏘", "generation": "FE·NH2", "slug": "nexo", "aliases": ["넥쏘", "nexo", "넥소", "넥쏘 수소차", "수소차 넥쏘"], "fuelType": "ev", "energySource": "hydrogen", "displacementCc": null, "fuelEconomy": null, "rangeKm": null, "modelYearFrom": 2018, "modelYearTo": null },
 
     { "id": "avante-cn7-n", "status": "active", "name": "아반떼 N", "brand": "현대 N", "modelFamily": "아반떼 N", "generation": "CN7", "slug": "avante-n", "aliases": ["아반떼n", "아반떼 N"], "fuelType": "gasoline", "displacementCc": 1998, "fuelEconomy": 10.4, "modelYearFrom": 2021, "modelYearTo": null },
     { "id": "kona-n", "status": "active", "name": "코나 N", "brand": "현대 N", "modelFamily": "코나 N", "generation": "OS N", "slug": "kona-n", "aliases": ["코나n", "코나 N"], "fuelType": "gasoline", "displacementCc": 1998, "fuelEconomy": null, "modelYearFrom": 2021, "modelYearTo": 2023 },

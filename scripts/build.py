@@ -24,6 +24,37 @@ OUT_DIR = ROOT / "tax"
 
 FUEL_LABELS = {"gasoline": "가솔린", "diesel": "디젤", "lpg": "LPG", "hybrid": "하이브리드", "ev": "전기"}
 
+# 과세 구분(fuelType)과 실제로 넣는 에너지는 다를 수 있다 — 수소전기차(넥쏘)는 세법상 ev 정액이지만 수소(kg)를 넣는다.
+# vehicles.json energySource가 있으면 그것, 없으면 fuelType에서 유도 (js/derive.js·js/tco.js와 같은 규칙)
+ENERGY_BY_FUEL = {"gasoline": "gasoline", "diesel": "diesel", "lpg": "lpg", "hybrid": "gasoline", "ev": "electricity"}
+ENERGY_UNIT = {"electricity": "kWh", "hydrogen": "kg"}  # 나머지(휘발유·경유·LPG)는 L
+ENERGY_PRICE_KEY = {"electricity": "ev"}  # site.json fuelPrices 키 — 나머지는 에너지 이름 그대로
+
+
+def energy_source(v):
+    return v.get("energySource") or ENERGY_BY_FUEL.get(v["fuelType"], "gasoline")
+
+
+def is_hydrogen(v):
+    return energy_source(v) == "hydrogen"
+
+
+def flat_kind(v):
+    """정액 승용차의 페이지 표기 — 전기차 / 수소전기차 (과세는 둘 다 '그 밖의 승용자동차' 정액)."""
+    return "수소전기차" if is_hydrogen(v) else "전기차"
+
+
+def fuel_caption(v):
+    """제목 아래 캡션·썸네일의 연료 표기. 수소전기차는 '전기'가 아니라 '수소전기차'."""
+    return "수소전기차" if is_hydrogen(v) else FUEL_LABELS.get(v["fuelType"], v["fuelType"])
+
+
+def flat_basis_text(v):
+    """정액 승용차 '계산 방법'의 과세 근거 문장 (뒤에 '배기량 기준 대신 정액 … 적용됩니다'가 이어진다)."""
+    if is_hydrogen(v):
+        return '수소전기차도 전기차와 함께 지방세법상 "그 밖의 승용자동차"로 분류되어(전기·수소 동일 세율)'
+    return '전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어'
+
 
 def load(name):
     with open(ROOT / "data" / name, encoding="utf-8") as f:
@@ -274,13 +305,17 @@ def jsonld_block(v, rates, site, this_year):
         ev = rates["displacement"]["ev"]
         annual = ev["annualTotalKrw"]
         pe = prepay(annual, rates, this_year)
+        kind = flat_kind(v)
+        # 수소전기차는 전기차와 같은 '그 밖의 승용자동차' 정액 — 근거를 답에 밝힌다
+        why = ("배기량이 없어 전기차와 같은 '그 밖의 승용자동차'로 분류되고, "
+               if is_hydrogen(v) else "배기량이 없어 ")
         faqs = [
             (f"{name} 자동차세는 얼마인가요?",
-             f"전기차(비영업용 승용)는 배기량이 없어 연 {annual:,}원 정액입니다 (본세 {ev['baseKrw']:,}원 + 지방교육세 {ev['educationTaxKrw']:,}원). 연식과 무관하게 같습니다."),
+             f"{kind}(비영업용 승용)는 {why}연 {annual:,}원 정액입니다 (본세 {ev['baseKrw']:,}원 + 지방교육세 {ev['educationTaxKrw']:,}원). 연식과 무관하게 같습니다."),
             ("1월에 연납하면 얼마나 할인되나요?",
              f"1월에 연납 신청하면 2~12월분 세액의 {pe['rate']*100:.0f}%{basis}를 공제받습니다. 연 {annual:,}원 기준 {pe['pay']:,}원을 냅니다."),
-            ("전기차도 차령 경감이 되나요?",
-             "아니요. 차령 경감은 배기량 기준 승용차에 적용되며, 전기차는 정액이라 연식이 지나도 세액이 같습니다."),
+            (f"{kind}도 차령 경감이 되나요?",
+             f"아니요. 차령 경감은 배기량 기준 승용차에 적용되며, {kind}는 정액이라 연식이 지나도 세액이 같습니다."),
         ]
     else:
         t1 = tax_for(v["displacementCc"], 1, rates)
@@ -383,13 +418,15 @@ def spec_box(v, site):
     rows = []
     if v["displacementCc"]:
         rows.append(("배기량", f"{v['displacementCc']:,}cc"))
-    rows.append(("연료", FUEL_LABELS.get(v["fuelType"], v["fuelType"])))
+    energy = energy_source(v)
+    unit = ENERGY_UNIT.get(energy, "L")  # 연비·단가 단위는 과세 구분이 아니라 실제 에너지를 따른다
+    rows.append(("연료", "수소" if energy == "hydrogen" else FUEL_LABELS.get(v["fuelType"], v["fuelType"])))
     fe = v.get("fuelEconomy")
     is_ev = v["fuelType"] == "ev"
     if fe:
-        rows.append(("공인연비", f"{fe}km/{'kWh' if is_ev else 'L'} (복합)"))
+        rows.append(("공인연비", f"{fe}km/{unit} (복합)"))
     if is_ev and v.get("rangeKm"):
-        rows.append(("인증 주행거리", f"{v['rangeKm']:,}km (상온 복합)"))
+        rows.append(("인증 주행거리", f"{v['rangeKm']:,}km" + (" (상온 복합)" if energy == "electricity" else "")))
     body = "".join(
         f'<div class="spec-row"><span class="spec-label">{a}</span><span>{b}</span></div>'
         for a, b in rows
@@ -400,13 +437,12 @@ def spec_box(v, site):
     fuel_line = ""
     prices = site.get("fuelPrices", {})
     basis_km = site.get("fuelCostBasisKm", 15000)
-    price = prices.get("gasoline" if v["fuelType"] == "hybrid" else v["fuelType"])
+    price = prices.get(ENERGY_PRICE_KEY.get(energy, energy))  # 단가가 null(미확인)이면 연료비 줄 미노출
     if fe and price:
         annual_cost = round(basis_km / fe * price)
-        unit = "원/kWh" if is_ev else "원/L"
         fuel_line = (
             f'<div class="spec-fuel">공인연비 기준 연 {basis_km:,}km 주행 시 연료비 약 '
-            f'<strong>{annual_cost:,}원</strong> <span>({price:,}{unit} 기준)</span></div>'
+            f'<strong>{annual_cost:,}원</strong> <span>({price:,}원/{unit} 기준)</span></div>'
         )
     return f'<div class="card spec-box">{body}{fuel_line}</div>'
 
@@ -556,9 +592,10 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
         ev = rates["displacement"]["ev"]
         annual = ev["annualTotalKrw"]
         pp = prepay(annual, rates, this_year)
+        kind = flat_kind(v)
         body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
-<p class="tax-caption">전기 · 비영업용 승용 · 연식 무관 정액</p>
+<p class="tax-caption">{esc(fuel_caption(v))} · 비영업용 승용 · 연식 무관 정액</p>
 <div class="tax-hero">연 {annual:,}원</div>
 <p class="prepay-line">1월 연납 시 <span class="accent">{pp["pay"]:,}원</span> · {pp["discount"]:,}원 할인{prepay_basis(rates, this_year)}</p>
 {prepay_banner(rates, this_year, lump_sum=lump_sum_only(ev["baseKrw"], rates))}
@@ -568,11 +605,12 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 {notebook_cta(v)}
 {sources_block(rates, this_year)}
 <h2>계산 방법</h2>
-<p>전기차는 지방세법상 "그 밖의 승용자동차"로 분류되어 배기량 기준 대신 정액(본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])})이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
+<p>{flat_basis_text(v)} 배기량 기준 대신 정액(본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])})이 적용됩니다. 차령 경감도 적용되지 않습니다.</p>
 <p>내연기관차와 유지비를 나란히 비교하려면 <a href="../tco.html">유지비 비교</a>를 써보세요.</p>
 {jsonld_block(v, rates, site, this_year)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
-        desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
+        why = "수소전기차도 전기차와 같은 '그 밖의 승용자동차' 정액" if is_hydrogen(v) else "전기차 정액"
+        desc = f"{name} 자동차세는 연 {annual:,}원 고정({why}). 연납 할인과 계산 근거까지 정리했습니다."
         return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"), og=og)
 
     new_tax = tax_for(cc, 1, rates)
@@ -805,7 +843,7 @@ def calculator_page(rates, site, this_year, og=None):
     <div class="field"><label for="calc-year">등록 연도</label>
       <select id="calc-year"><option value="">선택 안 함 (신차 기준)</option>{year_options}</select></div>
   </div>
-  <label class="toggle-row" style="border:none;padding-bottom:0;"><span>전기차예요 (배기량 없음 — 정액)</span><input type="checkbox" id="calc-ev" style="width:20px;height:20px;"></label>
+  <label class="toggle-row" style="border:none;padding-bottom:0;"><span>전기차·수소전기차예요 (배기량 없음 — 정액)</span><input type="checkbox" id="calc-ev" style="width:20px;height:20px;"></label>
   <p class="notice">배기량은 자동차등록증에서 확인할 수 있어요.</p>
 </div>
 <div class="card year-result-card" id="calc-result" hidden>
@@ -817,7 +855,7 @@ def calculator_page(rates, site, this_year, og=None):
 <div class="table-wrap" id="calc-table"></div>
 <h2>세율표</h2>
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
-<tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
+<tr><td>전기차·수소전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.
   내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
 {sources_block(rates, this_year)}
@@ -910,7 +948,7 @@ def index_page(vehicles, rates, site, this_year, og=None):
 <p class="lede">배기량과 연식만으로 정해지는 자동차세, 차종별로 미리 계산해 뒀습니다. 비영업용 승용 기준.</p>
 {prepay_banner(rates, this_year, amount_note=False)}
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
-<tr><td>전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
+<tr><td>전기차·수소전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 {d["educationTaxRate"]*100:.0f}%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.</p>
 <p class="notice">차종 옆 금액은 신차 기준 연세액 — 연식이 오래될수록 줄어들어요.</p>
 {"".join(sections)}
@@ -937,9 +975,9 @@ def vehicle_og_spec(v, rates, this_year):
     elif v["fuelType"] == "ev":
         annual = rates["displacement"]["ev"]["annualTotalKrw"]
         hero = f"연 {annual:,}원"
-        caption = "전기 · 비영업용 승용 · 연식 무관 정액"
+        caption = f"{fuel_caption(v)} · 비영업용 승용 · 연식 무관 정액"
         sub = f"1월 연납 시 {prepay(annual, rates, this_year)['pay']:,}원"
-        foot += basis
+        foot += basis or (" · 전기차와 같은 정액" if is_hydrogen(v) else "")
     else:
         cc = v["displacementCc"]
         t1 = tax_for(cc, 1, rates)

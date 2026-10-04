@@ -2,8 +2,10 @@
   "siteName": "차일지",
   "baseUrl": "https://chailji.com",
   "ga4MeasurementId": "G-E0QK8ZX077",
-  "fuelPrices": { "gasoline": 1650, "diesel": 1520, "lpg": 1000, "ev": 350 },
-  "fuelPricesNote": "원/L, 전기는 원/kWh. 차종 페이지 연료비 표기(빌드 시)와 TCO 기본값 공용 — 값 교체 후 build.py 재실행",
+  "fuelPrices": { "gasoline": 1650, "diesel": 1520, "lpg": 1000, "ev": 350, "hydrogen": 10379 },
+  "fuelPricesNote": "가솔린·디젤·LPG는 원/L, 전기(ev)는 원/kWh, 수소(hydrogen)는 원/kg. 키는 vehicles.json energySource를 따른다(electricity→ev, 나머지는 같은 이름). 차종 페이지 연료비 표기(빌드 시)와 TCO 기본값 공용 — 값 교체 후 build.py 재실행. 확인된 값이 없으면 null로 둔다(차종 페이지 연료비 줄 미노출, TCO는 단가 입력을 요구)",
+  "fuelPriceBasis": { "hydrogen": "2026년 6월 전국 평균(수소유통정보시스템)" },
+  "hydrogenPriceNote": "10,379원/kg = 수소유통정보시스템(하잉, h2nbiz.or.kr) 전국 평균 판매가 2026-06-22 조회값(glasswallet.com '수소차 보조금 3,250만원, 넥쏘 반값인데 충전비가 함정일까?' 인용). 교차 확인: 블로터 2026년 기사 '하이넷, 22개 수소충전소 가격 인상'(bloter.net/news/articleView.html?idxno=655695)의 '전국 240개 수소충전소 평균 충전 단가 ㎏당 1만370원', 수소유통정보시스템 가격정보 검색 스냅숏 전국 평균 10,477원(조회일 미상). 기준월 2026-06 · 확인 2026-10-04(검색 결과로 확인 — 원문 사이트 직접 접속은 막혀 있었음). fuelPriceBasis.hydrogen 문구가 TCO 화면에 기준으로 표시된다 — 값을 바꾸면 함께 고칠 것",
   "fuelCostBasisKm": 15000,
   "note": "정식 도메인. baseUrl은 sitemap·robots Sitemap 줄·canonical/og·.ics DESCRIPTION·표 이미지 워터마크 등 모든 URL 표기의 단일 출처 — 도메인이 바뀌면 여기만 고치고 build.py 재실행. CNAME 파일은 GitHub Pages 도메인 연결용이므로 건드리지 않는다"
 }
