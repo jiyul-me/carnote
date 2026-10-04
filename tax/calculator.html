@@ -38,6 +38,8 @@
 <p class="crumb"><a href="index.html">자동차세 계산</a> › 계산기</p>
 <h1>자동차세 계산기</h1>
 <p class="lede">배기량(cc)과 등록 연도만 넣으면 자동차세와 1월 연납액을 바로 계산해요. 비영업용 승용 기준.</p>
+<div class="prepay-banner" data-windows="[{&quot;month&quot;:1,&quot;startDay&quot;:16,&quot;endDay&quot;:31,&quot;coveredMonths&quot;:11,&quot;label&quot;:&quot;1월 연납&quot;},{&quot;month&quot;:3,&quot;startDay&quot;:16,&quot;endDay&quot;:31,&quot;coveredMonths&quot;:9,&quot;label&quot;:&quot;3월 연납&quot;},{&quot;month&quot;:6,&quot;startDay&quot;:16,&quot;endDay&quot;:30,&quot;coveredMonths&quot;:6,&quot;label&quot;:&quot;6월 연납&quot;},{&quot;month&quot;:9,&quot;startDay&quot;:16,&quot;endDay&quot;:30,&quot;coveredMonths&quot;:3,&quot;label&quot;:&quot;9월 연납&quot;}]" data-rates="{&quot;2024&quot;:0.05,&quot;2025&quot;:0.05,&quot;2026&quot;:0.05}" data-lead-days="60" data-amount-note hidden><span class="prepay-badge"></span><span class="prepay-main"></span> <a class="prepay-apply" href="https://www.wetax.go.kr" rel="noopener" target="_blank" hidden>위택스에서 신청</a><span class="prepay-note"></span></div>
+<script src="../js/prepay-banner.js" defer></script>
 <div class="card">
   <div class="field-row">
     <div class="field"><label for="calc-cc">배기량(cc)</label>
@@ -59,7 +61,7 @@
 <tr><td>전기차</td><td>연 130,000원 고정</td></tr></tbody></table></div>
 <p>여기에 지방교육세 30%가 붙고, 3년차부터 차령 경감(연 5%p, 최대 50%)이 적용됩니다.
   내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
-<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>2026년 세율 기준 · 최종 확인 2026-08. 세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
+<div class="sources"><p>근거 법령·출처: <a href="https://www.law.go.kr/법령/지방세법/제127조" rel="noopener" target="_blank">지방세법 제127조(세율)</a> · <a href="https://www.law.go.kr/법령/지방세법/제128조" rel="noopener" target="_blank">지방세법 제128조(연납)</a> · <a href="https://www.wetax.go.kr" rel="noopener" target="_blank">위택스 연납 안내</a></p><p>2026년 세율 기준 · 최종 확인 2026-08 · 연납 기준 확인 2026-10. 세액은 10원 미만 절사 기준으로 계산한 참고값입니다. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>
 <script src="../js/tax-calc.js"></script>
 <script>
 (function () {
@@ -78,6 +80,7 @@
     if (!ev && (!isFinite(cc) || cc <= 0)) { card.hidden = true; tableWrap.innerHTML = ''; return; }
     var yearSel = $('calc-year').value;
     var thisYear = 2026;
+    var nowYear = new Date().getFullYear(); // 연납 공제율 선택 기준 (tax-rates.json fallbackRule)
     var age = yearSel ? Math.min(13, Math.max(1, thisYear - Number(yearSel) + 1)) : 1;
     var annual, label;
     if (ev) {
@@ -94,16 +97,17 @@
       var rows = '';
       for (var a = 1; a <= 13; a++) {
         var ta = T.taxFor(rates, cc, a);
-        var pa = T.prepay(rates, ta.annual);
+        var pa = T.prepay(rates, ta.annual, nowYear);
         rows += '<tr' + (yearSel && a === age ? ' class="hl"' : '') + '><td>' + a + '년차' + (a === 13 ? ' 이상' : '') +
           '</td><td>' + Math.round(ta.discountRate * 100) + '%</td><td>' + won(ta.annual) + '</td><td>' + won(pa.pay) + '</td></tr>';
       }
       tableWrap.innerHTML = '<table class="data"><thead><tr><th>차령</th><th>경감률</th><th>연세액</th><th>1월 연납 시</th></tr></thead><tbody>' + rows + '</tbody></table>';
     }
-    var p = T.prepay(rates, annual);
+    var p = T.prepay(rates, annual, nowYear);
     $('cr-label').textContent = label;
     $('cr-amount').textContent = '연 ' + won(annual);
-    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)';
+    $('cr-prepay').textContent = '1월 연납 시 ' + won(p.pay) + ' (' + won(p.discount) + ' 할인)' +
+      (p.fallback ? ' · ' + p.year + '년 공제율 기준' : '');
     card.hidden = false;
   }
   document.addEventListener('input', render);
