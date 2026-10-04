@@ -19,20 +19,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from checklib import ROOT, annotate  # noqa: E402
 
 FUEL_TYPES = ("gasoline", "diesel", "lpg", "hybrid", "ev")
+# energySource = 실제로 넣는 에너지(연비·단가·충전량 단위). fuelType(과세 구분)마다 쓸 수 있는 값 —
+# 수소전기차는 세법상 ev 정액이라 fuelType ev + energySource hydrogen. 생략하면 첫 번째 값으로 유도된다
+ENERGY_FOR_FUEL = {"gasoline": ("gasoline",), "diesel": ("diesel",), "lpg": ("lpg",), "hybrid": ("gasoline",),
+                   "ev": ("electricity", "hydrogen")}
+ENERGY_SOURCES = ("gasoline", "diesel", "lpg", "electricity", "hydrogen")
+ENERGY_UNIT = {"electricity": "km/kWh", "hydrogen": "km/kg"}  # 나머지 km/L
 VEHICLE_CLASSES = ("passenger", "van", "truck")
 STATUSES = ("active", "sample")
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9.-]*$")
 RESERVED_SLUGS = ("index", "calculator")  # tax/index.html·tax/calculator.html을 덮어쓴다
 
 CC_MIN, CC_MAX = 600, 8000
-ECONOMY_RANGE = {"ice": (3, 40), "ev": (2, 10)}  # 내연(km/L) / 전기(km/kWh)
+ECONOMY_RANGE = {"ice": (3, 40), "electricity": (2, 10), "hydrogen": (50, 200)}  # 내연(km/L) / 전기(km/kWh) / 수소(km/kg)
 RANGE_KM = (50, 1000)
 YEAR_MIN = 1980
 
 VEHICLE_REQUIRED = ("id", "status", "name", "brand", "modelFamily", "generation", "slug", "aliases",
                     "fuelType", "displacementCc", "fuelEconomy", "modelYearFrom", "modelYearTo")
 VEHICLE_OPTIONAL = ("vehicleClass", "payloadKg", "vanSize", "rangeKm", "classNote",
-                    "fuelEconomyNote", "trimGroup")
+                    "fuelEconomyNote", "trimGroup", "energySource")
 
 # json.JSONDecodeError 영어 메시지 → 쉬운 설명
 JSON_HINTS = (
@@ -223,6 +229,21 @@ def check_vehicles(data, text, rates, report):
         if "fuelType" in v and fuel not in FUEL_TYPES:
             err("fuelType에 쓸 수 없는 값이에요 (지금: {}).".format(show(fuel)), "다음 중 하나로 적으세요: " + ", ".join(FUEL_TYPES))
 
+        energy = None  # 연비 단위·범위 판단용. fuelType이 잘못됐으면 None
+        if fuel in FUEL_TYPES:
+            energy = ENERGY_FOR_FUEL[fuel][0]
+        if "energySource" in v:
+            es = v["energySource"]
+            if es not in ENERGY_SOURCES:
+                err("energySource에 쓸 수 없는 값이에요 (지금: {}).".format(show(es)),
+                    "다음 중 하나로 적거나, fuelType에서 유도되는 값이면 필드를 빼세요: " + ", ".join(ENERGY_SOURCES))
+            elif fuel in FUEL_TYPES and es not in ENERGY_FOR_FUEL[fuel]:
+                err("energySource({})가 fuelType({})과 맞지 않아요 — fuelType은 과세 구분, energySource는 실제로 넣는 에너지예요.".format(es, fuel),
+                    "fuelType {}에는 {}만 쓸 수 있어요. 수소전기차는 fuelType \"ev\" + energySource \"hydrogen\"이에요(세법상 전기차와 같은 정액).".format(
+                        fuel, " / ".join(ENERGY_FOR_FUEL[fuel])))
+            else:
+                energy = es
+
         cls = v.get("vehicleClass", "passenger")
         if cls not in VEHICLE_CLASSES:
             err("vehicleClass에 쓸 수 없는 값이에요 (지금: {}).".format(show(cls)),
@@ -279,13 +300,13 @@ def check_vehicles(data, text, rates, report):
 
         eco = v.get("fuelEconomy")
         if eco is not None and "fuelEconomy" in v:
-            lo, hi = ECONOMY_RANGE["ev" if fuel == "ev" else "ice"]
-            unit = "km/kWh" if fuel == "ev" else "km/L"
+            lo, hi = ECONOMY_RANGE.get(energy, ECONOMY_RANGE["ice"])
+            unit = ENERGY_UNIT.get(energy, "km/L")
             if not is_num(eco):
                 err("fuelEconomy가 숫자가 아니에요 (지금: {}).".format(show(eco)), "예: 14.3 (따옴표 없이), 모르면 null")
             elif not (lo <= eco <= hi):
                 err("fuelEconomy가 말이 안 되는 값이에요 (지금: {}{}, 허용 {}~{}{}).".format(eco, unit, lo, hi, unit),
-                    "전기차는 km/kWh, 나머지는 km/L 단위의 공인 복합연비예요. 단위·소수점 위치를 확인하세요.")
+                    "전기차는 km/kWh, 수소전기차(energySource hydrogen)는 km/kg, 나머지는 km/L 단위의 공인 복합연비예요. 단위·소수점 위치를 확인하세요.")
 
         if "rangeKm" in v and v["rangeKm"] is not None:
             rk = v["rangeKm"]
