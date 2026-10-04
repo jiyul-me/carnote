@@ -15,6 +15,11 @@ python3 -m http.server 8347        # 로컬 실행 → http://127.0.0.1:8347
 python3 scripts/build.py           # data/*.json 변경 시 tax/ 페이지 재생성
 ```
 
+빌드는 공유 썸네일(`og/*.png`, 카카오톡·SNS 미리보기)과 홈 화면 아이콘(`icons/`, `favicon.ico`)도 함께 그립니다.
+Pillow가 필요합니다: `pip3 install --user pillow`. 없으면 빌드는 그대로 되지만 새 이미지를 그리지 못하고,
+금액이 바뀌어 낡은 썸네일은 og:image에서 빠집니다. 폰트는 `scripts/fonts/`의 Pretendard(OFL)를 씁니다.
+썸네일 디자인을 바꾸면 `scripts/images.py`의 `RENDER_VERSION`을 올리세요 — 전부 다시 그려지고 URL의 `?v=`가 바뀌어 카톡 캐시도 갱신됩니다.
+
 로직 테스트 (macOS 내장 JavaScriptCore):
 
 ```bash

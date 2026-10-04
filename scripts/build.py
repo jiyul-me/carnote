@@ -5,13 +5,18 @@
 세율·차종 등 모든 수치는 data/*.json에서 읽는다 — 여기 하드코딩 금지.
 
 사용법:  python3 scripts/build.py   (프로젝트 루트 기준 상대 경로로 동작)
-출력:    tax/<slug>.html, tax/index.html, sitemap.xml(site.json에 baseUrl 있을 때만)
+출력:    tax/<slug>.html, tax/index.html, sitemap.xml(site.json에 baseUrl 있을 때만),
+         og/*.png 공유 썸네일 · icons/*.png · favicon.ico (Pillow 필요 — scripts/images.py)
 """
+import sys
 import json
 import html
 import re
 import datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import images  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "tax"
@@ -98,7 +103,20 @@ def page_canonical(site, path):
     return f"{base}/{path}" if base else None
 
 
-def page(site, title, description, body, css_prefix="../", canonical=None):
+def og_image_tags(og):
+    """og = {"url", "alt"} — 카카오톡·페이스북·X 미리보기 썸네일 (1200×630)."""
+    if not og:
+        return ""
+    return (
+        f'<meta property="og:image" content="{esc(og["url"])}">\n  '
+        f'<meta property="og:image:width" content="{images.OG_W}">\n  '
+        f'<meta property="og:image:height" content="{images.OG_H}">\n  '
+        f'<meta property="og:image:alt" content="{esc(og["alt"])}">\n  '
+        f'<meta name="twitter:card" content="summary_large_image">\n  '
+    )
+
+
+def page(site, title, description, body, css_prefix="../", canonical=None, og=None):
     canonical_tag = ""
     if canonical:
         canonical_tag = (
@@ -108,7 +126,7 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
             f'<meta property="og:title" content="{esc(title)}">\n  '
             f'<meta property="og:description" content="{esc(description)}">\n  '
             f'<meta property="og:url" content="{esc(canonical)}">\n  '
-        )
+        ) + og_image_tags(og)
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -117,7 +135,9 @@ def page(site, title, description, body, css_prefix="../", canonical=None):
   <meta name="description" content="{esc(description)}">
   <meta name="theme-color" content="#FFFFFF">
   {canonical_tag}<title>{esc(title)}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E차%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="{css_prefix}favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231A56DB'/%3E%3Ctext x='50' y='67' font-size='52' font-weight='700' text-anchor='middle' fill='%23FFFFFF' font-family='sans-serif'%3E차%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="{css_prefix}icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="{css_prefix}css/style.css">
@@ -337,7 +357,7 @@ def lump_sum_note(annual, rates):
             "공제를 자동 반영하는 경우가 있습니다. 이때는 1월·3월에만 연납 신청이 가능합니다.</p>")
 
 
-def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
+def nonpassenger_page(v, rates, site, this_year, all_vehicles=(), og=None):
     """화물·승합 페이지. 정액이라 연식별 표를 만들지 않는다(전 행이 같은 값이라 무의미)."""
     t = nonpassenger_tax(v, rates)
     pp = prepay(t["nonBusiness"], rates)  # 연납은 차종 구분 없이 적용(지방세법 제128조 제3항)
@@ -405,10 +425,10 @@ def nonpassenger_page(v, rates, site, this_year, all_vehicles=()):
     title = f"{name} 자동차세 — 연 {t['nonBusiness']:,}원 (자가용) | {site['siteName']}"
     desc = (f"{name}({kind_label}) 자동차세는 자가용 연 {t['nonBusiness']:,}원, 영업용 {t['business']:,}원. "
             f"{'적재정량' if is_truck else '규모'} 기준 정액이라 연식과 무관합니다.")
-    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
+    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"), og=og)
 
 
-def vehicle_page(v, rates, site, this_year, all_vehicles=()):
+def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
     cc = v["displacementCc"]
     name = v["name"]
     fuel = FUEL_LABELS.get(v["fuelType"], v["fuelType"])
@@ -433,7 +453,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=()):
 {jsonld_block(v, rates, site, this_year)}"""
         title = f"{name} 자동차세 — 연 {annual:,}원 고정 | {site['siteName']}"
         desc = f"{name} 자동차세는 연 {annual:,}원 고정(전기차 정액). 연납 할인과 계산 근거까지 정리했습니다."
-        return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
+        return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"), og=og)
 
     new_tax = tax_for(cc, 1, rates)
     new_prepay = prepay(new_tax["annual"], rates)
@@ -519,7 +539,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=()):
         f"{name}({cc:,}cc) 자동차세는 신차 기준 연 {new_tax['annual']:,}원. "
         f"연식(차령)별 경감·1월 연납 할인까지 표로 정리했습니다."
     )
-    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"))
+    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{v['slug']}.html"), og=og)
 
 
 TABLE_IMG_SCRIPT = """<script>
@@ -625,7 +645,7 @@ CALC_SCRIPT = """<script src="../js/tax-calc.js"></script>
 </script>"""
 
 
-def calculator_page(rates, site, this_year):
+def calculator_page(rates, site, this_year, og=None):
     year_options = "".join(
         f'<option value="{y}">{y}년</option>' for y in range(this_year, this_year - 14, -1)
     )
@@ -663,10 +683,10 @@ def calculator_page(rates, site, this_year):
 {CALC_SCRIPT.replace("__THIS_YEAR__", str(this_year))}"""
     title = f"자동차세 계산기 — 배기량·연식으로 바로 계산 | {site['siteName']}"
     desc = "배기량(cc)과 등록 연도만 넣으면 자동차세 연세액·1월 연납 할인액을 계산합니다. 차령 경감·전기차 정액 반영."
-    return page(site, title, desc, body, canonical=page_canonical(site, "tax/calculator.html"))
+    return page(site, title, desc, body, canonical=page_canonical(site, "tax/calculator.html"), og=og)
 
 
-def index_page(vehicles, rates, site):
+def index_page(vehicles, rates, site, og=None):
     by_brand = {}
     for v in vehicles:
         by_brand.setdefault(v["brand"], []).append(v)
@@ -756,7 +776,69 @@ def index_page(vehicles, rates, site):
 {sources_block(rates)}"""
     title = f"차종별 자동차세 계산 — 연식별 세액·연납 할인 | {site['siteName']}"
     desc = "아반떼·그랜저·쏘렌토 등 인기 차종의 자동차세를 연식별로 계산. cc당 세율, 차령 경감, 연납 할인까지."
-    return page(site, title, desc, body, canonical=page_canonical(site, "tax/index.html"))
+    return page(site, title, desc, body, canonical=page_canonical(site, "tax/index.html"), og=og)
+
+
+def vehicle_og_spec(v, rates, this_year):
+    """차종 페이지 썸네일 문구. 페이지 히어로와 같은 숫자를 보여준다 (신차 기준)."""
+    name = v["name"]
+    foot = f"{this_year}년 세율 기준"
+    if v.get("vehicleClass", "passenger") != "passenger":
+        t = nonpassenger_tax(v, rates)
+        kind_label = "화물자동차" if t["kind"] == "truck" else "승합자동차"
+        hero = f"연 {t['nonBusiness']:,}원"
+        caption = f"{kind_label} · {t['basisLabel']} · 자가용"
+        sub = f"1월 연납 시 {prepay(t['nonBusiness'], rates)['pay']:,}원 · 영업용 연 {t['business']:,}원"
+        foot += " · 연식과 무관한 정액"
+    elif v["fuelType"] == "ev":
+        annual = rates["displacement"]["ev"]["annualTotalKrw"]
+        hero = f"연 {annual:,}원"
+        caption = "전기 · 비영업용 승용 · 연식 무관 정액"
+        sub = f"1월 연납 시 {prepay(annual, rates)['pay']:,}원"
+    else:
+        cc = v["displacementCc"]
+        t1 = tax_for(cc, 1, rates)
+        t13 = tax_for(cc, 13, rates)
+        hero = f"연 {t1['annual']:,}원"
+        caption = f"{FUEL_LABELS.get(v['fuelType'], v['fuelType'])} · {cc:,}cc · 신차 기준"
+        sub = f"1월 연납 시 {prepay(t1['annual'], rates)['pay']:,}원 · 12년 이상이면 연 {t13['annual']:,}원"
+        foot += " · 연식별 경감표는 사이트에서"
+    return {"kind": "amount", "label": "자동차세", "name": name, "caption": caption,
+            "hero": hero, "sub": sub, "foot": foot, "alt": f"{name} 자동차세 {hero}"}
+
+
+def page_og_spec(title, lede, foot=None):
+    return {"kind": "page", "title": title, "lede": lede, "foot": foot, "alt": f"{title} — {lede}"}
+
+
+# 직접 작성한 페이지(index.html·tco.html)가 고정 URL로 참조하는 썸네일. 문구를 바꾸면 그 페이지의 og:image도 확인할 것
+STATIC_OG = {
+    "og/home.png": page_og_spec("내 차 수첩", "소모품 교체 주기·검사 D-day를 한눈에", "기록은 내 브라우저에만 저장돼요 · 회원가입 없음"),
+    "og/tco.png": page_og_spec("유지비 비교", "자동차세 + 연료비 + 보험 + 감가, 두 차를 나란히", "월 유지비로 환산해 비교해요"),
+}
+
+
+def build_images(renderer, vehicles, rates, this_year):
+    """썸네일·아이콘 생성. 반환: {slug|"index"|"calculator": {"url","alt"}} — 쓸 수 있는 것만."""
+    renderer.icons()
+    for rel, spec in STATIC_OG.items():
+        renderer.og(rel, spec, versioned=False)
+    og = {}
+
+    def add(key, rel, spec):
+        url = renderer.og(rel, spec)
+        if url:
+            og[key] = {"url": url, "alt": spec["alt"]}
+
+    for v in vehicles:
+        add(v["slug"], f"og/tax/{v['slug']}.png", vehicle_og_spec(v, rates, this_year))
+    renderer.prune("og/tax", {f"{v['slug']}.png" for v in vehicles})
+    add("index", "og/tax-index.png",
+        page_og_spec("차종별 자동차세", f"인기 차종 {len(vehicles)}종 · 연식별 세액과 1월 연납 할인", f"{this_year}년 세율 기준"))
+    add("calculator", "og/tax-calculator.png",
+        page_og_spec("자동차세 계산기", "배기량과 등록 연도만 넣으면 바로 계산", f"{this_year}년 세율 기준 · 전기차 정액 반영"))
+    renderer.report()
+    return og
 
 
 def build_sitemap(site, slugs):
@@ -806,18 +888,21 @@ def main():
     skipped = [v for v in all_active if not buildable(v)]
     this_year = datetime.date.today().year
 
+    og = build_images(images.Renderer(ROOT, site), vehicles, rates, this_year)
+
     OUT_DIR.mkdir(exist_ok=True)
     slugs = []
     for v in vehicles:
         out = OUT_DIR / f"{v['slug']}.html"
         if v.get("vehicleClass", "passenger") == "passenger":
-            html_out = vehicle_page(v, rates, site, this_year, vehicles)
+            html_out = vehicle_page(v, rates, site, this_year, vehicles, og=og.get(v["slug"]))
         else:
-            html_out = nonpassenger_page(v, rates, site, this_year, vehicles)
+            html_out = nonpassenger_page(v, rates, site, this_year, vehicles, og=og.get(v["slug"]))
         out.write_text(html_out, encoding="utf-8")
         slugs.append(v["slug"])
-    (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site), encoding="utf-8")
-    (OUT_DIR / "calculator.html").write_text(calculator_page(rates, site, this_year), encoding="utf-8")
+    (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site, og=og.get("index")), encoding="utf-8")
+    (OUT_DIR / "calculator.html").write_text(
+        calculator_page(rates, site, this_year, og=og.get("calculator")), encoding="utf-8")
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
     if skipped:
         print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
