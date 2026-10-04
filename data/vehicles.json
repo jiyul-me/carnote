@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-08-04",
+  "updatedAt": "2026-10-04",
   "verification": {
     "verifiedAt": null,
-    "note": "혼동 위험 25종(디젤 2151/2199, 수입차, 쉐보레·르노·KGM 등)은 2026-08-04 웹 교차검증 완료(전부 일치). 배포 전 나머지 국산 주력 차종도 제조사 제원과 대조 후 verifiedAt 기록. 트림·연식에 따라 배기량이 다르면 별도 항목으로 분리"
+    "note": "혼동 위험 25종(디젤 2151/2199, 수입차, 쉐보레·르노·KGM 등)은 2026-08-04 웹 교차검증 완료(전부 일치). 배포 전 나머지 국산 주력 차종도 제조사 제원과 대조 후 verifiedAt 기록. 트림·연식에 따라 배기량이 다르면 별도 항목으로 분리. 2026-10-04 추가 7종(싼타페 DM·TM 디젤 5종, 넥쏘, PV5 패신저)은 '2026-10-04 웹 이중 독립 검증(공식/2차 출처) + 불일치 1차 출처 판정' 절차로 들어왔고, 두 조사가 같은 값을 낸 배기량·연식 구간만 반영했다(연비·주행거리는 두 조사가 같은 트림 기준으로 일치하지 않아 전부 null) — 보류 후보와 쟁점은 docs/vehicle-additions-2026-10.md"
   },
   "conventions": {
     "scope": "자동차세·TCO 계산에 필요한 최소 수치(배기량·연료타입, 2단계 TCO 시 공인연비 필드 추가 예정)만 수집 — 제원 DB 구축 금지(CLAUDE.md '하지 않는 것' 4번)",
@@ -16,7 +16,7 @@
     "vehicleClass": "자동차관리법상 분류. passenger=승용(배기량 과세, 페이지 생성) / van=승합 / truck=화물. passenger가 아니면 배기량 기준 계산이 성립하지 않으므로 빌드에서 제외한다(화물은 적재량, 승합은 규모별 정액 과세). 값이 없으면 passenger로 간주",
     "payloadKg": "화물자동차 적재정량(kg). vehicleClass=truck이면 필수 — 이 값으로 세액 구간이 정해진다",
     "vanSize": "승합자동차 규모(small=소형일반버스 65,000원 / large=대형일반버스 115,000원). vehicleClass=van이면 필수",
-    "classNote": "같은 모델 안에서 승차정원에 따라 분류가 갈리는 경우의 안내문(카니발·스타리아). 페이지에 표시된다",
+    "classNote": "같은 모델 안에서 승차정원·차체에 따라 분류가 갈리는 경우의 안내문(카니발·스타리아·PV5). 수소전기차(넥쏘)는 fuelType을 ev로 두고(세법상 전기차와 같은 '그 밖의 승용자동차' 정액) 이 필드로 과세 근거를 밝힌다. 페이지에 표시된다",
     "trimGroup": "N Line 등 패키지 트림. 값이 있으면 허브의 모델 그룹 안에서 다시 하위 그룹으로 묶이고(2개 이상일 때만 접힘), 차종 페이지에 일반 트림과의 세액 비교 줄이 붙는다. 고성능 N 브랜드는 별도 brand('현대 N')이며 trimGroup이 아니다"
   },
   "vehicles": [
@@ -33,6 +33,11 @@
     { "id": "tucson-nx4-1.6t", "status": "active", "name": "투싼 1.6 터보", "brand": "현대", "modelFamily": "투싼", "generation": "NX4", "slug": "tucson-1.6t", "aliases": ["투싼", "tucson", "투싸니"], "fuelType": "gasoline", "displacementCc": 1598, "fuelEconomy": 12.5, "modelYearFrom": 2020, "modelYearTo": null },
     { "id": "santafe-mx5-2.5t", "status": "active", "name": "싼타페 2.5 터보", "brand": "현대", "modelFamily": "싼타페", "generation": "MX5", "slug": "santafe-2.5t", "aliases": ["싼타페", "santafe", "산타페"], "fuelType": "gasoline", "displacementCc": 2497, "fuelEconomy": 11.0, "modelYearFrom": 2023, "modelYearTo": null },
     { "id": "santafe-mx5-hev", "status": "active", "name": "싼타페 하이브리드", "brand": "현대", "modelFamily": "싼타페", "generation": "MX5", "slug": "santafe-hybrid", "aliases": ["싼타페 하이브리드"], "fuelType": "hybrid", "displacementCc": 1598, "fuelEconomy": 15.5, "modelYearFrom": 2023, "modelYearTo": null },
+    { "id": "santafe-dm-2.0d", "status": "active", "name": "싼타페 DM 2.0 디젤 (2015~2018, 더 프라임)", "brand": "현대", "modelFamily": "싼타페", "generation": "DM F/L", "slug": "santafe-dm-2.0d", "aliases": ["싼타페 더 프라임 2.0", "더 프라임 2.0 디젤"], "fuelType": "diesel", "displacementCc": 1995, "fuelEconomy": null, "modelYearFrom": 2015, "modelYearTo": 2018 },
+    { "id": "santafe-dm-2.2d", "status": "active", "name": "싼타페 DM 2.2 디젤", "brand": "현대", "modelFamily": "싼타페", "generation": "DM", "slug": "santafe-dm-2.2d", "aliases": ["싼타페dm 2.2", "싼타페 더 프라임 2.2"], "fuelType": "diesel", "displacementCc": 2199, "fuelEconomy": null, "modelYearFrom": 2012, "modelYearTo": 2018 },
+    { "id": "santafe-tm-2.0d", "status": "active", "name": "싼타페 TM 2.0 디젤", "brand": "현대", "modelFamily": "싼타페", "generation": "TM", "slug": "santafe-tm-2.0d", "aliases": ["싼타페tm 2.0", "싼타페 tm 2.0 디젤"], "fuelType": "diesel", "displacementCc": 1995, "fuelEconomy": null, "modelYearFrom": 2018, "modelYearTo": 2020 },
+    { "id": "santafe-tm-2.2d", "status": "active", "name": "싼타페 TM 2.2 디젤 (2018~2020)", "brand": "현대", "modelFamily": "싼타페", "generation": "TM", "slug": "santafe-tm-2.2d", "aliases": ["싼타페tm 2.2 전기형", "싼타페 tm 전기형 디젤"], "fuelType": "diesel", "displacementCc": 2199, "fuelEconomy": null, "modelYearFrom": 2018, "modelYearTo": 2020 },
+    { "id": "santafe-tm-fl-2.2d", "status": "active", "name": "싼타페 TM 2.2 디젤 (2020~2023, 더 뉴)", "brand": "현대", "modelFamily": "싼타페", "generation": "TM F/L", "slug": "santafe-tm-fl-2.2d", "aliases": ["더 뉴 싼타페 디젤", "더뉴싼타페 디젤"], "fuelType": "diesel", "displacementCc": 2151, "fuelEconomy": null, "modelYearFrom": 2020, "modelYearTo": 2023 },
     { "id": "palisade-lx2-3.8", "status": "active", "name": "팰리세이드 3.8 (1세대)", "brand": "현대", "modelFamily": "팰리세이드", "generation": "LX2", "slug": "palisade-3.8", "aliases": ["팰리세이드", "palisade", "펠리세이드"], "fuelType": "gasoline", "displacementCc": 3778, "fuelEconomy": 9.6, "modelYearFrom": 2018, "modelYearTo": 2024 },
     { "id": "palisade-lx3-2.5t", "status": "active", "name": "팰리세이드 2.5 터보 (2세대)", "brand": "현대", "modelFamily": "팰리세이드", "generation": "LX3", "slug": "palisade-2.5t", "aliases": ["팰리세이드 2.5"], "fuelType": "gasoline", "displacementCc": 2497, "fuelEconomy": 9.7, "modelYearFrom": 2025, "modelYearTo": null },
     { "id": "staria-us4-2.2d", "status": "active", "classNote": "이 계산은 7·9인승(승용자동차) 기준입니다. 11인승은 승합자동차로 연 65,000원 정액, 카고(3·5인승)는 화물자동차로 적재량 기준 정액이 부과됩니다.", "name": "스타리아 2.2 디젤", "brand": "현대", "modelFamily": "스타리아", "generation": "US4", "slug": "staria-2.2d", "aliases": ["스타리아", "staria"], "fuelType": "diesel", "displacementCc": 2199, "fuelEconomy": 11.3, "modelYearFrom": 2021, "modelYearTo": null },
@@ -40,6 +45,7 @@
     { "id": "porter2-d4bh", "status": "active", "vehicleClass": "truck", "payloadKg": 1000, "name": "포터2 2.5 터보인터쿨러 (2004~2006)", "brand": "현대", "modelFamily": "포터", "generation": "포터2", "slug": "porter2-d4bh", "aliases": ["포터2 tci", "포터 터보인터쿨러"], "fuelType": "diesel", "displacementCc": null, "fuelEconomy": null, "modelYearFrom": 2004, "modelYearTo": 2006 },
     { "id": "ioniq5-ne", "status": "active", "name": "아이오닉 5", "brand": "현대", "modelFamily": "아이오닉 5", "generation": "NE", "slug": "ioniq5", "aliases": ["아이오닉5", "ioniq5", "아이오닉 5"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 5.2, "rangeKm": 485, "modelYearFrom": 2021, "modelYearTo": null },
     { "id": "ioniq6-ce", "status": "active", "name": "아이오닉 6", "brand": "현대", "modelFamily": "아이오닉 6", "generation": "CE", "slug": "ioniq6", "aliases": ["아이오닉6", "ioniq6"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 6.0, "rangeKm": 562, "modelYearFrom": 2022, "modelYearTo": null },
+    { "id": "nexo", "status": "active", "classNote": "넥쏘는 수소로 전기를 만들어 달리는 수소전기차입니다. 배기량이 없어 전기차와 같은 '그 밖의 승용자동차' 정액이 적용되며, 위 '연료: 전기'는 이 과세 구분을 뜻합니다.", "name": "넥쏘 수소전기차", "brand": "현대", "modelFamily": "넥쏘", "generation": "FE·NH2", "slug": "nexo", "aliases": ["넥쏘", "nexo", "넥소", "넥쏘 수소차", "수소차 넥쏘"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": null, "rangeKm": null, "modelYearFrom": 2018, "modelYearTo": null },
 
     { "id": "avante-cn7-n", "status": "active", "name": "아반떼 N", "brand": "현대 N", "modelFamily": "아반떼 N", "generation": "CN7", "slug": "avante-n", "aliases": ["아반떼n", "아반떼 N"], "fuelType": "gasoline", "displacementCc": 1998, "fuelEconomy": 10.4, "modelYearFrom": 2021, "modelYearTo": null },
     { "id": "kona-n", "status": "active", "name": "코나 N", "brand": "현대 N", "modelFamily": "코나 N", "generation": "OS N", "slug": "kona-n", "aliases": ["코나n", "코나 N"], "fuelType": "gasoline", "displacementCc": 1998, "fuelEconomy": null, "modelYearFrom": 2021, "modelYearTo": 2023 },
@@ -185,6 +191,7 @@
     { "id": "ev9", "status": "active", "name": "EV9", "brand": "기아", "modelFamily": "EV9", "generation": "1세대", "slug": "ev9", "aliases": ["ev9"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 4.2, "rangeKm": 501, "modelYearFrom": 2023, "modelYearTo": null },
     { "id": "niro-sg2-ev", "status": "active", "name": "니로 EV", "brand": "기아", "modelFamily": "니로", "generation": "SG2", "slug": "niro-ev", "aliases": ["니로 ev"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 5.3, "rangeKm": 401, "modelYearFrom": 2022, "modelYearTo": null },
     { "id": "ray-ev", "status": "active", "name": "레이 EV", "brand": "기아", "modelFamily": "레이", "generation": "TAM", "slug": "ray-ev", "aliases": ["레이 ev"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": 5.1, "rangeKm": 205, "modelYearFrom": 2023, "modelYearTo": null },
+    { "id": "pv5-passenger", "status": "active", "classNote": "이 계산은 승용자동차로 등록되는 PV5 패신저 기준입니다. PV5 카고는 화물자동차로 적재량 기준 정액이 부과됩니다.", "name": "PV5 패신저", "brand": "기아", "modelFamily": "PV5", "generation": "1세대", "slug": "pv5-passenger", "aliases": ["pv5패신저", "pv5 passenger"], "fuelType": "ev", "displacementCc": null, "fuelEconomy": null, "rangeKm": null, "modelYearFrom": 2025, "modelYearTo": null },
 
     { "id": "g70-ik-2.5t", "status": "active", "name": "G70 2.5 터보", "brand": "제네시스", "modelFamily": "G70", "generation": "IK", "slug": "g70-2.5t", "aliases": ["g70 2.5"], "fuelType": "gasoline", "displacementCc": 2497, "fuelEconomy": 11.2, "modelYearFrom": 2023, "modelYearTo": null },
     { "id": "g90-rs4-3.5t", "status": "active", "name": "G90 3.5 터보", "brand": "제네시스", "modelFamily": "G90", "generation": "RS4", "slug": "g90-3.5t", "aliases": ["g90", "지90"], "fuelType": "gasoline", "displacementCc": 3470, "fuelEconomy": 9.3, "modelYearFrom": 2022, "modelYearTo": null },
