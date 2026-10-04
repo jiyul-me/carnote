@@ -997,6 +997,13 @@ def main():
     (OUT_DIR / "index.html").write_text(index_page(vehicles, rates, site, this_year, og=og.get("index")), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(
         calculator_page(rates, site, this_year, og=og.get("calculator")), encoding="utf-8")
+    # 빌드 대상에서 빠진 차종(삭제·slug 변경·sample 전환·배기량 비움)의 옛 페이지 삭제 —
+    # 남겨 두면 sitemap에도 목록에도 없는 낡은 세액 페이지가 계속 공개된다 (og/tax 썸네일 정리와 짝)
+    keep = {f"{s}.html" for s in slugs} | {"index.html", "calculator.html"}
+    for p in sorted(OUT_DIR.glob("*.html")):
+        if p.name not in keep:
+            p.unlink()
+            print(f"· 더 이상 만들지 않는 페이지 삭제: tax/{p.name}")
     print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
     if skipped:
         print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
