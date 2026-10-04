@@ -146,6 +146,15 @@
   eq(insp5.dDay, -206, '기록 있음 → D+206 그대로');
   eq(insp5.estimated, false, '기록 있음 → 추정 아님');
 
+  // 승용 검사 주기를 적용할지: vehicles.json 항목의 vehicleClass 기준. 화물·승합은 주기가 달라 계산하지 않는다
+  eq(D.passengerInspectionApplies(null), true, '차종 미매칭(vehicleId 없음) → 기존대로 승용 규칙');
+  eq(D.passengerInspectionApplies(undefined), true, '차종 항목 못 찾음 → 기존대로 승용 규칙');
+  eq(D.passengerInspectionApplies({ id: 'avante-cn7-1.6' }), true, 'vehicleClass 없음 = 승용');
+  eq(D.passengerInspectionApplies({ id: 'x', vehicleClass: 'passenger' }), true, "vehicleClass 'passenger'");
+  eq(D.passengerInspectionApplies({ id: 'porter2-2.5d', vehicleClass: 'truck' }), false, '화물(포터2) → 승용 규칙 미적용');
+  eq(D.passengerInspectionApplies({ id: 'starex-tq-12', vehicleClass: 'van' }), false, '승합(스타렉스 12인승) → 승용 규칙 미적용');
+  eq(D.passengerInspectionApplies({ id: 'x', vehicleClass: 'special' }), false, '모르는 분류도 승용으로 가정하지 않음');
+
   // 주유 기록의 (날짜, km)도 관측점 (스키마 파생 규칙)
   var fuelCar = { id: 'c20', odometerLog: [{ date: '2026-05-04', km: 30000 }] };
   var logs = [{ carId: 'c20', filledOn: '2026-08-04', odometerKm: 33000 }];
