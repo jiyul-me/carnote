@@ -6,6 +6,12 @@
 
   function floor10(x) { return Math.floor(x / 10) * 10; } // 10원 미만 절사
 
+  // 비율(0.05 등) → 만분율 정수(500). 세액은 정수로만 계산한다 — (1 - 0.35)를 부동소수점으로 곱하면
+  // 0.6499999…가 되어 절사에서 10원이 더 깎인다(1,999cc 9년차 337,830원이 337,810원으로 틀렸던 버그). build.py bp()와 같은 규칙
+  function bp(rate) { return Math.round(rate * 10000); }
+  // 양의 정수 나눗셈의 내림 (값이 2^53보다 훨씬 작아 Math.floor가 정확하다)
+  function idiv(a, b) { return Math.floor(a / b); }
+
   // age = 차령 (1 = 신차 첫해)
   function taxFor(rates, cc, age) {
     var d = rates.displacement;
@@ -15,12 +21,13 @@
       if (b.maxCc == null || cc <= b.maxCc) { perCc = b.wonPerCc; break; }
     }
     var aging = d.agingDiscount;
-    var discountRate = 0;
+    var discountBp = 0;
     if (age >= aging.startCarAge) {
-      discountRate = Math.min(aging.maxRate, (age - aging.startCarAge + 1) * aging.ratePerYear);
+      discountBp = Math.min(bp(aging.maxRate), (age - aging.startCarAge + 1) * bp(aging.ratePerYear));
     }
-    var base = floor10(cc * perCc * (1 - discountRate));
-    var edu = floor10(base * d.educationTaxRate);
+    var base = idiv(cc * perCc * (10000 - discountBp), 100000) * 10; // floor10(배기량 × 세율 × (1 − 경감률))
+    var edu = idiv(base * bp(d.educationTaxRate), 100000) * 10;       // floor10(본세 × 교육세율)
+    var discountRate = discountBp / 10000;
     return { perCc: perCc, discountRate: discountRate, base: base, edu: edu, annual: base + edu };
   }
 
@@ -63,7 +70,7 @@
   function prepay(rates, annual, year) {
     var r = rateFor(rates, year);
     var pd = prorationDays(rates, year != null ? year : r.year);
-    var discount = floor10(annual * pd.days / pd.yearDays * r.rate);
+    var discount = idiv(annual * pd.days * bp(r.rate), pd.yearDays * 100000) * 10; // 정수 연산 floor10
     return { year: r.year, rate: r.rate, fallback: r.fallback, days: pd.days, yearDays: pd.yearDays,
       discount: discount, pay: annual - discount };
   }

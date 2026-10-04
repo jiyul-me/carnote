@@ -50,7 +50,7 @@
 </div>
 <script>
 (function () {
-  var rows = {"1": {"annual": 242420, "pay": 231330}, "2": {"annual": 242420, "pay": 231330}, "3": {"annual": 230290, "pay": 219760}, "4": {"annual": 218170, "pay": 208190}, "5": {"annual": 206050, "pay": 196630}, "6": {"annual": 193930, "pay": 185060}, "7": {"annual": 181810, "pay": 173500}, "8": {"annual": 169680, "pay": 161920}, "9": {"annual": 157570, "pay": 150370}, "10": {"annual": 145440, "pay": 138790}, "11": {"annual": 133320, "pay": 127230}, "12": {"annual": 121210, "pay": 115670}, "13": {"annual": 121210, "pay": 115670}};
+  var rows = {"1": {"annual": 242420, "pay": 231330, "lump": false}, "2": {"annual": 242420, "pay": 231330, "lump": false}, "3": {"annual": 230290, "pay": 219760, "lump": false}, "4": {"annual": 218170, "pay": 208190, "lump": false}, "5": {"annual": 206050, "pay": 196630, "lump": false}, "6": {"annual": 193930, "pay": 185060, "lump": false}, "7": {"annual": 181810, "pay": 173500, "lump": false}, "8": {"annual": 169680, "pay": 161920, "lump": false}, "9": {"annual": 157570, "pay": 150370, "lump": false}, "10": {"annual": 145440, "pay": 138790, "lump": false}, "11": {"annual": 133320, "pay": 127230, "lump": false}, "12": {"annual": 121210, "pay": 115670, "lump": true}, "13": {"annual": 121210, "pay": 115670, "lump": true}};
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {
@@ -69,6 +69,11 @@
         row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
+    // 차령 경감으로 본세가 기준 이하가 되면 6월 일괄부과 차량 — 6·9월 연납 안내를 빼고 일괄부과 안내를 보인다
+    var lumpNote = document.getElementById('lump-note');
+    if (lumpNote) lumpNote.hidden = !d.lump;
+    var B = window.ChailjiPrepayBanner, bannerEl = document.querySelector('.prepay-banner');
+    if (B && B.update && bannerEl) B.update(bannerEl, { lumpSum: d.lump });
     var cta = document.getElementById('start-notebook');
     if (cta) {
       var base = cta.getAttribute('href').split('&year=')[0];
@@ -128,7 +133,7 @@
   });
 })();
 </script>
-
+<p class="notice" id="lump-note" hidden>자동차세 본세(지방교육세 제외)가 연 10만원 이하인 차량은 지자체가 6월에 1년치를 한꺼번에 부과하면서 공제를 자동 반영하는 경우가 있습니다. 이때는 1월·3월에만 연납 신청이 가능합니다.</p>
 <div class="card" style="border-color:var(--accent);margin:18px 0;">
   <h2 style="margin-top:0;">이 차를 타고 계신가요?</h2>
   <p style="margin:6px 0 12px;">소모품 교체 주기·검사 D-day까지 수첩이 챙겨드려요. 차종·배기량은 미리 채워둘게요.</p>

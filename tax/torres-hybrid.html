@@ -50,7 +50,7 @@
 </div>
 <script>
 (function () {
-  var rows = {"1": {"annual": 272630, "pay": 260160}, "2": {"annual": 272630, "pay": 260160}, "3": {"annual": 258990, "pay": 247150}, "4": {"annual": 245360, "pay": 234140}, "5": {"annual": 231730, "pay": 221130}, "6": {"annual": 218100, "pay": 208130}, "7": {"annual": 204470, "pay": 195120}, "8": {"annual": 190840, "pay": 182110}, "9": {"annual": 177200, "pay": 169100}, "10": {"annual": 163570, "pay": 156090}, "11": {"annual": 149940, "pay": 143080}, "12": {"annual": 136310, "pay": 130080}, "13": {"annual": 136310, "pay": 130080}};
+  var rows = {"1": {"annual": 272630, "pay": 260160, "lump": false}, "2": {"annual": 272630, "pay": 260160, "lump": false}, "3": {"annual": 258990, "pay": 247150, "lump": false}, "4": {"annual": 245360, "pay": 234140, "lump": false}, "5": {"annual": 231730, "pay": 221130, "lump": false}, "6": {"annual": 218100, "pay": 208130, "lump": false}, "7": {"annual": 204470, "pay": 195120, "lump": false}, "8": {"annual": 190840, "pay": 182110, "lump": false}, "9": {"annual": 177200, "pay": 169100, "lump": false}, "10": {"annual": 163570, "pay": 156090, "lump": false}, "11": {"annual": 149940, "pay": 143080, "lump": false}, "12": {"annual": 136310, "pay": 130080, "lump": false}, "13": {"annual": 136310, "pay": 130080, "lump": false}};
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {
@@ -69,6 +69,11 @@
         row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
+    // 차령 경감으로 본세가 기준 이하가 되면 6월 일괄부과 차량 — 6·9월 연납 안내를 빼고 일괄부과 안내를 보인다
+    var lumpNote = document.getElementById('lump-note');
+    if (lumpNote) lumpNote.hidden = !d.lump;
+    var B = window.ChailjiPrepayBanner, bannerEl = document.querySelector('.prepay-banner');
+    if (B && B.update && bannerEl) B.update(bannerEl, { lumpSum: d.lump });
     var cta = document.getElementById('start-notebook');
     if (cta) {
       var base = cta.getAttribute('href').split('&year=')[0];

@@ -66,18 +66,25 @@ def floor10(x):
     return int(x // 10 * 10)
 
 
+def bp(rate):
+    """비율(0.05 등)을 만분율 정수(500)로. 세액은 정수로만 계산한다 — 부동소수점으로 (1 - 0.35)를 곱하면
+    0.6499999…가 되어 10원 미만 절사에서 10원이 더 깎인다(1,999cc 9년차 337,830원 → 337,810원으로 틀렸던 버그).
+    js/tax-calc.js의 bp()와 같은 규칙."""
+    return int(round(rate * 10000))
+
+
 def tax_for(cc, age, rates):
-    """비영업용 승용 자동차세. age = 차령(1 = 신차 첫해). data/tax-rates.json 규칙 그대로."""
+    """비영업용 승용 자동차세. age = 차령(1 = 신차 첫해). data/tax-rates.json 규칙 그대로, 정수 연산."""
     d = rates["displacement"]
     per_cc = next(b["wonPerCc"] for b in d["brackets"] if b["maxCc"] is None or cc <= b["maxCc"])
-    base = cc * per_cc
     aging = d["agingDiscount"]
-    discount_rate = 0.0
+    discount_bp = 0
     if age >= aging["startCarAge"]:
-        discount_rate = min(aging["maxRate"], (age - aging["startCarAge"] + 1) * aging["ratePerYear"])
-    base_after = floor10(base * (1 - discount_rate))
-    edu = floor10(base_after * d["educationTaxRate"])
+        discount_bp = min(bp(aging["maxRate"]), (age - aging["startCarAge"] + 1) * bp(aging["ratePerYear"]))
+    base_after = cc * per_cc * (10000 - discount_bp) // 100000 * 10   # floor10(배기량 × 세율 × (1 − 경감률))
+    edu = base_after * bp(d["educationTaxRate"]) // 100000 * 10       # floor10(본세 × 교육세율)
     annual = base_after + edu
+    discount_rate = discount_bp / 10000
     return {"perCc": per_cc, "discountRate": discount_rate, "base": base_after, "edu": edu, "annual": annual}
 
 
@@ -151,7 +158,7 @@ def prepay(annual, rates, this_year):
     연세액은 지방교육세 포함 총액 그대로 곱하고 10원 미만 절사 (서울시 공식 예시와 원 단위 일치 — scripts/check_tax_parity.py)."""
     year, rate, fallback = prepay_rate(rates, this_year)
     days, year_days = prepay_days(rates, this_year)
-    discount = floor10(annual * days / year_days * rate)
+    discount = annual * days * bp(rate) // (year_days * 100000) * 10   # floor10(연세액 × 일수/연도일수 × 공제율), 정수 연산
     return {"year": year, "rate": rate, "fallback": fallback, "days": days, "yearDays": year_days,
             "discount": discount, "pay": annual - discount}
 
@@ -503,6 +510,16 @@ def lump_sum_text(rates):
             f"공제를 자동 반영하는 경우가 있습니다.{tail}")
 
 
+def lump_note_toggle(cc, rates):
+    """승용 페이지용 일괄부과 안내 — 연식 선택(차령)에 따라 JS가 켜고 끈다. 어느 차령에서도 해당 없으면 넣지 않는다.
+    신차 기준으로 해당하면 처음부터 보이고, 아니면 hidden으로 넣어 둔다."""
+    text = lump_sum_text(rates)
+    flags = [lump_sum_only(tax_for(cc, a, rates)["base"], rates) for a in range(1, 14)]
+    if not text or not any(flags):
+        return ""
+    return f'<p class="notice" id="lump-note"{"" if flags[0] else " hidden"}>{text}</p>'
+
+
 def lump_sum_note(base, rates):
     """본세(지방교육세 제외)가 소액이면 6월에 1년치가 부과되며 그때 자동 공제된다 — 1월·3월 연납만 가능.
     base = 본세. 승용은 지방교육세를 뺀 값을 넘길 것 (기준이 '지방교육세 별도' 연세액)."""
@@ -646,7 +663,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 </div>
 <script>
 (function () {{
-  var rows = {json.dumps({str(a): {"annual": tax_for(cc, a, rates)["annual"], "pay": prepay(tax_for(cc, a, rates)["annual"], rates, this_year)["pay"]} for a in range(1, 14)}, ensure_ascii=False)};
+  var rows = {json.dumps({str(a): {"annual": tax_for(cc, a, rates)["annual"], "pay": prepay(tax_for(cc, a, rates)["annual"], rates, this_year)["pay"], "lump": lump_sum_only(tax_for(cc, a, rates)["base"], rates)} for a in range(1, 14)}, ensure_ascii=False)};
   window.__TAX_ROWS__ = rows; // 표 이미지 저장(#10)에서 재사용
   var sel = document.getElementById('reg-year');
   sel.addEventListener('change', function () {{
@@ -665,6 +682,11 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
         row.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
       }}
     }}
+    // 차령 경감으로 본세가 기준 이하가 되면 6월 일괄부과 차량 — 6·9월 연납 안내를 빼고 일괄부과 안내를 보인다
+    var lumpNote = document.getElementById('lump-note');
+    if (lumpNote) lumpNote.hidden = !d.lump;
+    var B = window.ChailjiPrepayBanner, bannerEl = document.querySelector('.prepay-banner');
+    if (B && B.update && bannerEl) B.update(bannerEl, {{ lumpSum: d.lump }});
     var cta = document.getElementById('start-notebook');
     if (cta) {{
       var base = cta.getAttribute('href').split('&year=')[0];
@@ -688,7 +710,7 @@ def vehicle_page(v, rates, site, this_year, all_vehicles=(), og=None):
 {table}
 <button type="button" class="btn secondary" id="save-table-img" style="margin-top:12px;">표를 이미지로 저장 (공유용)</button>
 {table_img_script(v, site, rates, this_year)}
-{lump_sum_note(new_tax["base"], rates)}
+{lump_note_toggle(cc, rates)}
 {notebook_cta(v)}
 {sources_block(rates, this_year)}
 <h2>계산 방법</h2>

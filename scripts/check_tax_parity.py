@@ -16,6 +16,7 @@ Python 3.9 호환.
 """
 import calendar
 import copy
+from fractions import Fraction
 import json
 import subprocess
 import sys
@@ -125,6 +126,34 @@ def prepay_years(rates):
     return sorted(set(keys) | {keys[0] - 1, keys[-1] + 1, leap})
 
 
+def exact_problems(rates, cases, years, annuals):
+    """build.py를 분수(Fraction)로 정확히 계산한 값과 비교한다 — 독립 기준.
+    파이썬·자바스크립트가 같은 방식으로 틀리면(예: 부동소수점 0.6499999…로 10원 더 절사) 양쪽 비교로는 못 잡는다.
+    실제로 1,999cc 9년차가 337,830원이 아니라 337,810원으로 표시되던 버그가 그랬다."""
+    d = rates["displacement"]
+    a = d["agingDiscount"]
+    out = []
+    for cc, age in cases:
+        per_cc = next(b["wonPerCc"] for b in d["brackets"] if b["maxCc"] is None or cc <= b["maxCc"])
+        rate = Fraction(0)
+        if age >= a["startCarAge"]:
+            rate = min(Fraction(str(a["maxRate"])), (age - a["startCarAge"] + 1) * Fraction(str(a["ratePerYear"])))
+        base = int(cc * per_cc * (1 - rate)) // 10 * 10
+        edu = int(base * Fraction(str(d["educationTaxRate"]))) // 10 * 10
+        got = build.tax_for(cc, age, rates)
+        if (got["base"], got["edu"], got["annual"]) != (base, edu, base + edu):
+            out.append("정확 계산과 다름: 배기량 {:,}cc · 차령 {}년차 — 정답 {:,}원 / build.py {:,}원".format(
+                cc, age, base + edu, got["annual"]))
+    for y in years:
+        for annual in annuals:
+            got = build.prepay(annual, rates, y)
+            want = int(annual * Fraction(got["days"], got["yearDays"]) * Fraction(str(got["rate"]))) // 10 * 10
+            if got["discount"] != want:
+                out.append("정확 계산과 다름: {}년 연세액 {:,}원 연납 공제 — 정답 {:,}원 / build.py {:,}원".format(
+                    y, annual, want, got["discount"]))
+    return out
+
+
 def official_problems(rates):
     """build.py prepay가 서울시 공식 예시와 원 단위로 같은지. 공제율만 픽스처로 바꾸고 나머지(신청 기간·일할 규칙)는 실제 데이터."""
     fx = copy.deepcopy(rates)
@@ -168,7 +197,7 @@ def main():
     if js is None:
         return 1
 
-    problems = official_problems(rates)
+    problems = official_problems(rates) + exact_problems(rates, cases, years, annuals)
     for (cc, age), py, jt in zip(cases, py_tax, js["tax"]):
         d = diff_fields(py, jt, TAX_FIELDS)
         if d:
