@@ -6,13 +6,16 @@
 실제 data/tax-rates.json으로 양쪽을 돌려 결과가 한 원 단위까지 같은지 본다.
 
 대상: vehicles.json의 모든 배기량 + 구간 경계값(999·1000·1001·1599·1600·1601·1998·1999·2000 …) × 차령 1~15,
-      연납 공제(위 세액 전부 + 전기차 정액 + 승합·화물 정액).
+      연납 공제(위 세액 전부 + 전기차 정액 + 승합·화물 정액) × 공제율 연도 앞뒤 + 윤년(일할 335/366).
+또 1월 연납 공제(일할)가 서울시 공식 예시와 원 단위로 같은지 build.py 쪽을 따로 확인한다 (OFFICIAL_CASES).
 
 사용법:  python3 scripts/check_tax_parity.py
 JS 실행: node가 있으면 node, 없으면 macOS 기본 jsc. 둘 다 없으면 안내 후 건너뜀(CI에서는 실패).
 build.py는 수정하지 않고 import만 한다 (main()은 __main__ 가드 안이라 import해도 빌드가 돌지 않는다).
 Python 3.9 호환.
 """
+import calendar
+import copy
 import json
 import subprocess
 import sys
@@ -31,7 +34,17 @@ SHOW_MAX = 10
 TAX_FIELDS = (("annual", "연세액"), ("base", "본세"), ("edu", "지방교육세"),
               ("perCc", "cc당 세율"), ("discountRate", "차령 경감률"))
 PREPAY_FIELDS = (("pay", "연납 납부액"), ("discount", "연납 공제액"), ("rate", "공제율"), ("year", "공제율 기준 연도"),
-                 ("fallback", "공제율 폴백 여부"))
+                 ("fallback", "공제율 폴백 여부"), ("days", "공제 일수"), ("yearDays", "그 해 일수"))
+
+# 서울시 공식 1월 연납 예시(신차·비영업용) — (연도, 연세액, 공제액). 일할(납부기한 다음 날~12/31 일수 ÷ 365·366)이
+# 원 단위로 맞아야 한다. 월할(11/12)이면 모두 20~120원 어긋난다. 근거: data/tax-rates.json januaryProration.verification
+# 공제율 표는 픽스처 — 2023년 7%는 과거 공제율이라 실제 데이터 rateByYear에 없다. tests/tax-calc.test.js와 같은 사례
+OFFICIAL_RATES = {"2023": 0.07, "2024": 0.05, "2025": 0.05, "2026": 0.05}
+OFFICIAL_CASES = (
+    (2025, 668400, 30580), (2025, 399600, 18280), (2025, 223720, 10230), (2025, 100000, 4570),  # 5%
+    (2024, 399600, 18280), (2024, 223720, 10230),  # 윤년 335/366
+    (2023, 868920, 55650), (2023, 519480, 33270), (2023, 100000, 6400),  # 7%, 지방교육세 포함 총액
+)
 
 JS_DRIVER = """
 var T = globalThis.ChailjiTax;
@@ -103,9 +116,26 @@ def fmt(field, val):
 
 
 def prepay_years(rates):
-    """공제율이 있는 연도 전부 + 그 앞뒤(데이터에 없는 해 → 폴백 규칙)까지 비교한다."""
+    """공제율이 있는 연도 전부 + 그 앞뒤(데이터에 없는 해 → 폴백 규칙) + 그 뒤 첫 윤년까지 비교한다.
+    윤년은 1월 연납 일수가 335/366이라(평년 334/365) 반드시 넣는다 — 다음 윤년(2028 등)은 폴백 경로도 같이 본다."""
     keys = sorted(int(y) for y in rates["prepayDiscount"]["rateByYear"])
-    return sorted(set(keys) | {keys[0] - 1, keys[-1] + 1})
+    leap = keys[-1] + 1
+    while not calendar.isleap(leap):
+        leap += 1
+    return sorted(set(keys) | {keys[0] - 1, keys[-1] + 1, leap})
+
+
+def official_problems(rates):
+    """build.py prepay가 서울시 공식 예시와 원 단위로 같은지. 공제율만 픽스처로 바꾸고 나머지(신청 기간·일할 규칙)는 실제 데이터."""
+    fx = copy.deepcopy(rates)
+    fx["prepayDiscount"]["rateByYear"] = dict(OFFICIAL_RATES)
+    out = []
+    for year, annual, want in OFFICIAL_CASES:
+        got = build.prepay(annual, fx, year)
+        if got["discount"] != want:
+            out.append("{}년 공식 예시 연세액 {:,}원 — 공제액 기대 {:,}원 / build.py {:,}원 ({}/{}일 × {})".format(
+                year, annual, want, got["discount"], got["days"], got["yearDays"], got["rate"]))
+    return out
 
 
 def diff_fields(py, js, fields):
@@ -138,7 +168,7 @@ def main():
     if js is None:
         return 1
 
-    problems = []
+    problems = official_problems(rates)
     for (cc, age), py, jt in zip(cases, py_tax, js["tax"]):
         d = diff_fields(py, jt, TAX_FIELDS)
         if d:
@@ -152,9 +182,9 @@ def main():
     if js["ev"] != py_ev:
         problems.append("전기차 정액 — build.py {} / tax-calc.js {}".format(fmt("annual", py_ev), fmt("annual", js["ev"])))
 
-    total = len(cases) + len(py_prepay) + 1
-    print("비교: 배기량 {}종 × 차령 {}~{}년 = {}건, 연납 {}건(연도 {}), 전기차 정액 1건 ({} 사용)".format(
-        n_cc, AGES[0], AGES[-1], len(cases), len(py_prepay), "·".join(map(str, years)), kind))
+    total = len(cases) + len(py_prepay) + 1 + len(OFFICIAL_CASES)
+    print("비교: 배기량 {}종 × 차령 {}~{}년 = {}건, 연납 {}건(연도 {}), 전기차 정액 1건, 공식 예시 {}건 ({} 사용)".format(
+        n_cc, AGES[0], AGES[-1], len(cases), len(py_prepay), "·".join(map(str, years)), len(OFFICIAL_CASES), kind))
     if not problems:
         print("결과: {:,}건 모두 build.py와 js/tax-calc.js가 같은 값을 내요 — 통과".format(total))
         return 0
@@ -167,6 +197,8 @@ def main():
              file="js/tax-calc.js", title="세액 계산 불일치")
     print("")
     print("고치는 법:")
+    print("  - '공식 예시'가 틀렸다면 1월 연납 공제 계산식(일할: 납부기한 다음 날~12/31 일수 ÷ 365, 윤년 366)이나")
+    print("    data/tax-rates.json januaryProration·applicationWindows(1월 endDay)가 바뀐 거예요.")
     print("  - scripts/build.py의 tax_for·prepay와 js/tax-calc.js의 taxFor·prepay 중 한쪽만 바뀐 상태예요.")
     print("    두 파일의 계산 순서와 10원 미만 절사(floor10) 위치를 똑같이 맞추세요.")
     print("  - 세율 숫자를 바꾸려던 거라면 코드가 아니라 data/tax-rates.json만 고치세요 (양쪽이 같이 읽어요).")

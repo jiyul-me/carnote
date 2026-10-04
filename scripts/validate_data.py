@@ -402,14 +402,52 @@ def check_tax_rates(rates, report):
                 if not (is_num(r) and 0 <= r <= 0.1):
                     err("prepayDiscount.rateByYear[{}]".format(y), "공제율이 0~0.1 범위 밖이에요 (지금: {}).".format(show(r)),
                         "퍼센트가 아니라 비율로 적으세요 (5% → 0.05).")
+        ws = p.get("applicationWindows")
+        months = set()
+        if not isinstance(ws, list) or not ws:
+            err("prepayDiscount.applicationWindows", "연납 신청 기간 목록이 비었어요 — 1월 연납 공제 일수도 여기서 계산해요.",
+                "예: [{\"month\": 1, \"startDay\": 16, \"endDay\": 31, \"coveredMonths\": 11, \"label\": \"1월 연납\", ...}]")
+        else:
+            for i, w in enumerate(ws):
+                where = "prepayDiscount.applicationWindows {}번째".format(i + 1)
+                if not isinstance(w, dict):
+                    err(where, "{ ... } 객체가 아니에요.")
+                    continue
+                m, sd, ed = w.get("month"), w.get("startDay"), w.get("endDay")
+                if not (is_int(m) and 1 <= m <= 12):
+                    err(where, "month가 1~12 정수가 아니에요 (지금: {}).".format(show(m)))
+                    continue
+                if m in months:
+                    err(where, "{}월 기간이 두 번 나와요.".format(m))
+                months.add(m)
+                # 평년 말일 기준 — 2월 29일은 평년에 없는 날이라 일수 계산이 깨진다
+                last = (datetime.date(2023 + (m == 12), m % 12 + 1, 1) - datetime.timedelta(days=1)).day
+                if not (is_int(sd) and is_int(ed) and 1 <= sd <= ed <= last):
+                    err(where, "startDay·endDay가 이상해요 (지금: {}월 {}~{}일) — {}월은 {}일까지예요.".format(m, show(sd), show(ed), m, last),
+                        "법정 신청 기간은 16일~말일이에요 (지방세법 제128조 제3항).")
+                cm = w.get("coveredMonths")
+                if not (is_int(cm) and 0 < cm < 12):
+                    err(where, "coveredMonths(공제 대상 월 수)가 1~11 정수가 아니에요 (지금: {}).".format(show(cm)),
+                        "신청 다음 달~12월의 개월 수예요 — 1월 신청이면 11.")
+                lead = w.get("bannerLeadDays", 0)
+                if not (is_int(lead) and 0 <= lead <= 120):
+                    err(where, "bannerLeadDays(예고 일수)가 0~120 정수가 아니에요 (지금: {}).".format(show(lead)),
+                        "신청 기간 중에만 안내하려면 0, 미리 알리려면 시작 며칠 전부터인지 적으세요.")
         jp = p.get("januaryProration")
         if not isinstance(jp, dict):
             err("prepayDiscount.januaryProration", "1월 연납 일할 블록이 없어요.")
         else:
-            cm, tm = jp.get("coveredMonths"), jp.get("totalMonths")
-            if not (is_int(cm) and is_int(tm) and 0 < cm <= tm <= 12):
-                err("prepayDiscount.januaryProration", "coveredMonths·totalMonths 값이 이상해요 (지금: {}·{}).".format(show(cm), show(tm)),
-                    "1월 연납이면 coveredMonths 11, totalMonths 12예요.")
+            if jp.get("method") != "daily":
+                err("prepayDiscount.januaryProration.method", "'daily'(일할)여야 해요 (지금: {}).".format(show(jp.get("method"))),
+                    "공제액 = 연세액 × (납부기한 다음 날~12/31 일수 ÷ 365(윤년 366)) × 공제율 — 지방세법 제128조 제3항 계산식.")
+            wm = jp.get("windowMonth")
+            if not (is_int(wm) and wm in months):
+                err("prepayDiscount.januaryProration.windowMonth",
+                    "applicationWindows에 없는 달이에요 (지금: {}) — 공제 일수를 그 기간의 endDay(납부기한)로 계산해요.".format(show(wm)),
+                    "1월 연납이면 1.")
+            if "coveredMonths" in jp or "totalMonths" in jp:
+                err("prepayDiscount.januaryProration", "월할(coveredMonths·totalMonths) 키가 남아 있어요 — 계산은 일할로 바뀌었어요.",
+                    "두 키를 지우세요 (공제 대상 월 수는 applicationWindows.coveredMonths가 문구용으로 갖고 있어요).")
 
     van = rates.get("van")
     if isinstance(van, dict):
