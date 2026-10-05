@@ -1,4 +1,4 @@
-# 차일지 자동 검사 — push·PR마다 세액 계산 오류·데이터 실수·빌드 누락을 잡는다.
+# 차일지 자동 검사 — push·PR마다 세액 계산 오류·데이터 실수·빌드 누락·깨진 링크·공통 크롬(내비·푸터·광고 마커) 불일치를 잡는다.
 # 로컬에서 같은 검사: python3 scripts/check.py  (README '검사' 참고)
 name: 자동 검사
 
@@ -56,11 +56,13 @@ jobs:
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: python scripts/check_tax_parity.py
 
-      - name: 4. 빌드 결과 최신 여부 (tax/·og/·icons/·sitemap.xml)
+      # check.py build = 빌드 결과 최신 여부(ads.txt·손 페이지 광고·문의 마커 포함) + 수첩(index.html) 광고 금지
+      - name: 4. 빌드 결과 최신 여부 (tax/·og/·sitemap.xml·ads.txt·손 페이지 마커) + 수첩·소개·방침·약관 광고 금지
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: python scripts/check.py build
 
-      - name: 5. 깨진 링크
+      # 깨진 링크 + #앵커 id + 공통 크롬(상단 내비·푸터 2번째 줄·손 페이지 adsense:head 마커)
+      - name: 5. 링크·앵커·공통 크롬 (nav·푸터·광고 마커)
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: python scripts/check_links.py
 

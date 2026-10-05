@@ -25,51 +25,101 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/content.css">
   <script src="js/analytics.js" defer></script>
+  <!-- adsense:head --><!-- /adsense:head -->
 </head>
 <body>
   <header class="topbar">
     <a class="topbar-title" href="index.html">차일지</a>
-    <nav class="topbar-right topbar-nav">
-      <a href="tax/index.html">자동차세</a>
-      <a href="tco.html">유지비 비교</a>
-    </nav>
+    <nav class="topbar-right topbar-nav" aria-label="주 메뉴"><a href="index.html">수첩</a><a href="tax/index.html">자동차세</a><a href="tco.html" aria-current="page">유지비 비교</a></nav>
   </header>
   <main class="content">
     <h1>자동차 유지비 비교 (TCO)</h1>
     <p class="lede">두 차를 나란히 놓고 월 유지비를 비교해요 — 자동차세 + 연료비 + 보험 + 감가.
       브랜드가 달라도 비교할 수 있어요. <strong>차값은 제조사 공식 견적기에서 뽑은 금액</strong>을 그대로 넣어주세요.</p>
 
-    <div class="tco-grid" id="tco-cars"></div>
-
-    <h2>공통 조건</h2>
-    <div class="card">
-      <div class="field-row">
-        <div class="field"><label for="common-km">연간 주행거리(km)</label>
-          <input id="common-km" type="number" min="0" value="12000" inputmode="numeric"></div>
-        <div class="field"><label for="common-years">보유 예정(년)</label>
-          <input id="common-years" type="number" min="1" max="15" value="5" inputmode="numeric"></div>
+    <!-- 차 A·B 입력 카드는 정적 HTML — 데이터(JSON)가 오기 전 첫 화면부터 제 높이를 차지해서, 카드가 늦게 들어오며
+         아래 결과·출처·광고 자리를 한꺼번에 밀어내지 않게 한다(CLS). js/tco.js는 차종 목록(optgroup)만 붙이고 값을 읽는다.
+         두 카드는 data-side·id 접미사(a/b)와 제목만 다르다 -->
+    <div class="tco-grid" id="tco-cars">
+      <div class="card" data-side="a">
+        <h2>차 A</h2>
+        <div class="field"><label for="model-a">차종</label>
+          <select id="model-a" data-role="model"><option value="">차종 선택</option><option value="custom">직접 입력</option></select></div>
+        <div class="field-row" data-role="custom-fields" style="display:none;">
+          <div class="field"><label for="fuel-a">연료</label>
+            <select id="fuel-a" data-role="fuel"><option value="gasoline">가솔린</option><option value="diesel">디젤</option><option value="lpg">LPG</option><option value="hybrid">하이브리드</option><option value="ev">전기</option><option value="hydrogen">수소전기</option></select></div>
+          <div class="field"><label for="cc-a">배기량(cc)</label>
+            <input id="cc-a" data-role="cc" type="number" min="0" inputmode="numeric" placeholder="예: 1598"></div>
+        </div>
+        <div class="field"><label for="price-a">차값(만원) — 제조사 견적기 금액</label>
+          <input id="price-a" data-role="price" type="number" min="0" inputmode="numeric" placeholder="예: 3200"></div>
+        <div class="field-row">
+          <div class="field"><label for="eff-a">공인연비(km/<span data-role="unit">L</span>)</label>
+            <input id="eff-a" data-role="eff" type="number" min="0" step="0.1" inputmode="decimal" placeholder="예: 14.5"></div>
+          <div class="field"><label for="ins-a">연 보험료(만원)</label>
+            <input id="ins-a" data-role="ins" type="number" min="0" inputmode="numeric" placeholder="견적 금액"></div>
+        </div>
       </div>
-      <!-- 연료 단가 칸이 5개라 한 줄 flex면 375px에서 숫자가 잘린다 — 칸 폭이 모자라면 다음 줄로 -->
-      <div id="fuel-prices" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:0 12px;"></div>
-      <p class="notice">연료 단가는 직접 수정할 수 있어요 (실시간 시세를 쓰지 않아요). <span id="fuel-price-basis"></span></p>
+      <div class="card" data-side="b">
+        <h2>차 B</h2>
+        <div class="field"><label for="model-b">차종</label>
+          <select id="model-b" data-role="model"><option value="">차종 선택</option><option value="custom">직접 입력</option></select></div>
+        <div class="field-row" data-role="custom-fields" style="display:none;">
+          <div class="field"><label for="fuel-b">연료</label>
+            <select id="fuel-b" data-role="fuel"><option value="gasoline">가솔린</option><option value="diesel">디젤</option><option value="lpg">LPG</option><option value="hybrid">하이브리드</option><option value="ev">전기</option><option value="hydrogen">수소전기</option></select></div>
+          <div class="field"><label for="cc-b">배기량(cc)</label>
+            <input id="cc-b" data-role="cc" type="number" min="0" inputmode="numeric" placeholder="예: 1598"></div>
+        </div>
+        <div class="field"><label for="price-b">차값(만원) — 제조사 견적기 금액</label>
+          <input id="price-b" data-role="price" type="number" min="0" inputmode="numeric" placeholder="예: 3200"></div>
+        <div class="field-row">
+          <div class="field"><label for="eff-b">공인연비(km/<span data-role="unit">L</span>)</label>
+            <input id="eff-b" data-role="eff" type="number" min="0" step="0.1" inputmode="decimal" placeholder="예: 14.5"></div>
+          <div class="field"><label for="ins-b">연 보험료(만원)</label>
+            <input id="ins-b" data-role="ins" type="number" min="0" inputmode="numeric" placeholder="견적 금액"></div>
+        </div>
+      </div>
     </div>
+
+    <!-- 공통 조건은 접어 두고 요약 한 줄만 보인다 — 결론(월 유지비)을 입력 가까이로. 허브 아코디언 클래스 재사용(새 CSS 없음).
+         JS가 꺼져도 details 기본 동작으로 열고 닫힌다. 요약 문구는 js/tco.js가 입력에 맞춰 갱신 -->
+    <details class="hub-group" id="common">
+      <summary class="hub-row"><span>공통 조건</span><span class="hub-right"><span class="hub-price" id="common-summary">연 12,000km · 5년 보유 · 기본 단가</span><svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+      <div class="card">
+        <div class="field-row">
+          <div class="field"><label for="common-km">연간 주행거리(km)</label>
+            <input id="common-km" type="number" min="0" value="12000" inputmode="numeric"></div>
+          <div class="field"><label for="common-years">보유 예정(년)</label>
+            <input id="common-years" type="number" min="1" max="15" value="5" inputmode="numeric"></div>
+        </div>
+        <!-- 연료 단가 칸이 5개라 한 줄 flex면 375px에서 숫자가 잘린다 — 칸 폭이 모자라면 다음 줄로 -->
+        <div id="fuel-prices" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:0 12px;"></div>
+        <p class="notice">연료 단가는 직접 수정할 수 있어요 (실시간 시세를 쓰지 않아요). <span id="fuel-price-basis"></span></p>
+      </div>
+    </details>
 
     <h2>월 유지비 비교</h2>
     <div class="tco-headline" id="tco-headline" style="display:none;"></div>
     <div id="tco-bars"></div>
     <div class="table-wrap"><table class="data tco-result" id="tco-result"></table></div>
+    <!-- 고른 차의 세금 페이지로 가는 목록 행(44px 이상 탭 타깃). 범례의 12px 차 이름에 링크를 걸면 두 줄이 5px 간격이라 다른 차를 누르기 쉽다 -->
+    <div id="tco-links"></div>
     <p class="notice" id="tco-note">두 차 모두 정보를 입력하면 비교가 시작돼요.</p>
 
-    <div class="sources">
+    <p>계산이 끝났다면 <a href="index.html">내 차 수첩</a>에서 소모품·검사 일정도 챙겨보세요.</p>
+
+    <!-- 아래 padding: 바로 뒤 광고 자리(.ad-slot, 마커 구간)와 출처 링크 사이를 60px 이상으로(DESIGN 광고 슬롯).
+         화면이 약 560px 이상이면 이 문단이 두 줄로 줄어 padding 없이는 46px이다(넣으면 70px) -->
+    <div class="sources" style="padding-bottom:16px;">
       <p>자동차세는 <a href="https://www.law.go.kr/법령/지방세법/제127조" target="_blank" rel="noopener">지방세법 제127조</a> 기준(신차 첫해),
         감가는 자체 추정 곡선을 적용한 참고값입니다. 실제 시세·보험료와 다를 수 있어요.
         보험료는 각자 견적 금액을 입력해 주세요 — 여기서는 산출하지 않습니다.</p>
-      <p>계산이 끝났다면 <a href="index.html">내 차 수첩</a>에서 소모품·검사 일정도 챙겨보세요.</p>
     </div>
+    <!-- adsense:slot tcoEnd --><!-- /adsense:slot -->
   </main>
   <footer class="foot">
     <p>차일지 (베타) — 모든 계산은 브라우저 안에서만 이뤄집니다.</p>
-    <p><a href="privacy.html">개인정보처리방침</a> · <a href="terms.html">이용약관</a></p>
+    <p><a href="about.html">소개·문의</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="terms.html">이용약관</a></p>
   </footer>
   <script src="js/tax-calc.js"></script>
   <script src="js/tco.js"></script>

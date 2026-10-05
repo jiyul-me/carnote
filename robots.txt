@@ -1,6 +1,12 @@
 # 정식 도메인(chailji.com) 운영 중 — 색인 허용.
-# Sitemap 줄은 build.py가 data/site.json의 baseUrl로 동기화한다.
+# Sitemap 줄은 build.py가 data/site.json의 baseUrl로 동기화한다(다른 줄은 그대로 둔다).
+# 초안·작업 문서·스크립트·테스트는 크롤링에서 뺀다. robots는 크롤링만 막고 주소 접근은 막지 못한다.
+# /data/는 계산기·유지비 비교가 불러오는 파일이라 막지 않는다(검색엔진 렌더링에 필요).
 User-agent: *
 Allow: /
+Disallow: /docs/
+Disallow: /scripts/
+Disallow: /tests/
+Disallow: /*.md$
 
 Sitemap: https://chailji.com/sitemap.xml

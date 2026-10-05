@@ -2,6 +2,13 @@
   "siteName": "차일지",
   "baseUrl": "https://chailji.com",
   "ga4MeasurementId": "G-E0QK8ZX077",
+  "adsense": {
+    "publisherId": "",
+    "slots": { "taxArticle": "", "hubEnd": "", "calcEnd": "", "tcoEnd": "" },
+    "note": "구글 애드센스 스위치 — 값을 바꾼 뒤 python3 scripts/build.py → git add -A → 커밋(README '애드센스 켜고 끄기'). publisherId는 애드센스 '게시자 ID'를 'pub-'+숫자 16자리 그대로 넣는다(앞에 ca-를 붙이지 않는다 — 메타·광고 코드의 ca-pub-는 빌드가 만든다). 비어 있으면 광고 코드·ads.txt·소유 확인 메타가 하나도 나가지 않는다. 채우면 루트 ads.txt와 모든 페이지의 소유 확인 메타(google-adsense-account)가 생긴다. slots는 승인 후 만든 디스플레이 광고 단위 번호(숫자 문자열) — 채운 자리에만 광고가 나간다: taxArticle 차종 페이지 '계산 방법' 뒤, hubEnd 차종 목록 끝, calcEnd 계산기 끝, tcoEnd 유지비 비교 끝. 수첩 화면(index.html)에는 광고 자리가 없다. 계정 명의를 바꿔 새 애드센스 계정으로 옮기면(계정은 다른 사람에게 이전할 수 없음) publisherId 한 줄만 바꾸고 빌드한다"
+  },
+  "contactEmail": "",
+  "contactEmailNote": "사이트 전용 문의 주소(개인 메일 금지). 비어 있으면 privacy·terms·about의 이메일 문단 숨김 — 문의 수단은 GitHub 이슈만 보인다. 바꾼 뒤 python3 scripts/build.py → git add -A → 커밋",
   "fuelPrices": { "gasoline": 1650, "diesel": 1520, "lpg": 1000, "ev": 350, "hydrogen": 10379 },
   "fuelPricesNote": "가솔린·디젤·LPG는 원/L, 전기(ev)는 원/kWh, 수소(hydrogen)는 원/kg. 키는 vehicles.json energySource를 따른다(electricity→ev, 나머지는 같은 이름). 차종 페이지 연료비 표기(빌드 시)와 TCO 기본값 공용 — 값 교체 후 build.py 재실행. 확인된 값이 없으면 null로 둔다(차종 페이지 연료비 줄 미노출, TCO는 단가 입력을 요구)",
   "fuelPriceBasis": { "hydrogen": "2026년 6월 전국 평균(수소유통정보시스템)" },

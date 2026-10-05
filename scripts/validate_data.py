@@ -5,6 +5,9 @@
 결과:    [오류]가 하나라도 있으면 exit 1 (CI 실패). [경고]만 있으면 통과(exit 0).
 메시지:  어느 파일 · 몇 번째 항목(id) · 몇 번째 줄 · 어떤 필드가 · 왜 문제인지 · 어떻게 고치는지.
 
+site.json의 광고 자리 이름과 짝이 되는 손 페이지(루트 *.html)의 <!-- adsense:slot 이름 --> 마커 이름도 본다
+(오타가 나면 광고가 소리 없이 빠지는데 빌드 결과는 앞뒤가 맞아 빌드 검사로는 안 잡힌다).
+
 여기 있는 범위 값(배기량 600~8000cc 등)은 '데이터가 말이 되는가'만 보는 검사용 경계다.
 세율 같은 사이트 상수는 여기 두지 않는다 — 세율은 data/tax-rates.json에서만 읽는다.
 Python 3.9 호환 (사용자 Mac 기본 python3).
@@ -29,6 +32,22 @@ VEHICLE_CLASSES = ("passenger", "van", "truck")
 STATUSES = ("active", "sample")
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9.-]*$")
 RESERVED_SLUGS = ("index", "calculator")  # tax/index.html·tax/calculator.html을 덮어쓴다
+
+# site.json adsense·contactEmail — 형식 검사용. 광고 자리 이름은 두 갈래로 고정이다:
+#  BUILD_SLOT_NAMES  build.py가 생성 페이지 템플릿에 채우는 자리(차종·허브·계산기)
+#  HAND_SLOT_WHERE   손 페이지에 <!-- adsense:slot 이름 --> 마커로 두는 자리 → 그 마커가 있어야 할 곳
+# 손 페이지 마커 이름은 HAND_SLOT_WHERE 키 중 하나여야 한다 — 오타가 나면 빌드가 그 자리를 빈칸으로 두어 광고가
+# 소리 없이 빠지므로 오류로 잡는다(마커 이름으로 허용 목록을 넓히지 않는다). 어느 손 페이지에 어떤 마커가
+# 정확히 한 번 있어야 하는지는 scripts/check_links.py HAND_MARKERS가 본다 — 광고 자리를 늘리면 둘 다 고친다
+AD_KEYS = ("publisherId", "slots", "note")
+BUILD_SLOT_NAMES = ("taxArticle", "hubEnd", "calcEnd")
+HAND_SLOT_WHERE = {"tcoEnd": "tco.html의 </main> 바로 앞"}
+AD_SLOT_NAMES = BUILD_SLOT_NAMES + tuple(HAND_SLOT_WHERE)
+AD_SLOT_MARKER = re.compile(r"<!-- adsense:slot ([A-Za-z][A-Za-z0-9]*) -->")
+CONTACT_MARKER = "<!-- site:contact -->"
+PUB_ID_RE = re.compile(r"^pub-\d{16}$")
+AD_SLOT_RE = re.compile(r"^\d+$")
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
 CC_MIN, CC_MAX = 600, 8000
 ECONOMY_RANGE = {"ice": (3, 40), "electricity": (2, 10), "hydrogen": (50, 200)}  # 내연(km/L) / 전기(km/kWh) / 수소(km/kg)
@@ -541,8 +560,135 @@ def check_parts(data, text, report):
     return list(seen)
 
 
-def check_site(site, report):
+def key_line(text, key):
+    """원문에서 '"key":'가 처음 나오는 줄 번호 (없으면 None) — site.json처럼 키가 한 번씩만 나오는 파일용."""
+    m = re.search('"' + re.escape(key) + r'"\s*:', text or "")
+    return text.count("\n", 0, m.start()) + 1 if m else None
+
+
+def hand_page_texts():
+    """루트 손 페이지(index·tco·privacy·terms·about …) {이름: 원문} — build.py가 마커를 채우는 범위(루트 *.html)."""
+    out = {}
+    for page in sorted(ROOT.glob("*.html")):
+        try:
+            out[page.name] = page.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+    return out
+
+
+def hand_page_slot_markers(pages):
+    """손 페이지의 <!-- adsense:slot 이름 --> 마커 [(페이지, 줄, 이름)]."""
+    return [(name, text.count("\n", 0, m.start()) + 1, m.group(1))
+            for name, text in pages.items() for m in AD_SLOT_MARKER.finditer(text)]
+
+
+def check_hand_slot_markers(pages, report):
+    """손 페이지 광고 마커 이름이 계약(HAND_SLOT_WHERE)에 있는 이름인지 — site.json 값과 상관없이 늘 본다.
+    이름에 오타가 나면 build.py는 그 자리를 빈칸으로 두고 adsbygoogle.js도 빼서 빌드 결과가 앞뒤가 맞아 보이므로
+    빌드 검사로는 안 잡힌다."""
+    hand = ", ".join(HAND_SLOT_WHERE)
+    new_slot = ("광고 자리를 새로 두려는 거라면 개인정보처리방침 4절의 '광고가 게재되는 페이지' 문구, "
+                "scripts/validate_data.py HAND_SLOT_WHERE, scripts/check_links.py HAND_MARKERS, data/site.json slots를 "
+                "함께 고치세요 (수첩·소개·개인정보처리방침·이용약관에는 광고를 두지 않아요).")
+    for page, line, name in hand_page_slot_markers(pages):
+        where = "<!-- adsense:slot {} -->".format(name)
+        if name in BUILD_SLOT_NAMES:
+            report.error(page, where,
+                         "이 이름({})은 build.py가 생성 페이지에 채우는 광고 자리예요 — 손 페이지에 쓰면 같은 광고 단위가 "
+                         "두 곳에 나가요.".format(name),
+                         "손 페이지 광고 자리 이름은 {}예요. ".format(hand) + new_slot, line)
+        elif name not in HAND_SLOT_WHERE:
+            near = [n for n in HAND_SLOT_WHERE if n.lower() == name.lower()]
+            report.error(page, where,
+                         "손 페이지 광고 자리 이름이 계약에 없어요 (지금: {}) — 빌드가 이 자리를 빈칸으로 두고 "
+                         "광고 스크립트도 빼서, 슬롯 ID를 채워도 광고가 소리 없이 안 나와요.".format(show(name)),
+                         "대소문자까지 같아야 해요 → {}".format(near[0]) if near else
+                         "손 페이지 광고 자리 이름은 {}예요. 오타면 고치세요. ".format(hand) + new_slot, line)
+
+
+def check_adsense(ad, text, report, pages):
+    """site.json adsense — build.py가 이 값으로 ads.txt·소유 확인 메타·광고 코드를 켜고 끈다.
+    pages: 손 페이지 {이름: 원문} — 채운 손 페이지 슬롯을 받아 줄 마커가 실제로 있는지 본다."""
     file = "data/site.json"
+    if ad is None:
+        return  # 키가 없으면 빈 값과 같다(광고 0)
+    if not isinstance(ad, dict):
+        report.error(file, "adsense", "{{ ... }} 객체가 아니에요 (지금: {}).".format(show(ad)),
+                     '{"publisherId": "", "slots": {}} 형태로 두세요. 광고를 안 쓰면 publisherId를 ""로.',
+                     key_line(text, "adsense"))
+        return
+    for k in ad:
+        if k not in AD_KEYS:
+            report.warn(file, "adsense." + k, "모르는 키예요 — 빌드는 {}만 읽어서 이 값은 무시돼요.".format(", ".join(AD_KEYS)),
+                        "오타인지 보세요 (대소문자까지 같아야 해요: publisherId).", key_line(text, k))
+
+    pub = ad.get("publisherId")
+    pub_ok = False
+    if pub not in (None, ""):
+        line = key_line(text, "publisherId")
+        if not isinstance(pub, str):
+            report.error(file, "adsense.publisherId", "문자열이 아니에요 (지금: {}).".format(show(pub)),
+                         '따옴표로 감싸 "pub-0000000000000000" 형식으로 쓰세요. 아직 없으면 "".', line)
+        elif pub.strip().startswith("ca-pub-"):
+            report.error(file, "adsense.publisherId",
+                         "'ca-pub-'으로 시작해요 (지금: {}) — 여기에는 'pub-'로 시작하는 게시자 ID만 넣어요. "
+                         "메타·광고 코드의 'ca-'는 빌드가 붙여요(ads.txt에는 ca- 없이 들어가요).".format(show(pub)),
+                         "앞의 ca-를 지우세요 → {}".format(show(pub.strip()[3:])), line)
+        elif pub != pub.strip():
+            report.error(file, "adsense.publisherId", "앞뒤에 공백이 있어요 (지금: {}).".format(show(pub)),
+                         "공백을 지우세요 → {}".format(show(pub.strip())), line)
+        elif not PUB_ID_RE.match(pub):
+            report.error(file, "adsense.publisherId",
+                         "'pub-' + 숫자 16자리 형식이 아니에요 (지금: {}) — ads.txt·소유 확인이 엉뚱한 계정을 가리켜요.".format(show(pub)),
+                         "애드센스 계정 정보에 있는 '게시자 ID'를 그대로 복사해 넣으세요 (예: \"pub-0000000000000000\"). "
+                         "아직 없으면 \"\"로 두세요.", line)
+        else:
+            pub_ok = True
+
+    slots = ad.get("slots")
+    if slots is None:
+        return
+    if not isinstance(slots, dict):
+        report.error(file, "adsense.slots", "{{ ... }} 객체가 아니에요 (지금: {}).".format(show(slots)),
+                     '{"taxArticle": "", "hubEnd": "", "calcEnd": "", "tcoEnd": ""} 형태로 두세요.', key_line(text, "slots"))
+        return
+    known = list(AD_SLOT_NAMES)  # 손 페이지 마커 이름으로 넓히지 않는다 — 마커 오타가 '아는 이름'이 되지 않게
+    filled = []
+    for name, sid in slots.items():
+        where = "adsense.slots." + name
+        line = key_line(text, name)
+        if name not in known:
+            report.warn(file, where, "이 이름의 광고 자리가 없어요 — 값을 넣어도 어디에도 광고가 안 나와요.",
+                        "쓸 수 있는 이름: {} (taxArticle 차종 페이지 · hubEnd 차종 목록 · calcEnd 계산기 · tcoEnd 유지비 비교). "
+                        "오타인지 보세요.".format(", ".join(known)), line)
+        if sid in (None, ""):
+            continue
+        if is_int(sid):
+            report.error(file, where, "숫자가 따옴표 없이 들어갔어요 (지금: {}).".format(show(sid)),
+                         "따옴표로 감싸 문자열로 쓰세요 → \"{}\"".format(sid), line)
+        elif not (isinstance(sid, str) and AD_SLOT_RE.match(sid)):
+            report.error(file, where, "광고 단위 ID는 숫자만이에요 (지금: {}).".format(show(sid)),
+                         "애드센스에서 만든 광고 단위의 ID(숫자)를 넣으세요. 아직 없으면 \"\"로 두세요.", line)
+        else:
+            filled.append(name)
+    if filled and not pub_ok and pub in (None, ""):
+        report.warn(file, "adsense.slots", "publisherId가 비어 있어 슬롯 ID({})가 있어도 광고가 하나도 나오지 않아요.".format(
+                        ", ".join(filled)),
+                    "게시자 ID를 publisherId에 넣거나, 광고를 끄려는 거라면 슬롯도 \"\"로 비우세요.", key_line(text, "publisherId"))
+    marked = {name for _, _, name in hand_page_slot_markers(pages)}
+    for name in filled:
+        if name in HAND_SLOT_WHERE and name not in marked:
+            report.warn(file, "adsense.slots." + name,
+                        "광고 단위 ID가 있는데 손 페이지에 <!-- adsense:slot {} --> 마커가 없어 이 광고가 어디에도 안 나와요.".format(name),
+                        "{}에 <!-- adsense:slot {} --><!-- /adsense:slot -->를 다시 넣고 빌드하세요 "
+                        "(마커를 지웠거나 이름에 오타가 난 경우예요).".format(HAND_SLOT_WHERE[name], name), key_line(text, name))
+
+
+def check_site(site, report, text="", pages=None):
+    file = "data/site.json"
+    if pages is None:
+        pages = hand_page_texts()
     if not isinstance(site, dict):
         report.error(file, None, "최상위가 { ... } 객체가 아니에요.")
         return
@@ -552,6 +698,18 @@ def check_site(site, report):
                      "예: \"https://chailji.com\" (https, 경로 없이)")
     if not is_str(site.get("siteName")):
         report.error(file, "siteName", "사이트 이름이 비었어요.")
+    check_adsense(site.get("adsense"), text, report, pages)
+    email = site.get("contactEmail")
+    if email not in (None, ""):
+        if not (isinstance(email, str) and EMAIL_RE.match(email)):
+            report.error(file, "contactEmail", "이메일 형식이 아니에요 (지금: {}) — 개인정보처리방침·이용약관·소개 페이지에 그대로 나가요.".format(show(email)),
+                         "'이름@도메인.최상위도메인' 형식의 사이트 전용 주소를 넣으세요 (예: \"contact@example.com\" 형식, 앞뒤 공백 없이). "
+                         "아직 없으면 \"\"로 두면 이메일 문단이 숨겨져요.", key_line(text, "contactEmail"))
+        elif not any(CONTACT_MARKER in t for t in pages.values()):
+            report.warn(file, "contactEmail",
+                        "주소가 있는데 손 페이지에 {} 마커가 하나도 없어 이메일이 어디에도 안 나와요.".format(CONTACT_MARKER),
+                        "privacy.html·terms.html·about.html의 문의 문단에 <!-- site:contact --><!-- /site:contact -->를 "
+                        "다시 넣고 빌드하세요.", key_line(text, "contactEmail"))
 
 
 def check_affiliate(data, part_ids, report):
@@ -588,8 +746,10 @@ def main():
     part_ids = []
     if loaded["parts.json"][0] is not None:
         part_ids = check_parts(loaded["parts.json"][0], loaded["parts.json"][1], report)
+    pages = hand_page_texts()
+    check_hand_slot_markers(pages, report)
     if loaded["site.json"][0] is not None:
-        check_site(loaded["site.json"][0], report)
+        check_site(loaded["site.json"][0], report, loaded["site.json"][1], pages)
     if loaded.get("affiliate.json", (None, ""))[0] is not None:
         check_affiliate(loaded["affiliate.json"][0], part_ids, report)
 

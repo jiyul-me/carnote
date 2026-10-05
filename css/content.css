@@ -2,12 +2,22 @@
  * DESIGN.md: 숫자가 주인공, 헤어라인만, 그림자·이모지 금지 */
 .content { max-width: 640px; margin: 0 auto; padding: 16px 20px 48px; }
 .content h1 { font-size: 20px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.01em; }
-.content h2 { font-size: 15px; font-weight: 700; margin: 32px 0 8px; }
-.content p { margin: 8px 0; }
+/* :where()로 명시도를 .content 하나(0,1,0)로 낮춘다 — 컴포넌트 클래스(.brand-title·.tax-caption·.card h2 등)가
+ * 뒤에서 자기 여백·크기를 그대로 쓰게. (.content h2 / .content p는 0,1,1이라 h2.brand-title을 15px/700으로 덮었다) */
+.content :where(h2) { font-size: 15px; font-weight: 700; margin: 32px 0 8px; }
+.content :where(p) { margin: 8px 0; }
 .content .lede { color: var(--ink-secondary); margin-bottom: 16px; }
+/* 본문 링크(클래스 없는 a): accent + 1px 밑줄. 방문 후에도 같은 색(브라우저 기본 파랑·보라 금지).
+ * :where로 명시도를 낮춰 .crumb a·.sources a(12px muted)와 목록형 링크(.hub-row 등)는 각자 규칙을 따른다 */
+.content :where(a:not([class])) { color: var(--accent); text-decoration: underline 1px; text-underline-offset: 3px; }
+/* #앵커로 이동한 대상이 sticky 상단바(약 56px) 밑에 가리지 않게 */
+.content [id] { scroll-margin-top: 64px; }
 
 .crumb { font-size: 12px; color: var(--ink-muted); margin: 0 0 4px; }
-.crumb a { color: var(--ink-muted); text-decoration: none; }
+/* 탭 타깃 44px — 인라인 링크의 세로 padding은 줄 높이를 바꾸지 않으므로 글자 크기·줄 간격은 그대로 두고 누르는 영역만 키운다
+ * (12px 글자 약 14px + 16px × 2 = 46px). 아래 padding이 h1 윗부분과 몇 px 겹치므로 position: relative로 링크를
+ * h1보다 위에 칠해 그 부분도 링크가 받게 한다(z-index 없음 — sticky 상단바 z-index 10보다는 아래) */
+.crumb a { position: relative; color: var(--ink-muted); text-decoration: none; padding: 16px 0; }
 
 /* ---------- 세금 페이지 히어로 ---------- */
 .tax-caption { font-size: 12px; color: var(--ink-muted); margin: 0 0 16px; }
@@ -43,15 +53,24 @@ table.data th, table.data td {
   padding: 10px 8px; text-align: right;
   border-bottom: 0.5px solid var(--border);
 }
+/* 금액·헤더는 한 줄 고정('290,830 / 원' 끊김 방지). 첫 열만 줄바꿈 허용 — 320px에서도 표가 넘치지 않게 */
+table.data th, table.data td:not(:first-child) { white-space: nowrap; }
 table.data th:first-child, table.data td:first-child { text-align: left; padding-left: 0; }
+/* 연식표 첫 열의 차령 꼬리 ' · 3년차' (캡션 12px muted) */
+.age-sub { font-size: 12px; color: var(--ink-muted); }
 table.data th:last-child, table.data td:last-child { padding-right: 0; }
 table.data thead th {
   font-size: 12px; font-weight: 500; color: var(--ink-muted);
   border-bottom: 1px solid var(--border);
 }
 table.data tr.hl td { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
-table.data tr.hl td:first-child { border-radius: 6px 0 0 6px; padding-left: 8px; }
-table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px; }
+table.data tr.hl td:first-child { border-radius: 6px 0 0 6px; }  /* 배경만 바꾼다 — padding을 바꾸면 선택할 때 열 폭이 흔들린다 */
+table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; }
+/* 360px 미만: 열 사이 여백을 8px → 4px로 줄여 7자리 금액 표(모하비 4.6 '1,147,980원')도 표 폭 안에 들어오게.
+ * 바깥 끝(첫 열 왼쪽·마지막 열 오른쪽 0)은 위 :first-child·:last-child 규칙이 그대로 이긴다 */
+@media (max-width: 359px) {
+  table.data th, table.data td { padding-left: 4px; padding-right: 4px; }
+}
 
 /* ---------- 연식 선택 ---------- */
 .year-picker { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; flex-wrap: wrap; }
@@ -72,17 +91,38 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
   padding: 8px 0; font-size: 14px; border-bottom: 0.5px solid var(--border);
 }
 .spec-box .spec-row:last-of-type { border-bottom: none; }
+/* 마지막 줄 다음에 연료비 줄이 바로 오면 줄의 아래 선과 연료비 줄의 위 선이 겹친다(이중선) — 위 선을 뺀다 */
+.spec-row + .spec-fuel { border-top: none; }
 .spec-label { font-size: 12px; color: var(--ink-muted); }
 .spec-note {
   font-size: 12px; color: var(--ink-muted); padding: 0 0 8px; line-height: 1.5;
 }
 .spec-fuel {
-  border-top: 0.5px solid var(--border); margin-top: 0; padding: 10px 0 8px;
+  border-top: 0.5px solid var(--border); margin-top: 0; padding: 8px 0;
   font-size: 13px; color: var(--ink-secondary);
 }
 .spec-fuel span { color: var(--ink-muted); font-size: 12px; }
 
 /* ---------- 허브(차종 목록) ---------- */
+/* 검색 — JS가 hidden을 풀 때만 보인다. 입력은 DESIGN '입력·셀렉트'(48px, 0.5px, radius 8, focus ring) */
+.hub-search { margin: 0 0 12px; }
+.hub-search label { display: block; font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-bottom: 4px; }
+.hub-search input {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 48px; padding: 0 12px;
+  border: 0.5px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--ink); font-size: 16px; font-family: inherit; /* iOS 줌 방지 */
+}
+.hub-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.hub-status { font-size: 12px; color: var(--ink-muted); margin: 8px 0 0; }
+.hub-status:empty { display: none; }
+.hub-empty { font-size: 14px; margin: 8px 0 0; }
+/* 브랜드 칩 — 한 줄 가로 스크롤 (여러 줄로 감으면 칩만 200px). 끝이 잘려 보이는 것이 스크롤 단서 */
+.brand-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.brand-chips a { text-decoration: none; }
+.brand-chips .chip { flex-shrink: 0; }
+.hub-more { margin-top: 24px; }
+.chevron-pad { display: inline-block; width: 16px; flex-shrink: 0; } /* 단일 행의 셰브론 자리 — 금액 열 맞춤 */
 .brand-title { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 24px 0 4px; }
 .hub-list { list-style: none; margin: 0; padding: 0; }
 .hub-row {
@@ -92,8 +132,8 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
 }
 .hub-list > li:last-child > .hub-row,
 .hub-list > li:last-child > .hub-group:not([open]) > summary.hub-row { border-bottom: none; }
-.hub-row .hub-price { color: var(--ink-secondary); font-size: 14px; white-space: nowrap; }
-@media (hover: hover) { .hub-row:hover { background: var(--surface); } }
+.hub-price { color: var(--ink-secondary); font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+@media (hover: hover) { .hub-row:not([aria-current]):hover { background: var(--surface); } }
 
 /* 모델 그룹 아코디언 — JS 없이 details 기본 동작만 */
 .hub-group > summary.hub-row { list-style: none; cursor: pointer; }
@@ -124,10 +164,45 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; padding-right: 8px;
   outline: none; box-shadow: 0 0 0 3px var(--accent-bg); border-radius: 8px;
 }
 .hub-subgroup[open] > summary .chevron { transform: rotate(180deg); }
+/* 펼치면 아래 nested 박스의 테두리가 구분선 역할 — 요약 줄 아래선까지 두면 2px 간격 이중선이 된다(검색이 자동으로 펼칠 때도) */
+.hub-subgroup[open] > summary.hub-trim { border-bottom: none; }
 .hub-trims.nested {
   background: var(--bg); border: 0.5px solid var(--border);
   border-radius: 8px; margin: 2px 0 8px; padding: 2px 12px;
 }
+
+/* 목록 행 공통 (허브·관련 차종): 이름은 줄바꿈 허용, 금액은 한 줄·오른쪽 고정 */
+.hub-name { min-width: 0; }
+.hub-years { font-size: 12px; font-weight: 400; color: var(--ink-muted); white-space: nowrap; }
+/* 세대 라벨 — 누를 수 없는 구분 줄 'IG · 2016~2022' */
+.hub-gen { padding: 12px 0 4px; font-size: 12px; font-weight: 500; color: var(--ink-muted); border-bottom: 0.5px solid var(--border); }
+
+/* ---------- 수첩 CTA 카드·표 이미지 저장 (차종 페이지) ---------- */
+.cta-card { border-color: var(--accent); margin: 16px 0; }
+.cta-title { font-size: 15px; font-weight: 500; margin: 0 0 4px; }
+.cta-desc { margin: 0 0 12px; }
+.cta-btn { display: block; text-align: center; text-decoration: none; }
+.cta-secondary { margin: 0 0 12px; }
+.table-save { margin-top: 12px; }
+
+/* ---------- 자주 묻는 질문 — 질문 15px/500, 답 15px/400 (JSON-LD FAQPage와 같은 문답) ---------- */
+.faq-q { font-size: 15px; font-weight: 500; margin: 16px 0 4px; }
+.faq-a { margin: 0 0 8px; }
+
+/* ---------- 광고 자리 (data/site.json adsense — 슬롯 ID가 있을 때만 build.py가 넣는다) ----------
+ * 페이지당 1개, 위아래 상호작용 요소와 60px 이상. 최소 높이를 미리 잡아 광고가 늦게 떠도 밀림(CLS)이 없게.
+ * 광고 크리에이티브 내부는 토큰 규칙 대상이 아니다 */
+:root { --ad-slot-min-h: 280px; }
+.ad-slot { margin: 24px 0; padding-top: 12px; border-top: 0.5px solid var(--border); min-height: var(--ad-slot-min-h); }
+.ad-label { font-size: 12px; color: var(--ink-muted); margin: 0 0 8px; }
+.ad-slot:has(ins[data-ad-status="unfilled"]) { display: none; } /* 게재 안 된 광고 단위는 숨긴다 (애드센스 공식 안내) */
+
+/* ---------- 관련 차종 (차종 페이지 끝) ---------- */
+.related-label { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 16px 0 4px; }
+.related-note { font-size: 12px; color: var(--ink-muted); margin: 0 0 4px; }
+.related-calc { margin: 16px 0 0; }
+/* 지금 보고 있는 차 — 링크 없이 굵기만 (accent는 '내 차 행'에만) */
+.hub-row[aria-current="page"], .hub-trim[aria-current="page"] { font-weight: 600; }
 
 .compare-line {
   background: var(--surface); border-radius: 8px;
