@@ -25,29 +25,40 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  /* 한글은 어절 단위로 줄바꿈('브라/우저' 방지). 공백 없는 긴 영문·URL은 break-word로 넘침 방지 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* ---------- 상단바 ---------- */
+/* 안쪽은 본문(640px 열)과 같은 선에 맞춘다 — 넓은 화면에서 워드마크·내비가 양 끝으로 갈라지지 않게 */
 .topbar {
   position: sticky; top: 0; z-index: 10;
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 20px;
   padding-top: calc(8px + env(safe-area-inset-top));
+  padding-inline: max(20px, calc((100% - 640px)/2 + 20px));
   background: var(--bg);
   border-bottom: 0.5px solid var(--border);
 }
 .topbar-title {
   font-size: 17px; font-weight: 700; color: var(--ink);
-  background: none; border: none; padding: 8px 0; cursor: pointer;
-  text-decoration: none; display: inline-block; letter-spacing: -0.01em;
+  background: none; border: none; padding: 0; cursor: pointer;
+  text-decoration: none; letter-spacing: -0.01em;
+  display: inline-flex; align-items: center; min-height: 44px;
+  white-space: nowrap; flex-shrink: 0;
 }
 .topbar-right { display: flex; align-items: center; gap: 4px; }
+/* 탭 타깃 44px — 내비 링크·버튼 공통 */
 .topbar-nav a, .topbar-btn {
+  display: inline-flex; align-items: center; min-height: 44px;
   color: var(--ink-secondary); text-decoration: none;
   font-size: 13px; font-weight: 500;
-  padding: 8px; border-radius: 8px; white-space: nowrap;
+  padding: 0 8px; border-radius: 8px; white-space: nowrap;
   background: none; border: none; cursor: pointer; font-family: inherit;
 }
+/* 현재 위치: 색(ink)과 굵기만 — accent는 쓰지 않는다 */
+.topbar-nav a[aria-current="page"]{color:var(--ink);font-weight:600}
 .btn, .chip, .part-row-main, .quick-btn, .topbar-btn, .topbar-nav a, .topbar-title,
 .linklike, .history-del, .sched-row { transition: background-color 0.15s ease, color 0.15s ease; }
 @media (hover: hover) {
@@ -62,6 +73,8 @@ main {
   margin: 0 auto;
   padding: 16px 20px 48px;
 }
+/* 첫 방문 히어로 화면: 바로 아래 소개·도구 목록과의 빈 띠를 줄인다 (app.js가 붙임) */
+main.app-hero { padding-bottom: 0; }
 
 .loading { color: var(--ink-muted); text-align: center; padding: 40px 0; }
 
@@ -77,15 +90,41 @@ main {
   font-size: 12px; margin: 0 0 8px; color: var(--ink-muted); font-weight: 500;
 }
 .card .big { font-size: 20px; font-weight: 700; }
+/* 마지막 요소(.notice 등)의 아래 여백이 카드 padding에 더해져 위아래가 어긋나지 않게 */
+.card > :last-child { margin-bottom: 0; }
+/* 목록형 카드 — 행이 자체 padding(12px)을 가진다 */
+.card.list-card { padding: 4px 20px; }
+/* 상태 안내 카드 (인앱 브라우저·백업 권유) — 상태색 예외 */
+.card.card-warn { border-color: var(--warning); }
+.card-warn .notice { margin: 0; color: var(--warning); }
+/* 인앱 브라우저 안내: 문장 + 오른쪽 '닫기'(44px) */
+.inapp-banner { display: flex; align-items: center; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+.inapp-banner .notice { flex: 1; min-width: 0; }
+.inapp-banner .text-btn { color: var(--ink-muted); flex-shrink: 0; min-width: 44px; justify-content: center; }
+/* 데모(?demo=1) 안내 — 대시보드 맨 위 카드 */
+.demo-card p { margin: 0 0 12px; color: var(--ink-secondary); }
+.notice.demo-note { margin: 0 0 16px; }
 
 /* ---------- 온보딩 ---------- */
-.hero { text-align: center; padding: 48px 8px; }
+.hero { text-align: center; padding: 48px 8px 24px; }
 .hero h1 { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
 .hero p { color: var(--ink-secondary); margin: 0 0 24px; }
+.hero .btn.hero-cta { width: auto; padding: 0 24px; }
+.hero p.hero-alt { margin: 8px 0 0; }
+.hero-alt .linklike { display: inline-block; padding: 12px; }
 
 /* ---------- 차 요약 ---------- */
 .car-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.card .car-name { font-size: 17px; font-weight: 700; margin: 0; color: var(--ink); }
+/* 공백 없는 긴 별칭·차종명(keep-all이라 끊을 자리가 없음)이 '수정' 버튼을 카드·화면 밖으로 밀지 않게:
+ * 이름 열은 min-width: 0으로 줄어들고, 이름은 anywhere로 카드 안에서 줄바꿈한다. 버튼 폭은 그대로 */
+.car-head > div { min-width: 0; }
+.car-head > .btn { flex-shrink: 0; }
+.card .car-name { font-size: 17px; font-weight: 700; margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.car-foot { margin-top: 4px; }
+/* 주행거리 갱신: 입력칸과 같은 48px 버튼 */
+.odo-form { margin-top: 12px; }
+.odo-form .field { margin: 0; }
+.odo-form .btn { width: auto; flex-shrink: 0; }
 .car-sub { color: var(--ink-muted); font-size: 12px; margin: 2px 0 0; }
 .odo-row { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .odo-km { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
@@ -115,12 +154,16 @@ li:last-child > .sched-row { border-bottom: none; }
 /* ---------- 차 전환 ---------- */
 .car-switch { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
 .chip {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px;
   border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 500;
   background: var(--bg); color: var(--ink); border: 0.5px solid var(--border);
   cursor: pointer; white-space: nowrap; font-family: inherit;
 }
 .car-switch .chip.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-bg); }
+/* 공백 없는 긴 별칭 칩 하나가 띠를 다 채워 다른 차·'+ 차 추가'를 가리지 않게: 띠 폭의 80%까지, 넘치면 말줄임
+ * (전체 이름은 아래 내 차 카드에 보이고, 버튼의 접근 이름에도 그대로 남는다) */
+.car-switch .chip { max-width: 80%; }
+.car-switch .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- 소모품 리스트 ---------- */
 .part-list { list-style: none; margin: 0; padding: 0; }
@@ -137,9 +180,10 @@ li:last-child > .part-row { border-bottom: none; }
 .part-name { font-weight: 500; font-size: 15px; }
 .part-sub { color: var(--ink-muted); font-size: 12px; margin-top: 2px; }
 .quick-btn {
-  flex-shrink: 0; padding: 8px 12px; border-radius: 8px;
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 12px; border-radius: 8px;
   border: 0.5px solid var(--border); color: var(--ink); background: var(--bg);
-  font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit;
 }
 
 /* 상태 배지: soon=임박, overdue=초과, 나머지는 텍스트 */
@@ -147,6 +191,13 @@ li:last-child > .part-row { border-bottom: none; }
 .badge.soon { background: var(--warning-bg); color: var(--warning); padding: 3px 8px; border-radius: 6px; }
 .badge.overdue { background: var(--danger-bg); color: var(--danger); padding: 3px 8px; border-radius: 6px; }
 .badge.no-record, .badge.no-data, .badge.manual { color: var(--ink-muted); }
+
+/* 기록 없는 소모품 — 허브 아코디언(.hub-group/summary.hub-row/.chevron, content.css)을 그대로 쓴다 */
+.parts-more { border-top: 0.5px solid var(--border); }
+.parts-more:first-child { border-top: none; }
+.parts-more > summary.hub-row { border-bottom: none; }
+.parts-more[open] > summary.hub-row { border-bottom: 0.5px solid var(--border); }
+.parts-lead { margin: 0 0 8px; }
 
 /* ---------- 프로그레스 바 (소모품 사용량) ---------- */
 .progress { height: 4px; background: var(--surface); border-radius: 2px; margin-top: 8px; overflow: hidden; }
@@ -156,6 +207,8 @@ li:last-child > .part-row { border-bottom: none; }
   font-size: 12px; font-weight: 500; color: var(--ink-muted);
   margin: 24px 0 8px;
 }
+/* 백업 링크로 들어오면 이 자리로 스크롤 — sticky 상단바에 가리지 않게 */
+.section-title[id] { scroll-margin-top: 64px; }
 
 /* ---------- 폼 ---------- */
 .form-view h1 { font-size: 20px; font-weight: 700; margin: 4px 0 16px; }
@@ -188,17 +241,27 @@ li:last-child > .part-row { border-bottom: none; }
   border: 0.5px solid var(--border); line-height: 46px;
 }
 .btn.danger-outline { background: var(--bg); color: var(--danger); border: 0.5px solid var(--danger); line-height: 46px; }
-.btn.small { width: auto; height: 40px; line-height: 38px; padding: 0 14px; font-size: 14px; }
+a.btn { text-decoration: none; }
+.btn.small { width: auto; height: 44px; min-height: 44px; line-height: 42px; padding: 0 16px; font-size: 14px; font-weight: 500; }
 .btn + .btn { margin-top: 8px; }
+.btn.mt-12 { margin-top: 12px; }
+/* 위험 버튼은 24px 띄우고 헤어라인으로 나눈다 */
+.danger-zone { margin-top: 24px; padding-top: 16px; border-top: 0.5px solid var(--border); }
 
 .back-btn {
   background: none; border: none; color: var(--accent);
-  font-size: 14px; font-weight: 500; padding: 4px 0; cursor: pointer;
-  margin-bottom: 4px; font-family: inherit;
+  font-size: 14px; font-weight: 500; padding: 10px 0; min-height: 44px; cursor: pointer;
+  margin: 0; font-family: inherit;
 }
 .linklike {
   background: none; border: none; color: var(--accent); font: inherit;
   cursor: pointer; padding: 0; text-decoration: none;
+}
+/* 텍스트 버튼 (DESIGN: accent 글자만) — 단독으로 놓일 때 탭 타깃 44px */
+.text-btn {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0;
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 500;
 }
 
 /* ---------- 기록 이력 ---------- */
@@ -211,12 +274,16 @@ li:last-child > .part-row { border-bottom: none; }
 .history-main, .history-sub { overflow-wrap: anywhere; }
 .history-item > :first-child { min-width: 0; }
 .history-del {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; flex-shrink: 0;
   background: none; border: none; color: var(--ink-muted); cursor: pointer;
-  font-size: 13px; padding: 12px 8px; margin: -12px -8px -12px 0;
+  font-size: 13px; padding: 0 8px; margin: -12px -8px -12px 0;
   align-self: center; font-family: inherit;
 }
 
 .notice { font-size: 12px; color: var(--ink-muted); margin-top: 8px; }
+.notice.is-warn { color: var(--warning); }
+.notice.is-danger { color: var(--danger); }
 .empty { color: var(--ink-muted); text-align: center; padding: 20px 0; font-size: 14px; }
 
 /* ---------- 설정 ---------- */
@@ -231,16 +298,25 @@ li:last-child > .part-row { border-bottom: none; }
   max-width: 640px; margin: 0 auto; padding: 0 20px 32px;
   color: var(--ink-muted); font-size: 12px; text-align: center;
 }
-.foot a { color: var(--ink-muted); }
+.foot p { margin: 4px 0; }
+/* 탭 타깃: 세로 padding 8px + 최소 높이 44px */
+.foot a { color: var(--ink-muted); display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0; }
 
 /* hidden 속성이 .field-row 등의 display 지정에 밀리지 않게 */
 [hidden] { display: none !important; }
 
+/* ---------- 홈 소개(index.html 정적 section — 첫 방문 히어로 아래에만 보임) ---------- */
+/* content.css의 .content padding보다 우선하도록 두 클래스로 */
+.content.intro { padding-top: 0; }
+.content .section-title { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 0 0 4px; }
+.tool-text { display: flex; flex-direction: column; min-width: 0; }
+.tool-text .spec-label { line-height: 1.5; }
+
 /* ---------- 지출 ---------- */
 /* 대시보드 카드: 금액(.big) + '자세히' 한 줄이 통째로 버튼 */
 .spend-link {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  width: 100%; padding: 0; text-align: left;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  width: 100%; min-height: 44px; padding: 0; text-align: left;
   background: none; border: none; cursor: pointer; color: var(--ink); font: inherit;
 }
 .spend-link-more { font-size: 14px; font-weight: 500; color: var(--accent); white-space: nowrap; }
@@ -265,7 +341,7 @@ li:last-child > .part-row { border-bottom: none; }
 .chip-radio { position: relative; }
 .chip-radio input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 .chip-radio span {
-  display: inline-flex; align-items: center; min-height: 40px;
+  display: inline-flex; align-items: center; min-height: 44px;
   border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 500;
   background: var(--bg); color: var(--ink); border: 0.5px solid var(--border);
   cursor: pointer; white-space: nowrap;
@@ -313,7 +389,9 @@ li:last-child > .part-row { border-bottom: none; }
 .msg-toast-action {
   background: none; border: none; cursor: pointer; flex-shrink: 0; white-space: nowrap;
   color: inherit; font: inherit; font-weight: 700; text-decoration: underline;
-  margin-left: 12px; padding: 4px; font-family: inherit;
+  /* 탭 타깃 44px — 음수 여백으로 토스트 높이는 그대로 */
+  display: inline-flex; align-items: center; min-height: 44px;
+  margin: -12px -8px -12px 12px; padding: 0 8px; font-family: inherit;
 }
 /* 삭제 직후 포커스가 옮겨 오는 자리 — 어두운 배경 위에서도 보이게 */
 .msg-toast-action:focus-visible { outline: 2px solid var(--bg); outline-offset: 2px; }

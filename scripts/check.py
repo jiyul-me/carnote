@@ -8,11 +8,16 @@
   data    data/*.json 실수 (scripts/validate_data.py)
   tests   JS 로직 테스트 (tests/run.js — node가 없으면 macOS jsc로, 둘 다 없으면 건너뜀)
   parity  세액 계산 일치: build.py ↔ js/tax-calc.js (scripts/check_tax_parity.py)
-  build   빌드 결과 최신 여부: 지금 data로 빌드하면 커밋된 tax/·og/·icons/·sitemap.xml과 똑같이 나오나
+  build   빌드 결과 최신 여부: 지금 data로 빌드하면 커밋된 tax/·og/·icons/·sitemap.xml·ads.txt와
+          손으로 쓴 루트 페이지(index.html·tco.html·privacy.html 등)의 광고·문의 마커 구간이 똑같이 나오나
           (빌드가 더 이상 만들지 않는 tax/ 페이지·썸네일이 남아 있어도 '지워짐'으로 잡는다)
-  links   깨진 링크 (scripts/check_links.py)
+          + 광고를 두지 않는 페이지(수첩 index.html·소개 about.html·개인정보처리방침 privacy.html·
+            이용약관 terms.html)에 광고 슬롯 마커·광고 코드가 없나
+  links   링크·앵커·공통 크롬 (scripts/check_links.py — 깨진 링크, #id, 상단 내비·푸터,
+          손 페이지마다 있어야 할 광고·문의 마커)
 
 빌드 검사는 저장소를 임시 폴더에 복사해 거기서 build.py를 돌리고 비교한다 —
+data/site.json의 adsense·contactEmail만 바꾸고 빌드를 안 돌린 상태(ads.txt·손 페이지 마커가 낡음)도 여기서 잡힌다.
 작업 중인 파일(tax/·og/ 포함)은 절대 건드리지 않는다. sitemap.xml은 <lastmod> 날짜가 빌드한 날로
 매일 바뀌므로 그 날짜만 지우고 비교한다 — 주소 목록(차종 추가·삭제 반영)은 그대로 비교된다.
 Python 3.9 호환 (사용자 Mac 기본 python3).
@@ -37,7 +42,22 @@ PASS, FAIL, SKIP = "통과", "실패", "건너뜀"
 # build.py가 쓰는 생성물. build.py가 og/tax/*.png·tax/*.html 중 더 이상 안 만드는 것을 지우므로
 # 지금 것을 복사해 둔 위에 빌드하면 남은 옛 파일이 '지워짐'으로 드러난다
 GEN_DIRS = ("tax", "og", "icons")
-GEN_FILES = ("favicon.ico", "robots.txt", "sitemap.xml")
+# ads.txt는 site.json adsense.publisherId가 있을 때만 생긴다(비면 빌드가 지움) — 양쪽에 다 없으면 같다
+GEN_FILES = ("favicon.ico", "robots.txt", "sitemap.xml", "ads.txt")
+ADS_TXT = "ads.txt"
+# 손으로 쓰는 루트 페이지(index·tco·privacy·terms·about …). build.py는 그 안의 마커 구간
+# (<!-- adsense:head -->·<!-- adsense:slot 이름 -->·<!-- site:contact -->)만 site.json 값으로 채운다.
+# build.py가 루트 *.html 전부를 훑으므로 같은 범위를 복사해 비교한다 — 값이 비어 있고 마커가 빈 형태면
+# 빌드해도 한 글자도 안 바뀌어 그대로 통과한다(마커 바깥을 손으로 고친 것은 비교에 영향 없음)
+HAND_PAGE_GLOB = "*.html"
+# 광고를 두지 않는 손 페이지 — 광고 슬롯 마커·광고 코드 금지. (파일, 이름)
+#  수첩: 입력·설정 화면 광고 금지 정책 (README '수첩에 광고를 넣지 않는 이유')
+#  소개·개인정보처리방침·이용약관: privacy.html 4절·about.html의 약속('…페이지에도 광고를 두지 않습니다')
+# 광고를 둘 수 있는 페이지를 늘리려면 privacy.html 4절 문구부터 고친다
+NOTEBOOK_PAGE = "index.html"
+NO_AD_PAGES = ((NOTEBOOK_PAGE, "수첩 화면"), ("about.html", "소개"), ("privacy.html", "개인정보처리방침"),
+               ("terms.html", "이용약관"))
+NO_AD_SIGNS = ("adsense:slot", "adsbygoogle")
 # sitemap.xml은 <lastmod>에 빌드한 날짜가 들어가 매일 바뀐다 — 그 날짜만 지우고 비교
 SITEMAP = "sitemap.xml"
 SITEMAP_LASTMOD = re.compile(r"<lastmod>[^<]*</lastmod>")
@@ -111,8 +131,13 @@ def _copy_tree(src, dst):
         shutil.copy2(str(src), str(dst))
 
 
+def _hand_pages(root):
+    """루트의 손 페이지 {이름: 경로} — build.py가 마커를 채우는 범위(루트 *.html)."""
+    return {p.name: p for p in sorted(root.glob(HAND_PAGE_GLOB)) if p.is_file()}
+
+
 def _gen_files(root):
-    """생성물 경로의 파일 목록 {상대경로: 절대경로}."""
+    """생성물 경로의 파일 목록 {상대경로: 절대경로} — 손 페이지(마커 구간을 빌드가 채움)도 포함."""
     out = {}
     for d in GEN_DIRS:
         base = root / d
@@ -128,6 +153,7 @@ def _gen_files(root):
     for f in GEN_FILES:
         if (root / f).is_file():
             out[f] = root / f
+    out.update(_hand_pages(root))
     return out
 
 
@@ -206,11 +232,76 @@ def _uncommitted_generated():
     return [r for r in paths if not (r == SITEMAP and _sitemap_date_only_changed())]
 
 
+def _list_order(rel):
+    """목록 순서 — 루트 파일(ads.txt·손 페이지·sitemap.xml 등)을 먼저 보여 tax/ 수백 개에 묻히지 않게."""
+    return ("/" in rel, rel)
+
+
+def _git_tracked(rel):
+    """git이 이 경로를 추적 중인가 (지워진 파일을 git add로 담을 수 있나). git이 없으면 True로 본다."""
+    if not (ROOT / ".git").exists() or not shutil.which("git"):
+        return True
+    return subprocess.call(["git", "ls-files", "--error-unmatch", "--", rel], cwd=str(ROOT),
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+
+def _git_add_line(changed, added, removed):
+    """빌드 뒤 커밋할 경로 — 늘 있는 생성물 + 이번에 바뀐 루트 파일(ads.txt·손 페이지).
+    없는 경로를 넣으면 git add 전체가 실패하므로, 지워질 파일은 git이 추적 중일 때만 넣는다."""
+    base = ["tax", "og", "icons", "favicon.ico", "robots.txt", "sitemap.xml"]
+    extra = {r for r in changed + added if "/" not in r and r not in base}
+    extra |= {r for r in removed if "/" not in r and r not in base and _git_tracked(r)}
+    return "git add " + " ".join(base + sorted(extra))
+
+
+def check_no_ad_pages():
+    """광고를 두지 않는 페이지(NO_AD_PAGES)에 광고 슬롯 마커나 광고 코드(adsbygoogle)가 없는지. 소유 확인 메타 자리
+    (<!-- adsense:head --> 마커)만 허용 — build.py는 index.html의 슬롯 마커만 오류로 멈추고 소개·방침·약관의 슬롯
+    마커는 그대로 채우며, 손으로 넣은 광고 코드는 빌드가 모르므로 여기서 잡는다. 없는 파일은 건너뛴다.
+    반환: 통과 여부."""
+    found = []  # (파일, 이름, 줄, 표시, 원문 줄)
+    checked = []
+    for page, label in NO_AD_PAGES:
+        text = _read_text(ROOT / page)
+        if text is None:
+            continue
+        checked.append(page)
+        found += [(page, label, i, sign, ln.strip()) for i, ln in enumerate(text.splitlines(), 1)
+                  for sign in NO_AD_SIGNS if sign in ln]
+    if not found:
+        print("광고 없는 페이지({}): 광고 슬롯·광고 코드 없음 — 통과".format("·".join(checked) or "없음"))
+        return True
+    bad = [(page, label) for page, label in NO_AD_PAGES if any(f[0] == page for f in found)]
+    print("광고를 두지 않는 페이지({})에 광고 슬롯 마커나 광고 코드가 있어요 — 실패".format(
+        ", ".join("{} {}".format(label, page) for page, label in bad)))
+    for page, label, line, sign, src in found[:SHOW_MAX]:
+        print("  {}:{}  '{}'  {}".format(page, line, sign, src[:120] + ("…" if len(src) > 120 else "")))
+        annotate("error", "{}에는 광고를 넣지 않아요 ('{}')".format(label, sign), file=page, line=line,
+                 title="광고 금지 페이지")
+    print("고치는 법: 그 페이지에서 광고 슬롯 마커 구간(<!-- adsense:slot 이름 -->…<!-- /adsense:slot -->)과 손으로 넣은")
+    print("  광고 코드를 지우고 python3 scripts/build.py 를 돌리세요 — head 마커 안의 adsbygoogle.js는 빌드가 같이 빼요.")
+    print("  이 페이지들에는 광고 자리를 두지 않고, head의 <!-- adsense:head --><!-- /adsense:head -->")
+    print("  (애드센스 소유 확인 메타 자리)만 둬요 — head 마커는 지우지 마세요.")
+    if any(page == NOTEBOOK_PAGE for page, _ in bad):
+        print("  수첩(index.html): 입력·설정 화면 광고 금지 정책, 버튼·토스트 옆 실수 클릭, 화면 다시 그리기마다 광고 재요청")
+        print("  — README '수첩에 광고를 넣지 않는 이유'.")
+    if any(page != NOTEBOOK_PAGE for page, _ in bad):
+        print("  소개·개인정보처리방침·이용약관: 개인정보처리방침 4절이 '소개·개인정보처리방침·이용약관 페이지에도 광고를 두지")
+        print("  않습니다'라고 약속해요. 광고 자리는 차종별 자동차세·계산기·유지비 비교에만 둬요.")
+    return False
+
+
 def check_build():
+    ads_ok = check_no_ad_pages()
+    print("")
+    return PASS if check_build_fresh() == PASS and ads_ok else FAIL
+
+
+def check_build_fresh():
     tmp = Path(tempfile.mkdtemp(prefix="chailji-build-"))
     try:
-        # 1) 지금 작업 폴더 그대로(커밋 안 한 data 변경 포함) 임시 폴더에 복사
-        for name in BUILD_INPUTS + GEN_DIRS + GEN_FILES:
+        # 1) 지금 작업 폴더 그대로(커밋 안 한 data 변경 포함) 임시 폴더에 복사 — 손 페이지(루트 *.html)도
+        for name in BUILD_INPUTS + GEN_DIRS + GEN_FILES + tuple(_hand_pages(ROOT)):
             _copy_tree(ROOT / name, tmp / name)
         # 2) 임시 폴더에서 빌드 — 작업 폴더의 파일은 건드리지 않는다
         sys.stdout.flush()
@@ -228,11 +319,12 @@ def check_build():
 
         # 3) 비교 (sitemap.xml은 lastmod 날짜만 빼고). 빌드가 지운 옛 파일은 removed로 잡힌다
         now, built = _gen_files(ROOT), _gen_files(tmp)
-        changed = sorted(r for r in now.keys() & built.keys() if not _same(r, now[r], built[r]))
-        added = sorted(built.keys() - now.keys())
-        removed = sorted(now.keys() - built.keys())
+        changed = sorted([r for r in now.keys() & built.keys() if not _same(r, now[r], built[r])], key=_list_order)
+        added = sorted(built.keys() - now.keys(), key=_list_order)
+        removed = sorted(now.keys() - built.keys(), key=_list_order)
         if not (changed or added or removed):
-            print("결과: 지금 data/*.json·build.py로 빌드한 결과가 tax/·og/·icons/·sitemap.xml 등과 똑같아요 — 통과")
+            print("결과: 지금 data/*.json·build.py로 빌드한 결과가 tax/·og/·icons/·sitemap.xml·ads.txt와 "
+                  "손 페이지 마커 구간까지 똑같아요 — 통과")
             pending = _uncommitted_generated()
             if pending:
                 print("참고: 생성물 중 아직 커밋하지 않은 파일이 {}개 있어요 (예: {}).".format(len(pending), pending[0]))
@@ -256,16 +348,26 @@ def check_build():
             print("  {} 차이:".format(SITEMAP))
             for ln in _sitemap_diff(now[SITEMAP], built[SITEMAP]):
                 print("    " + ln)
-        if removed:
+        if [r for r in removed if r != ADS_TXT]:
             print("  [지워짐]은 빌드가 더 이상 만들지 않는 파일이에요 (차종 삭제·slug 변경·sample 전환 등).")
             print("  그대로 두면 목록에도 sitemap에도 없는 낡은 페이지가 계속 공개돼요.")
+        if ADS_TXT in removed:
+            print("  ads.txt [지워짐]: data/site.json adsense.publisherId가 비어 있어서예요. 광고를 끈 게 맞으면 빌드 후 커밋하고,")
+            print("  아니면 publisherId에 게시자 ID('pub-'+16자리)를 넣으세요.")
+        elif ADS_TXT in changed or ADS_TXT in added:
+            print("  ads.txt [{}]: data/site.json adsense.publisherId가 바뀌었어요.".format("새로 생김" if ADS_TXT in added else "바뀜"))
+        hand = sorted(r for r in changed if "/" not in r and r.endswith(".html"))
+        if hand:
+            print("  손 페이지 [바뀜] ({}): data/site.json의 adsense·contactEmail을 바꾸고 빌드를 안 돌렸어요.".format(", ".join(hand)))
+            print("  빌드는 그 페이지의 마커 구간(<!-- adsense:head --> 등)만 채워요 — 마커 바깥은 그대로예요.")
         print("")
         print("고치는 법:")
         print("  data/*.json이나 build.py를 바꾼 뒤 python3 scripts/build.py를 돌리고 결과를 같이 커밋하세요.")
         if removed:
             print("  빌드가 [지워짐] 파일도 지워 주고, 아래 git add가 그 삭제까지 담아요.")
         print("    python3 scripts/build.py")
-        print("    git add tax og icons favicon.ico robots.txt sitemap.xml")
+        print("    " + _git_add_line(changed, added, removed))
+        print("  (git add -A 한 줄도 돼요 — 작업 중인 다른 파일까지 담기니 git status로 먼저 확인하세요)")
         print("  tax/ 파일을 손으로 고쳤다면 다음 빌드 때 사라져요 — scripts/build.py의 템플릿을 고치세요.")
         try:
             import PIL  # noqa: F401
@@ -291,8 +393,8 @@ CHECKS = (
     ("data", "데이터 검사 (data/*.json)"),
     ("tests", "JS 테스트 (tests/*.test.js)"),
     ("parity", "세액 계산 일치 (build.py ↔ js/tax-calc.js)"),
-    ("build", "빌드 결과 최신 여부 (tax/·og/·icons/·sitemap.xml)"),
-    ("links", "깨진 링크"),
+    ("build", "빌드 결과 최신 여부 (tax/·og/·sitemap.xml·ads.txt·손 페이지 마커) + 수첩·소개·방침·약관 광고 금지"),
+    ("links", "링크·앵커·공통 크롬 (nav·푸터·광고·문의 마커)"),
 )
 
 

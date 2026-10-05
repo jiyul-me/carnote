@@ -6,7 +6,13 @@
   var S = window.ChailjiStorage;
 
   var FUEL_LABELS = { gasoline: '가솔린', diesel: '디젤', lpg: 'LPG', hybrid: '하이브리드', ev: '전기' };
-  var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '—' };
+  var STATE_LABELS = { overdue: '지남', soon: '임박', ok: '여유', 'no-record': '기록 없음', 'no-data': '주행거리 필요', manual: '필요할 때' };
+  // 세금 페이지 → 수첩 프리필 쿼리 (TASKS #2). 등록 폼을 떠나면 주소에서 지운다
+  var PREFILL_KEYS = ['model', 'cc', 'fuel', 'year'];
+  var DEMO_NOTE = '예시 데이터예요 — 저장되지 않아요';
+  // 허브 아코디언과 같은 셰브론 (content.css .chevron, 열리면 180도)
+  var CHEVRON_DOWN = '<svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+    '<path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   // 백업 유도 배너: 정비·주유·지출 기록이 합쳐 이만큼 쌓였고 마지막 백업 후 BACKUP_NUDGE_DAYS가 지났으면
   var BACKUP_NUDGE_MIN_ENTRIES = 5;
   var BACKUP_NUDGE_DAYS = 30;
@@ -26,7 +32,9 @@
   // spendLimit = 지출 목록 표시 개수(더 보기)
   var state = { view: 'dashboard', carId: null, partId: null, editingCarId: null, prefill: null,
     expenseCat: null, focusAmount: false, spendLimit: null };
+  var partsMoreOpen = false;   // 대시보드 '기록 없는 항목' 펼침 — 다시 그려도(기록 후 돌아오기 등) 유지
   var $app = document.getElementById('app');
+  var $intro = document.getElementById('intro'); // index.html 정적 소개·도구 목록
 
   // ---------- 유틸 ----------
 
@@ -175,7 +183,7 @@
     if (!url) return '';
     var label = part.shopKeyword || part.name;
     return '<div class="card">' +
-      '<a class="btn secondary" style="display:block;text-align:center;text-decoration:none;" href="' + esc(url) + '" target="_blank" rel="sponsored noopener">' +
+      '<a class="btn secondary" href="' + esc(url) + '" target="_blank" rel="sponsored noopener">' +
       esc(label) + ' 쿠팡에서 보기</a>' +
       '<p class="notice">' + esc(aff.disclosure) + '</p>' +
     '</div>';
@@ -196,9 +204,9 @@
       var url = location.href.replace(/^https?:\/\//, '');
       openLink = ' <a class="linklike" href="intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end">Chrome으로 열기</a>';
     }
-    return '<div class="card" style="border-color:var(--warning);"><p class="notice" style="margin:0;color:var(--warning);">' +
-      '메신저 안 브라우저에서는 기록이 따로 저장돼요. Chrome/Safari로 열면 기록이 유지됩니다.' + openLink +
-      ' <button type="button" class="linklike" data-action="dismiss-inapp" style="color:var(--ink-muted);">닫기</button></p></div>';
+    return '<div class="card card-warn inapp-banner"><p class="notice">' +
+      '메신저 안 브라우저에서는 기록이 따로 저장돼요. Chrome/Safari로 열면 기록이 유지돼요.' + openLink + '</p>' +
+      '<button type="button" class="text-btn" data-action="dismiss-inapp">닫기</button></div>';
   }
 
   // ---------- .ics 캘린더 내보내기 (TASKS #1) ----------
@@ -436,6 +444,11 @@
     };
     var y = window.pageYOffset;
     $app.innerHTML = (views[state.view] || renderDashboard)();
+    // 소개·도구 목록(정적 section)은 첫 방문 히어로 화면에서만 — 기록하는 화면 아래에 매번 붙지 않게.
+    // 히어로 화면은 main 아래 여백을 없애 소개와의 빈 띠를 줄인다
+    var hero = state.view === 'dashboard' && !doc.cars.length;
+    if ($intro) $intro.hidden = !hero;
+    $app.classList.toggle('app-hero', hero);
     bindViewEvents();
     window.scrollTo(0, opts && opts.keepScroll ? y : 0);
     if (state.focusAmount) {
@@ -445,7 +458,10 @@
     }
   }
 
-  function go(view, extra) {
+  /* mode: 'push'(기본) — 새 화면을 브라우저 기록에 쌓는다(뒤로가기로 돌아옴) · 'replace' — 지금 기록을 바꾼다 ·
+   * 'none' — 기록은 부른 쪽이 처리. 기록을 먼저 쓰고 그린다 — 떠나는 화면의 스크롤 위치가 그 기록에 남아야
+   * 뒤로가기로 돌아왔을 때 브라우저가 복원한다 */
+  function go(view, extra, mode) {
     state.view = view;
     state.partId = extra && extra.partId !== undefined ? extra.partId : null;
     state.editingCarId = extra && extra.editingCarId !== undefined ? extra.editingCarId : null;
@@ -454,18 +470,184 @@
     if (extra && extra.expenseCat !== undefined) state.expenseCat = extra.expenseCat;
     state.focusAmount = !!(extra && extra.focusAmount);
     state.spendLimit = null; // 화면을 옮기면 목록은 첫 페이지부터
+    if (mode !== 'none') writeHistory(mode || 'push');
     render();
   }
+
+  // ---------- 주소 라우팅 (뒤로가기·새로고침·직접 링크) ----------
+  /* 화면마다 주소의 hash를 남긴다: 대시보드는 hash 없음, #settings · #expenses · #part/{소모품 id} ·
+   * #car/new · #car/edit(보고 있는 차). ?demo=1 같은 쿼리는 그대로 두고, 프리필 쿼리(PREFILL_KEYS)는 등록 폼을 떠나면 지운다.
+   * history.state = {r: hash('#' 없이), carId: 보던 차, back: 바로 앞 기록이 이 앱 화면이면 그 r, 아니면 null}.
+   * popstate·hashchange는 state가 null일 수 있다(주소창 수정, 같은 페이지 #settings 링크) — 항상 location.hash를 해석한다 */
+  var shownRoute = null;  // 마지막으로 반영한 'r|carId' — popstate 뒤에 오는 hashchange 같은 중복 알림을 거른다
+  var pendingBack = null; // 작업을 끝내고 history.back()으로 대시보드에 돌아가는 중 — 도착하면 이 차를 보여 준다
+
+  function routeKey(rt) {
+    if (rt.view === 'part') return 'part/' + rt.partId;
+    if (rt.view === 'car-form') return rt.edit ? 'car/edit' : 'car/new';
+    return rt.view === 'settings' || rt.view === 'expenses' ? rt.view : '';
+  }
+  function routeOf() {
+    return routeKey({ view: state.view, partId: state.partId, edit: !!state.editingCarId });
+  }
+  function parseRoute(hash) {
+    var h = String(hash || '').replace(/^#/, '');
+    var m = /^part\/([a-z0-9-]+)$/i.exec(h);
+    if (m) return { view: 'part', partId: m[1] };
+    if (h === 'settings' || h === 'expenses') return { view: h };
+    if (h === 'car/new' || h === 'car/edit') return { view: 'car-form', edit: h === 'car/edit' };
+    return { view: 'dashboard' }; // hash 없음·모르는 hash
+  }
+  function ownEntry(st) { return !!(st && typeof st.r === 'string'); }
+
+  // 주소의 화면을 지금 데이터로 열 수 있는지 (없는 차·소모품을 가리키면 false)
+  function routeValid(rt) {
+    var car = activeCar();
+    if (rt.view === 'part') return !!(car && partById(rt.partId));
+    if (rt.view === 'expenses') return !!car;
+    if (rt.view === 'car-form' && rt.edit) return !!car;
+    return true;
+  }
+
+  // 주소에서 읽은 화면을 state에 반영. 열 수 없으면 대시보드로 하고 false (주소도 고쳐야 함)
+  function applyRoute(rt) {
+    var ok = routeValid(rt);
+    var view = ok ? rt.view : 'dashboard';
+    state.view = view;
+    state.partId = view === 'part' ? rt.partId : null;
+    state.editingCarId = view === 'car-form' && rt.edit ? activeCar().id : null;
+    if (view !== 'car-form' || state.editingCarId) state.prefill = null;
+    else if (!state.prefill) state.prefill = prefillFromQuery(); // 뒤로가기로 프리필 폼에 돌아온 경우
+    state.focusAmount = false;
+    state.spendLimit = null;
+    return ok;
+  }
+
+  // 세금 페이지에서 온 프리필(?model=&cc=&fuel=&year=). 데모에선 쓰지 않는다
+  function prefillFromQuery() {
+    if (demoMode) return null;
+    var qs = new URLSearchParams(location.search);
+    if (!qs.get('model') && !qs.get('cc')) return null;
+    var slug = qs.get('model');
+    var pv = slug ? data.vehicles.filter(function (v) { return v.slug === slug; })[0] : null;
+    return {
+      modelName: pv ? pv.name : (slug || ''),
+      fuelType: qs.get('fuel') || (pv ? pv.fuelType : null) || 'gasoline',
+      displacementCc: numOrNull(qs.get('cc')) || (pv ? pv.displacementCc : null),
+      year: /^\d{4}$/.test(qs.get('year') || '') ? qs.get('year') : null
+    };
+  }
+
+  // 화면 r의 주소. 쿼리는 유지하되(?demo=1 등) 프리필 쿼리는 프리필 등록 폼에서만 남긴다
+  function routeUrl(r) {
+    var qs = new URLSearchParams(location.search);
+    if (!(state.view === 'car-form' && state.prefill)) {
+      PREFILL_KEYS.forEach(function (k) { qs.delete(k); });
+    }
+    var q = qs.toString();
+    return location.pathname + (q ? '?' + q : '') + (r ? '#' + r : '');
+  }
+
+  function writeHistory(mode) {
+    var r = routeOf();
+    var carId = state.carId || null;
+    var cur = history.state;
+    var ours = ownEntry(cur);
+    if (mode === 'push' && ours && cur.r === r) mode = 'replace'; // 같은 화면(차 전환 등)은 기록을 늘리지 않는다
+    var entry = { r: r, carId: carId, back: ours ? (mode === 'push' ? cur.r : cur.back) : null };
+    try {
+      if (mode === 'push') history.pushState(entry, '', routeUrl(r));
+      else history.replaceState(entry, '', routeUrl(r));
+    } catch (e) { /* file:// 등 — 화면만 바뀌고 주소는 그대로 */ }
+    shownRoute = r + '|' + carId;
+  }
+
+  /* 작업을 끝내고(등록·수정 저장, 차·전체 삭제, 백업 가져오기) 또는 워드마크로 대시보드에 갈 때 — 지금 화면을 기록에 남기지 않는다.
+   * 대시보드를 새로 쌓으면(pushState) 등록 직후 뒤로가기가 빈 등록 폼으로 돌아가고, 뒤로가기가 화면 사이를 맴돈다.
+   * 바로 앞 기록이 대시보드면 history.back()으로 그 기록에 돌아가고, 아니면 지금 기록을 대시보드로 바꾼다 */
+  function returnToDashboard(extra) {
+    var cur = history.state;
+    var backToDash = ownEntry(cur) && cur.r !== '' && cur.back === '';
+    go('dashboard', extra, backToDash ? 'none' : 'replace');
+    if (backToDash) {
+      pendingBack = { carId: state.carId || null };
+      shownRoute = '|' + pendingBack.carId;
+      history.back();
+    }
+  }
+
+  // '← 돌아가기': 바로 앞이 이 앱 화면이면 브라우저 뒤로가기와 똑같이, 아니면(직접 링크로 들어옴) 대시보드로
+  function navBack() {
+    var cur = history.state;
+    if (ownEntry(cur) && cur.r !== '' && typeof cur.back === 'string') history.back();
+    else returnToDashboard();
+  }
+
+  // 워드마크·'수첩' 링크
+  function goHome() {
+    if (state.view === 'dashboard') { window.scrollTo(0, 0); return; }
+    returnToDashboard();
+  }
+
+  // 설정. toData: 백업하러 온 경우(푸터·백업 권유) '데이터' 카드로 스크롤
+  function goSettings(toData) {
+    if (state.view !== 'settings') go('settings');
+    if (toData) {
+      var el = document.getElementById('settings-data');
+      if (el) el.scrollIntoView();
+    }
+  }
+
+  // 링크가 지금 페이지(index.html 자신, hash·쿼리 없음)를 가리키는지 — 워드마크·'수첩'
+  function pagePath(p) { return String(p).replace(/index\.html$/, ''); }
+  function isHomeLink(a) {
+    return !a.target && !a.hash && !a.search && a.origin === location.origin &&
+      pagePath(a.pathname) === pagePath(location.pathname);
+  }
+
+  // 뒤로가기·앞으로가기, 주소창에서 hash 수정, 같은 페이지 #링크
+  function onLocationChange() {
+    if (!doc) return; // 아직 불러오는 중 — init이 주소를 읽는다
+    var cur = history.state;
+    var ours = ownEntry(cur);
+    var rt = parseRoute(location.hash);
+    if (pendingBack) {
+      var pb = pendingBack;
+      pendingBack = null;
+      if (rt.view === 'dashboard' && state.view === 'dashboard') {
+        // 이미 그린 대시보드 그대로 — 돌아온 기록의 차만 방금 저장한 차로 고친다
+        state.carId = pb.carId;
+        writeHistory('replace');
+        return;
+      }
+    }
+    if (ours && cur.carId && carById(cur.carId)) state.carId = cur.carId;
+    if (routeKey(rt) + '|' + (state.carId || null) === shownRoute) return;
+    var prev = shownRoute == null ? null : shownRoute.split('|')[0];
+    var ok = applyRoute(rt);
+    if (!ours || !ok) {
+      // 표시 없는 기록(주소창·#settings 링크로 생김)에 표시를 달고, 열 수 없는 화면 주소는 대시보드 주소로 고친다
+      try {
+        history.replaceState({ r: routeOf(), carId: state.carId || null, back: ours ? cur.back : prev }, '', routeUrl(routeOf()));
+      } catch (e) { /* 무시 */ }
+    }
+    shownRoute = routeOf() + '|' + (state.carId || null);
+    render();
+  }
+  window.addEventListener('popstate', onLocationChange);
+  window.addEventListener('hashchange', onLocationChange);
 
   // ----- 대시보드 -----
 
   function renderDashboard() {
+    // 인앱 브라우저 안내는 첫 방문 히어로 위에도 — 카톡 공유로 들어와 바로 등록하는 경우가 기록이 격리되는 바로 그 경우
+    var html = inAppBanner();
     if (!doc.cars.length) {
-      return '<div class="hero">' +
+      return html + '<div class="hero">' +
         '<h1>내 차 수첩을 시작해요</h1>' +
         '<p>소모품 교체 주기와 자동차 검사 일정을<br>한눈에 챙겨 드릴게요.</p>' +
-        '<button type="button" class="btn" data-action="new-car" style="width:auto;padding:0 28px;">내 차 등록하기</button>' +
-        '<p style="margin-top:14px;"><a class="linklike" href="?demo=1">등록 없이 둘러보기</a></p>' +
+        '<button type="button" class="btn hero-cta" data-action="new-car">내 차 등록하기</button>' +
+        '<p class="hero-alt"><a class="linklike" href="?demo=1">등록 없이 둘러보기</a></p>' +
         '</div>';
     }
 
@@ -473,23 +655,29 @@
     var today = todayISO();
     var monthlyKm = D.monthlyKmEstimate(car, doc.records, doc.fuelLogs);
     var odo = D.latestOdometer(car);
-    var html = inAppBanner();
+
+    // 데모: 예시라는 표시 + 내 차 등록으로 나가는 길 (이 화면의 primary 하나). 바로 등록 폼으로 열리게 #car/new
+    if (demoMode) {
+      html += '<div class="card demo-card"><p>' + DEMO_NOTE + '</p>' +
+        '<a class="btn" href="index.html#car/new">내 차 등록하기</a></div>';
+    }
 
     // 백업 유도: 기록(정비·주유·지출)이 쌓였는데 마지막 백업 후 30일 넘음 (iOS Safari 등 자동 삭제 대비).
     // 가장 자주 쌓이는 주유·지출도 센다 — 정비 기록만 세면 주유·지출만 쓰는 사용자는 안내를 영영 못 본다
     var entryCount = doc.records.length + doc.fuelLogs.length + doc.expenses.length;
     if (!demoMode && entryCount >= BACKUP_NUDGE_MIN_ENTRIES &&
         (!doc.settings.lastExportAt || D.diffDays(doc.settings.lastExportAt.slice(0, 10), today) > BACKUP_NUDGE_DAYS)) {
-      html += '<div class="card" style="border-color:var(--warning);"><p class="notice" style="margin:0;color:var(--warning);">' +
+      html += '<div class="card card-warn"><p class="notice">' +
         '기록이 쌓이고 있어요 — 브라우저 데이터가 지워지면 복구할 수 없으니 ' +
-        '<button type="button" class="linklike" data-action="go-settings">JSON 백업</button>을 받아두세요.</p></div>';
+        '<button type="button" class="linklike" data-action="go-backup">JSON 백업</button>을 받아두세요.</p></div>';
     }
 
     // 차 전환 (2대 이상)
     if (doc.cars.length > 1) {
       html += '<div class="car-switch">' + doc.cars.map(function (c) {
+        // 이름은 span에 담는다 — 긴 별칭은 칩 폭 상한에서 말줄임(style.css .chip-label), 다음 칩이 보이게
         return '<button type="button" class="chip' + (c.id === car.id ? ' active' : '') + '" data-action="switch-car" data-id="' + c.id + '">' +
-          esc(c.nickname || c.modelName) + '</button>';
+          '<span class="chip-label">' + esc(c.nickname || c.modelName) + '</span></button>';
       }).join('') +
       '<button type="button" class="chip" data-action="new-car">+ 차 추가</button></div>';
     }
@@ -511,6 +699,8 @@
       '</div>' +
       '<div id="odo-editor"></div>' +
       yearlySpendLine(car, today) +
+      // 설정(추적 항목·알림 기준·백업) 진입로 — 상단 내비에서 '설정'을 뺀 대신 (푸터에도 하나)
+      '<div class="car-foot"><button type="button" class="text-btn" data-action="go-settings">설정·백업</button></div>' +
     '</div>';
 
     // 다가오는 일정 — 검사·보험·임박/지남 소모품 + 캘린더 내보내기
@@ -518,7 +708,7 @@
       scheduleRows(car, insp, insur, today, monthlyKm) +
       '</ul>' +
       inspectionNotices(insp) +
-      '<button type="button" class="btn secondary" style="margin-top:12px;" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
+      '<button type="button" class="btn secondary mt-12" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
       '<p class="notice">교체 예정일·' + (inspectionApplies(car) ? '검사 만료일·' : '') +
         '연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
     '</div>';
@@ -535,12 +725,15 @@
       '</div>';
     }
 
-    // 소모품 리스트 (긴급한 순)
+    // 소모품: 기록이 있는 항목만 상태순(긴급한 순)으로 프로그레스와 함께 펼치고,
+    // 기록 없는 항목은 '기록 없는 항목 N개' 한 행으로 접는다 (같은 안내문이 십여 번 반복되던 것을 섹션 상단 한 줄로)
     var order = { overdue: 0, soon: 1, 'no-record': 2, 'no-data': 3, ok: 4, manual: 5 };
     var rows = car.enabledPartIds.map(partById).filter(Boolean).map(function (p) {
       return { part: p, st: D.partStatus(p, car, doc.records, doc.settings, today, monthlyKm) };
     });
-    rows.sort(function (a, b) {
+    var unrecorded = rows.filter(function (r) { return !r.st.lastRecord; }); // parts.json 순서 그대로
+    var recorded = rows.filter(function (r) { return r.st.lastRecord; });
+    recorded.sort(function (a, b) {
       var d = order[a.st.state] - order[b.st.state];
       if (d) return d;
       var ar = a.st.remainingDays != null ? a.st.remainingDays : (a.st.remainingKm != null ? a.st.remainingKm / 40 : 1e9);
@@ -552,10 +745,22 @@
       html += '<p class="notice">주행거리를 한 번 더 입력하면 km 주기 항목의 "약 N월경" 예측이 시작돼요.</p>';
     }
 
+    var hasRecords = doc.records.some(function (r) { return r.carId === car.id; });
+    var lead = !hasRecords ? '최근 교체한 것부터 기록해 보세요. 기록하면 다음 교체 시기를 계산해요.' :
+      (unrecorded.length ? '기록을 추가하면 교체 시기를 계산해요.' : '');
     html += '<p class="section-title">소모품 상태 (' + rows.length + ')</p>' +
-      '<div class="card" style="padding:4px 20px;"><ul class="part-list">' +
-      rows.map(function (r) { return partRow(r.part, r.st); }).join('') +
-      '</ul></div>' +
+      (lead ? '<p class="notice parts-lead">' + lead + '</p>' : '') +
+      '<div class="card list-card">' +
+      (recorded.length ? '<ul class="part-list">' +
+        recorded.map(function (r) { return partRow(r.part, r.st); }).join('') + '</ul>' : '') +
+      (unrecorded.length ?
+        '<details class="hub-group parts-more"' + (partsMoreOpen ? ' open' : '') + '>' +
+          '<summary class="hub-row"><span>기록 없는 항목 ' + unrecorded.length + '개</span>' +
+          '<span class="hub-right">' + CHEVRON_DOWN + '</span></summary>' +
+          '<ul class="part-list">' + unrecorded.map(function (r) { return unrecordedRow(r.part); }).join('') + '</ul>' +
+        '</details>' : '') +
+      (rows.length ? '' : '<p class="empty">추적 중인 항목이 없어요</p>') +
+      '</div>' +
       '<p class="notice">항목 켜고 끄기는 <button type="button" class="linklike" data-action="go-settings">설정</button>에서.</p>';
 
     return html;
@@ -642,11 +847,11 @@
     var out = '';
     if (insp.dDay < 0) {
       var p = data.inspection.penalty;
-      out += '<p class="notice" style="color:var(--danger);">검사 기간이 지났어요 — 과태료: 만료 후 30일 이내 ' +
+      out += '<p class="notice is-danger">검사 기간이 지났어요 — 과태료: 만료 후 30일 이내 ' +
         D.formatKrw(p.within30DaysKrw) + ', 이후 3일마다 ' + D.formatKrw(p.per3DaysAfterKrw) +
         ' 가산 (최대 ' + D.formatKrw(p.maxKrw) + ')</p>';
     } else if (insp.inWindow) {
-      out += '<p class="notice" style="color:var(--warning);">지금 검사 받을 수 있어요 (' +
+      out += '<p class="notice is-warn">지금 검사 받을 수 있어요 (' +
         fmtDate(insp.windowStart) + ' ~ ' + fmtDate(insp.windowEnd) + ')</p>';
     }
     if (insp.estimated) {
@@ -668,14 +873,31 @@
     return r == null ? null : Math.min(1, Math.max(0, r));
   }
 
+  // 교체·점검 주기 한 줄 ('10,000km마다 또는 12개월마다', 주기 없는 항목은 '떨어지면 보충'·'고장 시 교체')
+  function partCycleText(part) {
+    var meta = [];
+    if (part.intervalKm != null) meta.push(fmtKm(part.intervalKm) + '마다');
+    if (part.intervalMonths != null) meta.push(part.intervalMonths + '개월마다');
+    if (!meta.length) meta.push(part.type === 'refill' ? '떨어지면 보충' : '고장 시 교체');
+    return meta.join(' 또는 ');
+  }
+
+  // 접힌 '기록 없는 항목' 한 줄 — 누르면 기록 화면 (펼치기 + 이 행 = 2탭)
+  function unrecordedRow(part) {
+    return '<li><div class="part-row">' +
+      '<button type="button" class="part-row-main" data-action="open-part" data-id="' + part.id + '">' +
+      '<span class="part-main"><span class="part-name">' + esc(part.name) + '</span>' +
+      '<div class="part-sub">' + esc(partCycleText(part)) + '</div></span>' +
+      '</button></div></li>';
+  }
+
+  // 기록이 있는 소모품 한 줄 (기록 없는 항목은 unrecordedRow — 접힌 묶음 안)
   function partRow(part, st) {
     var sub;
-    if (st.state === 'no-record') {
-      sub = '기록을 추가하면 교체 시기를 계산해요';
-    } else if (st.state === 'no-data') {
+    if (st.state === 'no-data') {
       sub = '기록에 주행거리를 입력하면 교체 시기를 계산해요';
     } else if (st.state === 'manual') {
-      sub = st.lastRecord ? '마지막: ' + fmtDate(st.lastRecord.doneOn) : (part.type === 'refill' ? '떨어지면 보충 후 기록' : '필요할 때 기록');
+      sub = '마지막: ' + fmtDate(st.lastRecord.doneOn);
     } else {
       var lastTxt = '마지막 ' + fmtDate(st.lastRecord.doneOn) +
         (st.lastRecord.odometerKm != null ? ' · ' + fmtKm(st.lastRecord.odometerKm) : '');
@@ -704,6 +926,11 @@
     '</div></li>';
   }
 
+  // 데모의 하위 화면 안내 한 줄 (primary는 대시보드에만)
+  function demoNote() {
+    return demoMode ? '<p class="notice demo-note">' + DEMO_NOTE + '</p>' : '';
+  }
+
   // ----- 차 등록/수정 -----
 
   function renderCarForm() {
@@ -717,8 +944,8 @@
       firstRegisteredOn: pre.year ? pre.year + '-01-01' : null
     } : {});
     return '<div class="form-view">' +
-      (doc.cars.length ? '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' : '') +
-      '<h1>' + (isNew ? '내 차 등록' : '차 정보 수정') + '</h1>' +
+      '<button type="button" class="back-btn" data-action="go-back">← 돌아가기</button>' +
+      '<h1>' + (isNew ? '내 차 등록' : '차 정보 수정') + '</h1>' + demoNote() +
       '<form id="car-form">' +
       '<div class="field"><label for="f-model">차종명 *</label>' +
         '<input id="f-model" name="modelName" required placeholder="예: 아반떼 1.6" value="' + esc(c.modelName) + '" list="model-datalist" autocomplete="off">' +
@@ -812,13 +1039,11 @@
     car.updatedAt = now;
 
     persist();
-    if (state.prefill) {
-      // 프리필 등록 완료 — 주소의 파라미터 제거 (스펙: 등록 완료 후 replaceState)
-      state.prefill = null;
-      try { history.replaceState(null, '', location.pathname); } catch (e) { /* file:// 등 */ }
-    }
+    // 프리필 등록 완료 — 주소의 model·cc·fuel·year는 대시보드로 가며 지운다(routeUrl, 스펙: 등록 완료 후 replaceState).
+    // ?demo 등 다른 쿼리는 남긴다. 폼 기록은 남기지 않는다 — 뒤로가기가 빈 등록 폼으로 돌아가지 않게
+    state.prefill = null;
     toast(isNew ? '등록했어요' : '저장했어요');
-    go('dashboard', { carId: car.id });
+    returnToDashboard({ carId: car.id });
   }
 
   // ----- 소모품 상세 -----
@@ -832,10 +1057,6 @@
     var st = D.partStatus(part, car, doc.records, doc.settings, today, monthlyKm);
     var odo = D.latestOdometer(car);
 
-    var meta = [];
-    if (part.intervalKm != null) meta.push(fmtKm(part.intervalKm) + '마다');
-    if (part.intervalMonths != null) meta.push(part.intervalMonths + '개월마다');
-    if (!meta.length) meta.push(part.type === 'refill' ? '떨어지면 보충' : '고장 시 교체');
     var price = part.priceKrw ? '참고가 ' + D.formatKrw(part.priceKrw.min) + '~' + D.formatKrw(part.priceKrw.max) : '';
 
     var history = doc.records.filter(function (r) {
@@ -843,12 +1064,12 @@
     }).sort(function (a, b) { return a.doneOn < b.doneOn ? 1 : -1; });
 
     return '<div class="form-view">' +
-      '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' +
-      '<h1>' + esc(part.name) + ' <span class="badge ' + st.state + '">' + STATE_LABELS[st.state] + '</span></h1>' +
-      '<div class="card"><h2>주기</h2><div>' + meta.join(' 또는 ') + (price ? ' · ' + price : '') + '</div>' +
+      '<button type="button" class="back-btn" data-action="go-back">← 돌아가기</button>' +
+      '<h1>' + esc(part.name) + ' <span class="badge ' + st.state + '">' + STATE_LABELS[st.state] + '</span></h1>' + demoNote() +
+      '<div class="card"><h2>주기</h2><div>' + partCycleText(part) + (price ? ' · ' + price : '') + '</div>' +
         (part.note ? '<p class="notice">' + esc(part.note) + '</p>' : '') +
         ((st.dueDate || st.predictedDate) ?
-          '<button type="button" class="btn small secondary" style="margin-top:10px;" data-action="export-ics-part" data-id="' + part.id + '">캘린더에 추가</button>' : '') +
+          '<button type="button" class="btn small secondary mt-12" data-action="export-ics-part" data-id="' + part.id + '">캘린더에 추가</button>' : '') +
       '</div>' +
       affiliateSlot(part) +
       '<div class="card"><h2>기록 추가</h2>' +
@@ -974,8 +1195,8 @@
     var ms = D.monthSpend(entries, month);
 
     var html = '<div class="form-view">' +
-      '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' +
-      '<h1>' + (doc.cars.length > 1 ? esc(car.nickname || car.modelName) + ' 지출' : '지출') + '</h1>';
+      '<button type="button" class="back-btn" data-action="go-back">← 돌아가기</button>' +
+      '<h1>' + (doc.cars.length > 1 ? esc(car.nickname || car.modelName) + ' 지출' : '지출') + '</h1>' + demoNote();
 
     // 이번 달 합계 — 이 화면의 히어로 숫자 (DESIGN: 페이지당 1개)
     html += '<div class="card"><h2>' + monthLabel(month) + ' 지출</h2>' +
@@ -1244,8 +1465,8 @@
   function renderSettings() {
     var car = activeCar();
     var html = '<div class="form-view">' +
-      '<button type="button" class="back-btn" data-action="go-dashboard">← 돌아가기</button>' +
-      '<h1>설정</h1>';
+      '<button type="button" class="back-btn" data-action="go-back">← 돌아가기</button>' +
+      '<h1>설정</h1>' + demoNote();
 
     if (car) {
       var applicable = D.applicableParts(data.parts.parts, car.fuelType);
@@ -1273,14 +1494,15 @@
           '<input id="s-km" name="reminderLeadKm" type="number" min="1" value="' + doc.settings.reminderLeadKm + '"></div>' +
       '</div><button type="submit" class="btn secondary">알림 기준 저장</button></form></div>';
 
-    html += '<p class="section-title">데이터</p>' +
+    // 백업 버튼 묶음 → 안내 → (24px·헤어라인) 위험 버튼. 숨은 파일 입력은 맨 뒤 — 버튼 사이에 끼면 .btn + .btn 간격이 사라진다
+    html += '<p class="section-title" id="settings-data">데이터</p>' +
       '<div class="card">' +
         '<button type="button" class="btn secondary" data-action="export">JSON으로 내보내기 (백업)</button>' +
         '<button type="button" class="btn secondary" data-action="import">백업 가져오기</button>' +
-        '<input type="file" id="import-file" accept="application/json,.json" style="display:none">' +
-        '<button type="button" class="btn danger-outline" data-action="wipe">전체 데이터 삭제</button>' +
         '<p class="notice">기록은 이 브라우저에만 저장돼요. 기기를 바꾸거나 브라우저 데이터를 지우기 전에 꼭 백업해 두세요. ' +
         '일부 브라우저(아이폰 Safari 등)는 사이트를 오래 방문하지 않으면 저장 데이터를 자동 삭제할 수 있으니 주기적인 백업이 안전해요.</p>' +
+        '<div class="danger-zone"><button type="button" class="btn danger-outline" data-action="wipe">전체 데이터 삭제</button></div>' +
+        '<input type="file" id="import-file" accept="application/json,.json" hidden>' +
       '</div></div>';
     return html;
   }
@@ -1322,6 +1544,9 @@
       expForm.addEventListener('input', function (e) { e.target.removeAttribute('aria-invalid'); });
     }
 
+    var more = document.querySelector('.parts-more');
+    if (more) more.addEventListener('toggle', function () { partsMoreOpen = more.open; });
+
     var setForm = document.getElementById('settings-form');
     if (setForm) setForm.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -1334,6 +1559,13 @@
   }
 
   document.addEventListener('click', function (e) {
+    // 같은 페이지 링크는 새로 불러오지 않고 화면만 바꾼다: 워드마크·'수첩'(index.html 자신) → 대시보드(데모면 데모 그대로),
+    // 푸터 '설정·백업'(#settings) → 설정의 '데이터'. 새 탭 열기(수정키·가운데 버튼)는 브라우저에 맡긴다
+    var link = e.target.closest('a[href]');
+    if (link && doc && e.button === 0 && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) {
+      if (link.getAttribute('href') === '#settings') { e.preventDefault(); goSettings(true); return; }
+      if (isHomeLink(link)) { e.preventDefault(); goHome(); return; }
+    }
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     if (!doc) return; // 로딩 전·로드 실패 시 헤더·푸터의 정적 버튼 클릭 방어
@@ -1342,11 +1574,12 @@
     var car = activeCar();
 
     switch (action) {
-      case 'go-dashboard': go('dashboard'); break;
-      case 'go-settings': go('settings'); break;
+      case 'go-back': navBack(); break;
+      case 'go-settings': goSettings(false); break;
+      case 'go-backup': goSettings(true); break; // 백업 권유 카드 — '데이터' 카드로
       case 'new-car': go('car-form', { editingCarId: null }); break;
       case 'edit-car': go('car-form', { editingCarId: car && car.id }); break;
-      case 'switch-car': go('dashboard', { carId: id }); break;
+      case 'switch-car': go('dashboard', { carId: id }, 'replace'); break; // 차 전환은 기록을 늘리지 않는다
       case 'open-part': go('part', { partId: id }); break;
       case 'go-expenses': go('expenses'); break;
       // 대시보드 빠른 기록: 분류를 고른 채 지출 화면으로, 금액 칸에 바로 포커스
@@ -1372,10 +1605,10 @@
       case 'odo-form': {
         var slot = document.getElementById('odo-editor');
         var odo = D.latestOdometer(car);
-        slot.innerHTML = '<form id="odo-update" class="field-row" style="margin-top:10px;">' +
-          '<div class="field" style="margin:0;"><input name="km" type="number" inputmode="numeric" min="0" required ' +
-          'placeholder="현재 계기판 km" value="' + (odo ? odo.km : '') + '"></div>' +
-          '<button type="submit" class="btn small" style="align-self:stretch;">저장</button></form>';
+        slot.innerHTML = '<form id="odo-update" class="field-row odo-form">' +
+          '<div class="field"><input name="km" type="number" inputmode="numeric" min="0" required ' +
+          'aria-label="현재 주행거리(km)" placeholder="현재 계기판 km" value="' + (odo ? odo.km : '') + '"></div>' +
+          '<button type="submit" class="btn">저장</button></form>';
         var of = document.getElementById('odo-update');
         of.querySelector('input').focus();
         of.addEventListener('submit', function (ev) {
@@ -1444,7 +1677,7 @@
         // 마이그레이션 백업·손상 원본에 남은 이 차의 기록이 손상 복구로 되살아나지 않게
         if (!demoMode) S.clearBackups();
         toast('삭제했어요');
-        go('dashboard', { carId: null });
+        returnToDashboard({ carId: null });
         break;
       }
 
@@ -1486,7 +1719,7 @@
         // 본 문서뿐 아니라 마이그레이션 백업·손상 원본까지 이 앱의 저장 키 전부 (개인정보처리방침 '즉시·완전 삭제')
         if (!demoMode) S.wipeAll();
         doc = S.emptyDoc();
-        go('dashboard', { carId: null });
+        returnToDashboard({ carId: null });
         toast('모든 데이터를 삭제했어요');
         break;
       }
@@ -1504,7 +1737,7 @@
       persist();
       if (!demoMode) S.clearBackups(); // 덮어쓴 옛 데이터의 스냅샷이 손상 복구로 되살아나지 않게
       toast('가져왔어요');
-      go('dashboard', { carId: null });
+      returnToDashboard({ carId: null });
     };
     reader.readAsText(e.target.files[0]);
     e.target.value = '';
@@ -1557,11 +1790,32 @@
   window.addEventListener('storage', function (e) {
     if (e.key === S.KEY && !demoMode && doc) {
       doc = S.load();
+      // 다른 탭에서 지운 차·소모품을 보고(고치고) 있었으면 대시보드로 — 주소도 함께
+      var editingGone = state.editingCarId && !carById(state.editingCarId);
+      if (editingGone || !routeValid({ view: state.view, partId: state.partId, edit: !!state.editingCarId })) {
+        applyRoute({ view: 'dashboard' });
+        writeHistory('replace');
+      }
       render();
     }
   });
 
+  // 불러오는 동안 소개가 보였다가 사라지지 않게 — 데모·프리필·하위 화면 주소이거나 저장된 차가 있으면 미리 숨긴다
+  // (확정은 render. 여기서는 짐작만 — 틀려도 render가 바로잡는다)
+  function preHideIntro() {
+    if (!$intro) return;
+    var hide = /[?&](demo=1|model=|cc=)/.test(location.search) || parseRoute(location.hash).view !== 'dashboard';
+    if (!hide) {
+      try {
+        var saved = JSON.parse(localStorage.getItem(S.KEY) || 'null');
+        hide = !!(saved && saved.cars && saved.cars.length);
+      } catch (e) { /* 저장소를 못 읽으면 그대로 둔다 */ }
+    }
+    if (hide) $intro.hidden = true;
+  }
+
   function init() {
+    preHideIntro();
     // 연납 신청 기간(tax-rates.json)은 .ics 날짜에만 쓰는 선택 데이터 — 못 읽어도 수첩은 연다(폴백 날짜)
     var taxRates = fetch('data/tax-rates.json').then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; });
@@ -1590,29 +1844,29 @@
           navigator.storage.persist().catch(function () {});
         }
       }
+      // 처음 열 화면: 주소의 hash (index.html#settings 새로고침·직접 링크). hash가 없으면 첫 방문도 대시보드(hero 온보딩)로 —
+      // 가치 제안 없이 폼에 착지시키지 않는다
+      var rt = parseRoute(location.hash);
+      var hs = history.state;
+      if (ownEntry(hs) && hs.carId && carById(hs.carId)) state.carId = hs.carId; // 새로고침 — 보던 차 그대로
       // 세금 페이지에서 온 프리필 파라미터 (TASKS #2)
-      var qs = new URLSearchParams(location.search);
-      if (!demoMode && (qs.get('model') || qs.get('cc'))) {
-        var slug = qs.get('model');
-        var pv = slug ? data.vehicles.filter(function (v) { return v.slug === slug; })[0] : null;
-        var prefill = {
-          modelName: pv ? pv.name : (slug || ''),
-          fuelType: qs.get('fuel') || (pv ? pv.fuelType : null) || 'gasoline',
-          displacementCc: numOrNull(qs.get('cc')) || (pv ? pv.displacementCc : null),
-          year: /^\d{4}$/.test(qs.get('year') || '') ? qs.get('year') : null
-        };
+      var prefill = prefillFromQuery();
+      if (prefill) {
         if (!doc.cars.length || confirm('이미 등록된 차가 있어요. 이 차를 새로 추가 등록할까요?')) {
           state.prefill = prefill;
-          state.view = 'car-form';
-          state.editingCarId = null;
-          render();
-          return;
+          rt = { view: 'car-form', edit: false };
+        } else {
+          // 추가 등록 안 함 — 프리필 쿼리만 지우고(?demo 등 다른 쿼리와 hash는 그대로) 주소의 화면으로
+          try { history.replaceState(hs, '', routeUrl(location.hash.replace(/^#/, ''))); } catch (e) { /* 무시 */ }
         }
-        try { history.replaceState(null, '', location.pathname); } catch (e) { /* 무시 */ }
       }
-
-      // 첫 방문도 대시보드(hero 온보딩)로 — 가치 제안 없이 폼에 착지시키지 않는다
-      state.view = 'dashboard';
+      applyRoute(rt);
+      // 이 기록에 표시를 단다 (새로고침이면 바로 앞 기록 정보도 유지). 열 수 없는 화면 주소는 대시보드 주소로 고쳐진다
+      try {
+        history.replaceState({ r: routeOf(), carId: state.carId || null,
+          back: ownEntry(hs) && hs.r === routeOf() ? hs.back : null }, '', routeUrl(routeOf()));
+      } catch (e) { /* file:// 등 */ }
+      shownRoute = routeOf() + '|' + (state.carId || null);
       render();
       if (/[?&]debug=1/.test(location.search)) {
         var wide = [];
