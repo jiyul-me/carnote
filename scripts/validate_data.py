@@ -32,6 +32,7 @@ VEHICLE_CLASSES = ("passenger", "van", "truck")
 STATUSES = ("active", "sample")
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9.-]*$")
 RESERVED_SLUGS = ("index", "calculator")  # tax/index.html·tax/calculator.html을 덮어쓴다
+RESERVED_PREFIX = "guide"  # tax/guide.html·tax/guide-*.html은 자동차세 가이드 글 (scripts/guides.py)
 
 # site.json adsense·contactEmail — 형식 검사용. 광고 자리 이름은 두 갈래로 고정이다:
 #  BUILD_SLOT_NAMES  build.py가 생성 페이지 템플릿에 채우는 자리(차종·허브·계산기)
@@ -234,6 +235,9 @@ def check_vehicles(data, text, rates, report):
                     "예: avante-1.6 / 대문자·공백·한글·밑줄(_)을 빼세요.")
             elif slug in RESERVED_SLUGS:
                 err("이 slug는 tax/{}.html(허브·계산기)을 덮어써요.".format(slug), "다른 slug를 쓰세요.")
+            elif slug == RESERVED_PREFIX or slug.startswith(RESERVED_PREFIX + "-"):
+                err("'{}'로 시작하는 slug는 자동차세 가이드 글 주소(tax/{}.html)와 겹칠 수 있어요.".format(RESERVED_PREFIX, slug),
+                    "차종 이름으로 시작하는 다른 slug를 쓰세요.")
             if slug in first_slug:
                 err("slug가 {}번째 항목과 겹쳐요 ({}) — 한 페이지가 다른 차종 페이지를 덮어써요.".format(first_slug[slug], slug),
                     "배기량이 다르면 새 slug를 쓰세요. 같은 모델·배기량의 세대 교체라면 기존 항목의 modelYearTo를 닫고 새 항목을 만들지 마세요.")
