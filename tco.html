@@ -49,8 +49,9 @@
         <div class="field"><label for="common-years">보유 예정(년)</label>
           <input id="common-years" type="number" min="1" max="15" value="5" inputmode="numeric"></div>
       </div>
-      <div class="field-row" id="fuel-prices"></div>
-      <p class="notice">연료 단가는 직접 수정할 수 있어요 (실시간 시세를 쓰지 않아요).</p>
+      <!-- 연료 단가 칸이 5개라 한 줄 flex면 375px에서 숫자가 잘린다 — 칸 폭이 모자라면 다음 줄로 -->
+      <div id="fuel-prices" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:0 12px;"></div>
+      <p class="notice">연료 단가는 직접 수정할 수 있어요 (실시간 시세를 쓰지 않아요). <span id="fuel-price-basis"></span></p>
     </div>
 
     <h2>월 유지비 비교</h2>

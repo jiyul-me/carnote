@@ -174,6 +174,16 @@
 
   // ---------- 검사 D-day (data/inspection.json) ----------
 
+  /* 이 차에 inspection.json의 검사 주기(비사업용 승용: 최초 4년, 이후 2년)를 적용해도 되는지.
+   * vehicle = car.vehicleId로 찾은 vehicles.json 항목. 없으면(차종 미매칭) 지금까지처럼 승용으로 본다.
+   * vehicleClass가 없거나 'passenger'면 승용. 화물('truck')·승합('van') 등은 검사 주기가 차종·용도마다 달라
+   * 승용 규칙으로 날짜를 만들지 않는다(D-day·캘린더 일정 없음) — 화면은 등록증·검사 안내문을 확인하라고 안내한다 */
+  function passengerInspectionApplies(vehicle) {
+    if (!vehicle) return true;
+    var cls = vehicle.vehicleClass;
+    return cls == null || cls === 'passenger';
+  }
+
   /* 만료일 추정: 최근 검사일이 있으면 +intervalYears, 없으면 최초등록일 +firstInspectionAfterYears.
    * 과거로 밀린 만료일은 intervalYears씩 굴려 현재에 가장 가까운 회차를 잡는다
    * (기록이 없어도 과거 검사는 받았다고 가정 — UI에 '최근 검사일을 입력하면 정확해져요' 안내).
@@ -226,7 +236,287 @@
     return { count: count, costKrw: cost };
   }
 
+  // ---------- 지출 (정비 비용 + 주유·충전 + 기타 지출) ----------
+  // 월은 'YYYY-MM' 문자열 키. 날짜는 전부 로컬 날짜 문자열이라 시간대 변환이 끼지 않는다
+
+  function monthKey(iso) { return iso ? iso.slice(0, 7) : null; }
+
+  // 'YYYY-MM' ± n개월
+  function addMonthKey(month, n) { return addMonths(month + '-01', n).slice(0, 7); }
+
+  // 주유 1건의 금액: 총액 우선, 없으면 주유량 × 단가 (스키마: 둘 중 하나만 입력해도 됨). 둘 다 없으면 null
+  function fuelLogCost(l) {
+    if (l.totalKrw != null) return l.totalKrw;
+    if (l.amount != null && l.unitPriceKrw != null) return Math.round(l.amount * l.unitPriceKrw);
+    return null;
+  }
+
+  // 주유량: 입력값 우선, 없으면 총액 ÷ 단가 ('5만원어치'처럼 금액만 적은 주유도 실연비 구간에 합산되게)
+  function fuelLogAmount(l) {
+    if (l.amount != null) return l.amount;
+    if (l.totalKrw != null && l.unitPriceKrw) return l.totalKrw / l.unitPriceKrw;
+    return null;
+  }
+
+  function byDateDesc(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.createdAt < b.createdAt ? 1 : (a.createdAt > b.createdAt ? -1 : 0);
+  }
+
+  /* 차 한 대의 지출을 한 목록으로: 정비(비용 입력분만) + 주유·충전 + 기타 지출.
+   * kind: 'maintenance' | 'fuel' | 'expense' (원본 배열 구분 — 삭제 경로가 다르다)
+   * category: 정비='maintenance', 주유='fuel', 그 외는 Expense.category (data/expense-categories.json의 id)
+   * amountKrw: 금액을 모르는 주유는 null (건수에는 들어가고 합계에서는 빠진다)
+   * 최근순: 날짜 내림차순, 같은 날은 나중에 입력한 것 먼저 */
+  function spendEntries(carId, records, fuelLogs, expenses) {
+    var out = [];
+    (records || []).forEach(function (r) {
+      if (r.carId !== carId || !r.doneOn || r.costKrw == null) return;
+      out.push({ kind: 'maintenance', category: 'maintenance', id: r.id, date: r.doneOn,
+        amountKrw: r.costKrw, createdAt: r.createdAt || '', source: r });
+    });
+    (fuelLogs || []).forEach(function (l) {
+      if (l.carId !== carId || !l.filledOn) return;
+      out.push({ kind: 'fuel', category: 'fuel', id: l.id, date: l.filledOn,
+        amountKrw: fuelLogCost(l), createdAt: l.createdAt || '', source: l });
+    });
+    (expenses || []).forEach(function (e) {
+      if (e.carId !== carId || !e.spentOn) return;
+      out.push({ kind: 'expense', category: e.category, id: e.id, date: e.spentOn,
+        amountKrw: e.amountKrw, createdAt: e.createdAt || '', source: e });
+    });
+    return out.sort(byDateDesc);
+  }
+
+  // 한 달 합계: {totalKrw, count, byCategory: [{category, totalKrw, count}] — 금액 큰 순}
+  function monthSpend(entries, month) {
+    var total = 0;
+    var count = 0;
+    var cats = Object.create(null); // 분류 id가 '__proto__'여도 안전하게
+    var order = [];
+    (entries || []).forEach(function (e) {
+      if (monthKey(e.date) !== month) return;
+      count += 1;
+      var k = e.category == null ? '' : String(e.category);
+      if (!(k in cats)) {
+        cats[k] = { category: e.category, totalKrw: 0, count: 0 };
+        order.push(k);
+      }
+      cats[k].count += 1;
+      if (e.amountKrw != null) {
+        cats[k].totalKrw += e.amountKrw;
+        total += e.amountKrw;
+      }
+    });
+    var byCategory = order.map(function (k) { return cats[k]; });
+    byCategory.sort(function (a, b) { return b.totalKrw - a.totalKrw; });
+    return { totalKrw: total, count: count, byCategory: byCategory };
+  }
+
+  // 최근 n개월 시계열 (오래된 달 → endMonth 순): [{month, totalKrw, count}]
+  function spendSeries(entries, endMonth, n) {
+    var out = [];
+    for (var k = n - 1; k >= 0; k--) {
+      var m = addMonthKey(endMonth, -k);
+      var s = monthSpend(entries, m);
+      out.push({ month: m, totalKrw: s.totalKrw, count: s.count });
+    }
+    return out;
+  }
+
+  /* 월평균: endMonth(진행 중인 이번 달)는 빼고 직전 n개월의 완결된 달만 평균.
+   * 기록을 시작하기 전 달(첫 기록 달 이전)은 0원으로 치지 않고 제외한다 — 막 시작한 사용자의 평균이 낮게 나오지 않게.
+   * 첫 기록 달 이후 기록이 없는 달은 0원으로 포함. 완결된 달이 하나도 없으면 null */
+  function monthlyAverageSpend(entries, endMonth, n) {
+    var first = null;
+    (entries || []).forEach(function (e) {
+      var m = monthKey(e.date);
+      if (m && (first == null || m < first)) first = m;
+    });
+    if (first == null) return null;
+    var sum = 0;
+    var months = 0;
+    for (var k = 1; k <= n; k++) {
+      var m = addMonthKey(endMonth, -k);
+      if (m < first) break;
+      sum += monthSpend(entries, m).totalKrw;
+      months += 1;
+    }
+    return months ? Math.round(sum / months) : null;
+  }
+
+  // ---------- 에너지원 (주유·충전 단위) ----------
+  // 과세 구분(fuelType)과 실제 넣는 에너지는 다를 수 있다 — 수소차(넥쏘)는 세법상 'ev'지만 수소를 kg 단위로 충전한다.
+  // vehicles.json 항목의 energySource가 있으면 그것, 없으면 fuelType에서 유도
+  var ENERGY_BY_FUEL = { gasoline: 'gasoline', diesel: 'diesel', lpg: 'lpg', hybrid: 'gasoline', ev: 'electricity' };
+  var UNIT_BY_ENERGY = { electricity: 'kWh', hydrogen: 'kg' }; // 그 외(휘발유·경유·LPG)는 L
+
+  function energySource(vehicle, fuelType) {
+    if (vehicle && typeof vehicle.energySource === 'string' && vehicle.energySource) return vehicle.energySource;
+    return ENERGY_BY_FUEL[fuelType] || 'gasoline';
+  }
+
+  function energyUnit(source) { return UNIT_BY_ENERGY[source] || 'L'; }
+
+  // 같은 날짜는 입력 순서(createdAt)대로
+  function sortedFuelLogs(fuelLogs, carId) {
+    var logs = (fuelLogs || []).filter(function (l) { return l.carId === carId && l.filledOn; });
+    logs.sort(function (a, b) {
+      if (a.filledOn !== b.filledOn) return a.filledOn < b.filledOn ? -1 : 1;
+      var ac = a.createdAt || '';
+      var bc = b.createdAt || '';
+      return ac < bc ? -1 : (ac > bc ? 1 : 0);
+    });
+    return logs;
+  }
+
+  // 구간 주유량 누적: 단위가 하나로 모이고 양을 다 알 때만 유효
+  function newAcc() { return { amount: 0, ok: true, unit: null }; }
+  function addToAcc(acc, l) {
+    var a = fuelLogAmount(l);
+    if (a == null) acc.ok = false;
+    else acc.amount += a;
+    if (acc.unit == null) acc.unit = l.unit;
+    else if (acc.unit !== l.unit) acc.ok = false;
+  }
+  function joinAcc(a, b) {
+    return {
+      amount: a.amount + b.amount,
+      ok: a.ok && b.ok && (a.unit == null || b.unit == null || a.unit === b.unit),
+      unit: a.unit != null ? a.unit : b.unit
+    };
+  }
+
+  /* 실연비 (가득 주유 full-to-full, docs/storage-schema.md 파생 규칙)
+   * - 끝점: 주행거리가 있는 가득 주유. 연속한 두 끝점 사이 구간의 실연비 =
+   *   (뒤 끝점 km − 앞 끝점 km) ÷ (앞 끝점 다음 주유부터 뒤 끝점까지 넣은 양의 합)
+   * - 구간 안의 부분 주유·주행거리 없는 가득 주유는 끝점이 못 될 뿐 양은 합산된다
+   * - 양을 알 수 없는 주유(주유량·단가 모두 없음)나 단위(L·kWh·kg)가 다른 주유가 낀 구간은 제외
+   * - 주행거리가 기준점보다 줄어든 가득 주유(자릿수 오타 등)는 구간도 기준점도 되지 못한다. 양은 다음 구간에 합산.
+   *   · 다음 끝점이 기준점보다 크면 그 줄어든 값은 오타 — 기준점에서 다음 끝점까지 한 구간으로 잰다
+   *   · 다음 끝점도 기준점보다 작지만 줄어든 값보다는 크면 계기판 교체 등 새 출발 — 줄어든 값부터 잰다
+   *   · 다음 끝점이 기준점보다 작아도 그 앞 기준점보다 크면 기준점 쪽이 튄 값(자릿수가 붙은 오타 등) —
+   *     앞 기준점→기준점 구간을 버리고 앞 기준점부터 다음 끝점까지 한 구간으로 다시 잰다
+   * - 같은 주행거리로 다시 기록한 가득 주유(중복 저장·추가 주유)는 구간 없이 기준점만 옮긴다
+   * - 합산 실연비 = 유효 구간 거리 합 ÷ 양 합. 단위가 섞였으면 가장 최근 유효 구간의 단위로만 집계
+   * 반환: null(유효 구간 없음) | {kmPerUnit, unit, distanceKm, amount, intervals, latestKmPerUnit} */
+  function fuelEconomy(fuelLogs, carId) {
+    var segs = [];        // 잰 구간 {dist, amount, unit} — null이면 양·단위 문제로 무효(자리만 차지)
+    var anchor = null;    // 지금 기준 끝점
+    var acc = null;       // anchor 다음 주유부터 지금까지의 양
+    var back = null;      // anchor 직전 기준점과 그 구간 {anchor, acc, seg(segs 안의 위치)} — 튄 값 판정용
+    var low = null;       // anchor보다 작은 끝점 {log, acc(그 다음부터의 양)} — 오타·계기판 교체 판정용
+
+    function measure(from, to, a) {
+      var dist = to.odometerKm - from.odometerKm;
+      var ok = a.ok && a.amount > 0 && a.unit === from.unit && dist > 0;
+      segs.push(ok ? { dist: dist, amount: a.amount, unit: a.unit } : null);
+      return segs.length - 1;
+    }
+    function moveTo(l, prevAnchor, prevAcc, segIdx) {
+      back = prevAnchor ? { anchor: prevAnchor, acc: prevAcc, seg: segIdx } : null;
+      anchor = l;
+      acc = newAcc();
+      low = null;
+    }
+
+    sortedFuelLogs(fuelLogs, carId).forEach(function (l) {
+      if (anchor) addToAcc(acc, l);
+      if (low) addToAcc(low.acc, l);
+      if (!l.isFullTank || l.odometerKm == null) return;
+      if (!anchor) { moveTo(l, null); return; }
+      var km = l.odometerKm;
+      if (km > anchor.odometerKm) {
+        moveTo(l, anchor, acc, measure(anchor, l, acc));
+      } else if (km === anchor.odometerKm) {
+        anchor = l; // 같은 주행거리 — 기준점만 옮긴다 (그 사이 양은 버림)
+        acc = newAcc();
+        low = null;
+      } else if (back && km > back.anchor.odometerKm) {
+        segs[back.seg] = null; // anchor가 튄 값 — 그 구간 무효, 앞 기준점부터 다시
+        var merged = joinAcc(back.acc, acc);
+        var from = back.anchor;
+        moveTo(l, from, merged, measure(from, l, merged));
+      } else if (low && km > low.log.odometerKm) {
+        var lowLog = low.log;
+        var lowAcc = low.acc;
+        moveTo(l, lowLog, lowAcc, measure(lowLog, l, lowAcc)); // 줄어든 값이 이어짐 — 새 출발
+      } else {
+        low = { log: l, acc: newAcc() }; // 판정 보류 (양은 anchor 구간에 계속 합산)
+      }
+    });
+
+    var per = {};
+    var latest = null;
+    segs.forEach(function (s) {
+      if (!s) return;
+      var u = per[s.unit] || (per[s.unit] = { distanceKm: 0, amount: 0, intervals: 0 });
+      u.distanceKm += s.dist;
+      u.amount += s.amount;
+      u.intervals += 1;
+      latest = { unit: s.unit, kmPerUnit: s.dist / s.amount };
+    });
+    if (!latest) return null;
+    var t = per[latest.unit];
+    return {
+      kmPerUnit: t.distanceKm / t.amount,
+      unit: latest.unit,
+      distanceKm: t.distanceKm,
+      amount: t.amount,
+      intervals: t.intervals,
+      latestKmPerUnit: latest.kmPerUnit
+    };
+  }
+
+  /* 실연비가 없을 때(fuelEconomy가 null) 무엇이 모자란지 — 안내 문구를 실제 조건에 맞추기 위함
+   *  'endpoints' 주행거리를 적은 가득 주유가 2번 미만
+   *  'amount'    끝점은 2번 이상인데 그 사이 주유 중 양을 알 수 없는 것(금액만 적음)이 있음
+   *  'other'     그 밖(단위가 섞임, 주행거리가 늘지 않음 등) */
+  function fuelEconomyGap(fuelLogs, carId) {
+    var logs = sortedFuelLogs(fuelLogs, carId);
+    var first = -1;
+    var last = -1;
+    logs.forEach(function (l, i) {
+      if (l.isFullTank && l.odometerKm != null) {
+        if (first === -1) first = i;
+        last = i;
+      }
+    });
+    if (first === last) return 'endpoints'; // 끝점 0~1개
+    // 첫 끝점 다음부터 마지막 끝점까지(구간에 들어가는 주유) 중 양을 모르는 것
+    for (var i = first + 1; i <= last; i++) {
+      if (fuelLogAmount(logs[i]) == null) return 'amount';
+    }
+    return 'other';
+  }
+
+  // ---------- 입력 정규화 ----------
+  // 금액: '50,000' · '50000원' · '5만' · '5.5만' 허용. 'abc'·'1e3'·음수는 null (parseInt의 '1e3'→1 오파싱 방지)
+  function parseKrwInput(v) {
+    var s = String(v == null ? '' : v).replace(/[\s,]/g, '').replace(/원$/, '');
+    var m = /^(\d+(?:\.\d+)?)(만)?$/.exec(s);
+    if (!m) return null;
+    return Math.round(Number(m[1]) * (m[2] ? 10000 : 1));
+  }
+
+  // 소수 허용 수치(주유량 L·kWh, 전기 단가 347.2원 등): 소수 둘째 자리까지. 쉼표는 천 단위 구분으로 보고 제거
+  function parseDecimalInput(v) {
+    var s = String(v == null ? '' : v).replace(/[\s,]/g, '');
+    if (!/^\d+(\.\d+)?$/.test(s)) return null;
+    return Math.round(Number(s) * 100) / 100;
+  }
+
   // ---------- 포맷 ----------
+
+  // 좁은 자리(막대 그래프 라벨)용 짧은 금액: 9,800 / 12.3만 / 123만 / 1.2억
+  function formatKrwShort(n) {
+    if (n == null) return '';
+    if (n < 10000) return n.toLocaleString('ko-KR');
+    var man = n / 10000;
+    if (man < 100) return String(Math.round(man * 10) / 10) + '만';
+    if (Math.round(man) < 10000) return Math.round(man).toLocaleString('ko-KR') + '만'; // 9,999.5만은 아래 억으로
+    return String(Math.round(n / 10000000) / 10) + '억';
+  }
 
   function formatKrw(n) {
     if (n == null) return '';
@@ -253,8 +543,15 @@
     latestOdometer: latestOdometer, monthlyKmEstimate: monthlyKmEstimate,
     lastRecordFor: lastRecordFor, partStatus: partStatus,
     defaultEnabledPartIds: defaultEnabledPartIds, applicableParts: applicableParts,
+    passengerInspectionApplies: passengerInspectionApplies,
     inspectionStatus: inspectionStatus, insuranceStatus: insuranceStatus,
     yearlySpend: yearlySpend,
-    formatKrw: formatKrw, formatDday: formatDday
+    monthKey: monthKey, addMonthKey: addMonthKey,
+    fuelLogCost: fuelLogCost, fuelLogAmount: fuelLogAmount,
+    spendEntries: spendEntries, monthSpend: monthSpend, spendSeries: spendSeries,
+    monthlyAverageSpend: monthlyAverageSpend, fuelEconomy: fuelEconomy, fuelEconomyGap: fuelEconomyGap,
+    energySource: energySource, energyUnit: energyUnit,
+    parseKrwInput: parseKrwInput, parseDecimalInput: parseDecimalInput,
+    formatKrw: formatKrw, formatKrwShort: formatKrwShort, formatDday: formatDday
   };
 })(typeof window !== 'undefined' ? window : globalThis);
