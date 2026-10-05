@@ -1020,7 +1020,7 @@ def related_block(v, cat, rates, this_year):
 def guide_links_line(v):
     """차종 페이지 '관련 차종' 끝 — 이 차에 맞는 가이드 글 링크. 광고 자리('계산 방법' 뒤)에서 먼 이 블록 끝에 둔다."""
     if v.get("vehicleClass", "passenger") != "passenger":
-        picks = ("guide-prepay",)
+        picks = ("guide-truck-van", "guide-prepay")
     elif v["fuelType"] == "ev":
         picks = ("guide-ev", "guide-prepay")
     else:
@@ -1850,8 +1850,9 @@ def guide_index_page(site, og=None):
 {guide_rows()}
 <p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.</p>
 {breadcrumb_ld(site, parts, GUIDE_INDEX)}"""
-    title = f"자동차세 가이드 — 연납·차령 경감·전기차 세금 | {site['siteName']}"
-    desc = "자동차세 연납으로 아끼는 법, 해마다 세금이 줄어드는 차령 경감, 전기·수소차가 정액인 이유를 쉬운 말로 정리했어요."
+    title = f"자동차세 가이드 — 연납·납부 기한·차령 경감·중고차 | {site['siteName']}"
+    desc = ("자동차세 연납으로 아끼는 법, 납부 기한과 가산세, 해마다 줄어드는 차령 경감, 중고차 정산, "
+            "전기·수소차와 화물·승합차 세금을 쉬운 말로 정리했어요.")
     return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{GUIDE_INDEX}"), og=og,
                 head_extra=adsense_head(site))
 
@@ -1931,7 +1932,7 @@ def build_images(renderer, vehicles, rates, this_year):
         add(g["slug"], f"og/guide/{g['slug']}.png",
             page_og_spec(g["og_title"], g["og_lede"], f"{this_year}년 세율 기준 · 자동차세 가이드"))
     add("guide-index", "og/guide/index.png",
-        page_og_spec("자동차세 가이드", "연납 · 차령 경감 · 전기·수소차 세금", f"{this_year}년 세율 기준"))
+        page_og_spec("자동차세 가이드", "연납 · 납부 기한 · 차령 경감 · 중고차", f"{this_year}년 세율 기준"))
     renderer.prune("og/guide", {f"{g['slug']}.png" for g in guides.GUIDES} | {"index.png"})
     renderer.report()
     return og
