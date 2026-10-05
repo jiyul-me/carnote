@@ -8,7 +8,8 @@
 출력:    tax/<slug>.html, tax/index.html, sitemap.xml(site.json에 baseUrl 있을 때만),
          og/*.png 공유 썸네일 · icons/*.png · favicon.ico (Pillow 필요 — scripts/images.py),
          ads.txt(site.json adsense.publisherId가 있을 때만 — 비면 지운다),
-         손으로 쓴 루트 *.html의 마커 구간(<!-- adsense:head -->·<!-- adsense:slot 이름 -->·<!-- site:contact -->)
+         손으로 쓴 루트 *.html의 마커 구간(<!-- adsense:head -->·<!-- adsense:slot 이름 -->·<!-- site:contact -->),
+         자동차세 가이드 tax/guide.html·tax/guide-*.html (글 내용은 scripts/guides.py)
 """
 import sys
 import json
@@ -20,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import images  # noqa: E402
+import guides  # noqa: E402  — 자동차세 가이드 글 (scripts/guides.py)
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "tax"
@@ -626,14 +628,15 @@ def footer_links(prefix):
             f'<a href="{prefix}terms.html">이용약관</a></p>')
 
 
-def page(site, title, description, body, css_prefix="../", canonical=None, og=None, active="tax", head_extra=""):
+def page(site, title, description, body, css_prefix="../", canonical=None, og=None, active="tax", head_extra="",
+         og_type="website"):
     """생성 페이지 공통 틀. active = 상단 내비에서 현재 위치('tax' — 세금·허브·계산기 페이지).
     head_extra = head 끝에 넣을 태그(애드센스 소유 확인 메타·광고 스크립트 — adsense_head)."""
     canonical_tag = ""
     if canonical:
         canonical_tag = (
             f'<link rel="canonical" href="{esc(canonical)}">\n  '
-            f'<meta property="og:type" content="website">\n  '
+            f'<meta property="og:type" content="{og_type}">\n  '
             f'<meta property="og:site_name" content="{esc(site["siteName"])}">\n  '
             f'<meta property="og:title" content="{esc(title)}">\n  '
             f'<meta property="og:description" content="{esc(description)}">\n  '
@@ -1010,7 +1013,21 @@ def related_block(v, cat, rates, this_year):
     else:
         out.append('<p class="related-calc">승용차 자동차세는 '
                    '<a href="calculator.html">자동차세 계산기</a>에서 배기량으로 계산할 수 있어요.</p>')
+    out.append(guide_links_line(v))
     return "\n".join(out)
+
+
+def guide_links_line(v):
+    """차종 페이지 '관련 차종' 끝 — 이 차에 맞는 가이드 글 링크. 광고 자리('계산 방법' 뒤)에서 먼 이 블록 끝에 둔다."""
+    if v.get("vehicleClass", "passenger") != "passenger":
+        picks = ("guide-prepay",)
+    elif v["fuelType"] == "ev":
+        picks = ("guide-ev", "guide-prepay")
+    else:
+        picks = ("guide-aging", "guide-prepay")
+    by = {g["slug"]: g for g in guides.GUIDES}
+    links = " · ".join(f'<a href="{s}.html">{esc(by[s]["short"])}</a>' for s in picks)
+    return f'<p class="related-calc">가이드: {links} · <a href="{GUIDE_INDEX}">전체 보기</a></p>'
 
 
 def spec_box(v, site):
@@ -1367,7 +1384,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 {notebook_cta(v)}
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {at["start"]}년차부터 (차령 − {at["start"] - 1}) × {at["per"]}% 경감(최대 {at["max"]}%) → 지방교육세 {at["edu"]}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 {prepay_months_label(rates)}의 {d_prepay["rate"]*100:.0f}%를 공제받아요{basis_paren}. 공제액은 날짜로 나눠 연세액 × {d_prepay["days"]}/{d_prepay["yearDays"]}({prepay_period_label(rates, this_year)} 일수 ÷ 그 해 일수) × {d_prepay["rate"]*100:.0f}%로 계산하고 10원 미만은 버려요.</p>
-<p>차령은 대략 올해 − 등록 연도 + 1로 계산해요.</p>
+<p>차령은 보통 올해 − 최초 등록 연도 + 1이에요. 7~12월에 처음 등록한 차는 6월에 내는 상반기분만 차령을 1년 적게 세서, 그해 세금이 표보다 조금 많을 수 있어요.</p>
 {ad_slot(site, "taxArticle")}
 {faq_section(faqs)}
 {related_block(v, cat, rates, this_year)}
@@ -1572,7 +1589,7 @@ def calculator_page(rates, site, this_year, og=None):
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
 <tr><td>전기차·수소전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
 <p>본세는 배기량 × cc당 세액이에요. 여기에 지방교육세 {at["edu"]}%가 붙고, {at["start"]}년차부터 차령 경감(연 {at["per"]}%p, 최대 {at["max"]}%)이 적용돼요.
-  내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서 볼 수 있어요.</p>
+  내 차종의 연식별 표는 <a href="index.html">차종별 페이지</a>에서, 차령 경감 계산법은 <a href="guide-aging.html">차령 경감 가이드</a>에서 볼 수 있어요.</p>
 {sources_block(rates, this_year)}
 {ad_slot(site, "calcEnd")}
 {CALC_SCRIPT.replace("__THIS_YEAR__", str(this_year)).replace("__MAX_AGE__", str(TABLE_MAX_AGE))}"""
@@ -1714,6 +1731,8 @@ def index_page(cat, rates, site, this_year, og=None):
 <div class="brand-chips" role="navigation" aria-label="브랜드 바로가기">{"".join(chips)}</div>
 {"".join(sections)}
 <p class="hub-more">찾는 차종이 없나요? <a href="calculator.html">자동차세 계산기</a>에서 배기량만 넣으면 바로 계산할 수 있어요.</p>
+<h2>자동차세 가이드</h2>
+{guide_rows()}
 <h2>자동차세 계산 원리</h2>
 <div class="table-wrap"><table class="data"><thead><tr><th>배기량 구간</th><th>cc당 세액</th></tr></thead><tbody>{bracket_rows}
 <tr><td>전기차·수소전기차</td><td>연 {won(d["ev"]["annualTotalKrw"])} 고정</td></tr></tbody></table></div>
@@ -1726,6 +1745,115 @@ def index_page(cat, rates, site, this_year, og=None):
     desc = "아반떼·그랜저·쏘렌토 등 인기 차종의 자동차세를 연식별로 계산. cc당 세율, 차령 경감, 연납 할인까지."
     return page(site, title, desc, body, canonical=page_canonical(site, "tax/index.html"), og=og,
                 head_extra=adsense_head(site, ("hubEnd",)))
+
+
+# ---------- 자동차세 가이드 (글 내용·숫자는 scripts/guides.py, 틀·구조화 데이터는 여기) ----------
+GUIDE_INDEX = f"{guides.INDEX_SLUG}.html"
+CHEVRON_RIGHT = ('<svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
+                 '<path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" '
+                 'stroke-linejoin="round"/></svg>')
+
+
+def guide_rows(exclude=None):
+    """가이드 목록 행 (목록 행 컴포넌트 — 수첩 홈 '도구' 목록과 같은 모양)."""
+    rows = "".join(
+        f'<li><a class="hub-row" href="{g["slug"]}.html"><span class="tool-text"><span>{esc(g["short"])}</span>'
+        f'<span class="spec-label">{esc(g["summary"])}</span></span>{CHEVRON_RIGHT}</a></li>'
+        for g in guides.GUIDES if g["slug"] != exclude)
+    return f'<ul class="hub-list tool-list">{rows}</ul>'
+
+
+def guide_crumb_parts(g=None):
+    """'자동차세 › 가이드 › {글}' [(이름, tax/ 기준 href | None)]. 목록 페이지는 '자동차세 › 가이드'."""
+    parts = [("자동차세", "index.html"), ("가이드", GUIDE_INDEX if g else None)]
+    if g:
+        parts.append((g["short"], None))
+    return parts
+
+
+def crumb_from_parts(parts):
+    return '<p class="crumb">' + " › ".join(
+        f'<a href="{esc(href)}">{esc(n)}</a>' if href else esc(n) for n, href in parts) + "</p>"
+
+
+def breadcrumb_ld(site, parts, self_file):
+    """BreadcrumbList — position 1은 홈, 2부터 화면 크럼과 같은 이름·URL (breadcrumb_jsonld와 같은 규칙)."""
+    base = site.get("baseUrl", "").rstrip("/")
+    items = [{"@type": "ListItem", "position": 1, "name": site["siteName"], "item": f"{base}/" if base else "/"}]
+    for i, (n, href) in enumerate(parts, start=2):
+        items.append({"@type": "ListItem", "position": i, "name": n, "item": f"{base}/tax/{href or self_file}"})
+    data = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
+    return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
+
+
+def article_jsonld(site, g, art, url, og):
+    """Article — 화면의 제목·작성일·수정일과 같은 값. 작성자·발행자는 사이트(개인 이름을 쓰지 않는다)."""
+    base = site.get("baseUrl", "").rstrip("/")
+    org = {"@type": "Organization", "name": site["siteName"], "url": f"{base}/"}
+    data = {"@context": "https://schema.org", "@type": "Article", "headline": art["h1"],
+            "description": art["description"], "datePublished": g["published"], "dateModified": g["updated"],
+            "inLanguage": "ko", "mainEntityOfPage": {"@type": "WebPage", "@id": url}, "author": org, "publisher": org}
+    if og:
+        data["image"] = [og["url"]]
+    return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
+
+
+def guide_sources(art, rates, this_year):
+    """글 끝 출처·기준일 (.sources) — 글이 근거로 쓴 출처 + 세율 기준일."""
+    links = " · ".join(f'<a href="{esc(u)}" rel="noopener" target="_blank">{esc(lb)}</a>' for lb, u in art["sources"])
+    basis = prepay_basis(rates, this_year, sep="")
+    basis = f"(연납은 {basis})" if basis else ""
+    pv = rates["prepayDiscount"].get("lastVerified")
+    checked = f" · 연납 기준 확인 {pv}" if pv and pv != rates["lastVerified"] else ""  # sources_block과 같은 표기
+    return ('<div class="sources"><p>근거·출처: ' + links + "</p>"
+            f"<p>글 속 금액은 {this_year}년 세율 기준{basis} · 세율 최종 확인 {rates['lastVerified']}{checked}. "
+            "계산 결과는 참고용이에요. 실제 고지 세액은 위택스·서울시 ETAX에서 확인하세요.</p></div>")
+
+
+def guide_page(g, art, rates, site, this_year, og=None):
+    """가이드 글. 순서: 브레드크럼 → 제목 → 작성일·기준 → 소개 → 한눈에 → 본문 → 자주 묻는 질문 → [광고 taxArticle]
+    → 다른 가이드 → 계산 도구 안내 → 출처. 광고는 링크 없는 FAQ 뒤·다른 가이드 목록 앞(안내 문단으로 거리 확보)."""
+    url = page_canonical(site, f"tax/{g['slug']}.html")
+    meta = f"{guides.date_ko(g['published'])} 작성"
+    if g["updated"] != g["published"]:
+        meta += f" · {guides.date_ko(g['updated'])} 수정"
+    meta += f" · 금액은 {this_year}년 세율 기준"
+    parts = guide_crumb_parts(g)
+    body = f"""{crumb_from_parts(parts)}
+<h1>{esc(art["h1"])}</h1>
+<p class="guide-meta">{meta}</p>
+<p class="lede">{esc(art["lede"])}</p>
+<p class="guide-summary">{art["summary"]}</p>
+<div class="guide-body">
+{art["body"]}
+</div>
+{faq_section(art["faqs"])}
+{ad_slot(site, "taxArticle")}
+<h2>다른 가이드</h2>
+<p>자동차세가 더 궁금하다면 이어서 읽어 보세요.</p>
+{guide_rows(exclude=g["slug"])}
+<p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.</p>
+{guide_sources(art, rates, this_year)}
+{faq_jsonld(art["faqs"])}
+{article_jsonld(site, g, art, url, og)}
+{breadcrumb_ld(site, parts, f"{g['slug']}.html")}"""
+    return page(site, f"{art['title']} | {site['siteName']}", art["description"], body, canonical=url, og=og,
+                head_extra=adsense_head(site, ("taxArticle",)), og_type="article")
+
+
+def guide_index_page(site, og=None):
+    """가이드 목록 (tax/guide.html). 글 목록뿐이라 광고는 두지 않는다."""
+    parts = guide_crumb_parts()
+    body = f"""{crumb_from_parts(parts)}
+<h1>자동차세 가이드</h1>
+<p class="lede">자동차세를 이해하는 데 필요한 내용을 쉬운 말로 정리했어요. 글 속 금액은 차일지 차종 페이지·계산기와 같은 방식으로 계산해요.</p>
+{guide_rows()}
+<p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.</p>
+{breadcrumb_ld(site, parts, GUIDE_INDEX)}"""
+    title = f"자동차세 가이드 — 연납·차령 경감·전기차 세금 | {site['siteName']}"
+    desc = "자동차세 연납으로 아끼는 법, 해마다 세금이 줄어드는 차령 경감, 전기·수소차가 정액인 이유를 쉬운 말로 정리했어요."
+    return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{GUIDE_INDEX}"), og=og,
+                head_extra=adsense_head(site))
 
 
 def vehicle_og_spec(v, rates, this_year):
@@ -1799,11 +1927,17 @@ def build_images(renderer, vehicles, rates, this_year):
         page_og_spec("차종별 자동차세", f"인기 차종 {len(vehicles)}종 · 연식별 세액과 1월 연납 할인", f"{this_year}년 세율 기준"))
     add("calculator", "og/tax-calculator.png",
         page_og_spec("자동차세 계산기", "배기량과 등록 연도만 넣으면 바로 계산", f"{this_year}년 세율 기준 · 전기차 정액 반영"))
+    for g in guides.GUIDES:
+        add(g["slug"], f"og/guide/{g['slug']}.png",
+            page_og_spec(g["og_title"], g["og_lede"], f"{this_year}년 세율 기준 · 자동차세 가이드"))
+    add("guide-index", "og/guide/index.png",
+        page_og_spec("자동차세 가이드", "연납 · 차령 경감 · 전기·수소차 세금", f"{this_year}년 세율 기준"))
+    renderer.prune("og/guide", {f"{g['slug']}.png" for g in guides.GUIDES} | {"index.png"})
     renderer.report()
     return og
 
 
-def build_sitemap(site, slugs):
+def build_sitemap(site, slugs, guide_files=()):
     base = site.get("baseUrl", "").rstrip("/")
     if not base:
         print("· site.json baseUrl이 비어 있어 sitemap.xml 생성을 건너뜁니다 (도메인 확정 후 재실행)")
@@ -1817,7 +1951,7 @@ def build_sitemap(site, slugs):
         f"{base}/about.html",
         f"{base}/tax/index.html",
         f"{base}/tax/calculator.html",
-    ] + [f"{base}/tax/{s}.html" for s in slugs]
+    ] + [f"{base}/tax/{f}" for f in guide_files] + [f"{base}/tax/{s}.html" for s in slugs]
     items = "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>" for u in urls)
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
     (ROOT / "sitemap.xml").write_text(xml, encoding="utf-8")
@@ -1868,21 +2002,28 @@ def main():
     (OUT_DIR / "index.html").write_text(index_page(cat, rates, site, this_year, og=og.get("index")), encoding="utf-8")
     (OUT_DIR / "calculator.html").write_text(
         calculator_page(rates, site, this_year, og=og.get("calculator")), encoding="utf-8")
+    # 자동차세 가이드 — 글 숫자는 지금 세율·연도로 다시 계산된다 (scripts/guides.py)
+    guide_files = [GUIDE_INDEX]
+    (OUT_DIR / GUIDE_INDEX).write_text(guide_index_page(site, og=og.get("guide-index")), encoding="utf-8")
+    for g, art in guides.build_all(sys.modules[__name__], rates, cat, this_year):
+        (OUT_DIR / f"{g['slug']}.html").write_text(guide_page(g, art, rates, site, this_year, og=og.get(g["slug"])),
+                                                  encoding="utf-8")
+        guide_files.append(f"{g['slug']}.html")
     # 빌드 대상에서 빠진 차종(삭제·slug 변경·sample 전환·배기량 비움)의 옛 페이지 삭제 —
     # 남겨 두면 sitemap에도 목록에도 없는 낡은 세액 페이지가 계속 공개된다 (og/tax 썸네일 정리와 짝)
-    keep = {f"{s}.html" for s in slugs} | {"index.html", "calculator.html"}
+    keep = {f"{s}.html" for s in slugs} | {"index.html", "calculator.html"} | set(guide_files)
     for p in sorted(OUT_DIR.glob("*.html")):
         if p.name not in keep:
             p.unlink()
             print(f"· 더 이상 만들지 않는 페이지 삭제: tax/{p.name}")
-    print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator 생성")
+    print(f"· tax/ 페이지 {len(slugs)}개 + index + calculator + 가이드 {len(guide_files)}개 생성")
     if skipped:
         print(f"· 배기량 미확정 스켈레톤 {len(skipped)}종 미생성 (cc 채우면 자동 생성)")
     kinds = {}
     for v in vehicles:
         kinds[v.get("vehicleClass", "passenger")] = kinds.get(v.get("vehicleClass", "passenger"), 0) + 1
     print("· 분류별: " + " / ".join(f"{k} {n}종" for k, n in kinds.items()))
-    build_sitemap(site, slugs)
+    build_sitemap(site, slugs, guide_files)
     # 애드센스 ads.txt와 손으로 쓴 루트 페이지의 광고·문의 마커 (data/site.json adsense·contactEmail)
     sync_ads_txt(site)
     try:
