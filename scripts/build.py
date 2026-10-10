@@ -1023,8 +1023,10 @@ def guide_links_line(v):
         picks = ("guide-truck-van", "guide-prepay")
     elif v["fuelType"] == "ev":
         picks = ("guide-ev", "guide-prepay")
+    elif v.get("displacementCc") and v["displacementCc"] < 1000:  # 경차 배기량(1,000cc 미만)
+        picks = ("guide-light-car", "guide-aging", "guide-prepay")
     else:
-        picks = ("guide-aging", "guide-prepay")
+        picks = ("guide-by-cc", "guide-aging", "guide-prepay")
     by = {g["slug"]: g for g in guides.GUIDES}
     links = " · ".join(f'<a href="{s}.html">{esc(by[s]["short"])}</a>' for s in picks)
     return f'<p class="related-calc">가이드: {links} · <a href="{GUIDE_INDEX}">전체 보기</a></p>'
@@ -1850,9 +1852,9 @@ def guide_index_page(site, og=None):
 {guide_rows()}
 <p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.</p>
 {breadcrumb_ld(site, parts, GUIDE_INDEX)}"""
-    title = f"자동차세 가이드 — 연납·납부 기한·차령 경감·중고차 | {site['siteName']}"
-    desc = ("자동차세 연납으로 아끼는 법, 납부 기한과 가산세, 해마다 줄어드는 차령 경감, 중고차 정산, "
-            "전기·수소차와 화물·승합차 세금을 쉬운 말로 정리했어요.")
+    title = f"자동차세 가이드 — 연납·납부 기한·배기량별 세금·중고차 | {site['siteName']}"
+    desc = ("자동차세 연납으로 아끼는 법, 납부 기한과 가산세, 배기량별 세금, 해마다 줄어드는 차령 경감, 중고차 정산, "
+            "경차·전기·수소차와 화물·승합차 세금을 쉬운 말로 정리했어요.")
     return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{GUIDE_INDEX}"), og=og,
                 head_extra=adsense_head(site))
 
