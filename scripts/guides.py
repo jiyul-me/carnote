@@ -22,12 +22,18 @@ GUIDES = (
     {"slug": "guide-payment", "short": "내는 법과 납부 기한", "published": "2026-10-05", "updated": "2026-10-05",
      "og_title": "자동차세 내는 법", "og_lede": "6월·12월 납부, 늦으면 가산세",
      "summary": "6월·12월 납부 기간, 내는 방법과 소소한 공제, 늦게 내면 붙는 가산세·번호판 영치"},
+    {"slug": "guide-by-cc", "short": "배기량별 자동차세", "published": "2026-10-10", "updated": "2026-10-10",
+     "og_title": "배기량별 자동차세", "og_lede": "1000cc·1600cc·2000cc·3000cc 한눈에",
+     "summary": "자주 보는 배기량별 신차·5년차·10년차 세금과 1cc 차이로 세금이 크게 달라지는 경계"},
     {"slug": "guide-aging", "short": "차령 경감", "published": "2026-10-05", "updated": "2026-10-05",
      "og_title": "자동차세 차령 경감", "og_lede": "오래 탈수록 세금이 줄어드는 이유",
      "summary": "몇 년차부터 얼마나 줄어드는지, 차령은 어떻게 세는지"},
     {"slug": "guide-used-car", "short": "중고차 사고팔 때", "published": "2026-10-05", "updated": "2026-10-05",
      "og_title": "중고차 자동차세 정산", "og_lede": "판 사람과 산 사람이 날짜로 나눠요",
      "summary": "차를 팔거나 살 때 자동차세를 날짜로 나누는 법, 연납했다면 환급·승계"},
+    {"slug": "guide-light-car", "short": "경차 자동차세", "published": "2026-10-10", "updated": "2026-10-10",
+     "og_title": "경차 자동차세", "og_lede": "전기 경차가 오히려 더 내는 이유",
+     "summary": "모닝·레이·캐스퍼 같은 경차 세금, 6월 일괄부과, 전기 경차와의 비교"},
     {"slug": "guide-ev", "short": "전기·수소차 자동차세", "published": "2026-10-05", "updated": "2026-10-05",
      "og_title": "전기·수소차 자동차세", "og_lede": "배기량이 없는 차는 왜 정액일까",
      "summary": "전기·수소차가 정액인 이유와 내연기관차·하이브리드와의 비교"},
@@ -60,6 +66,7 @@ SRC_LAW_129 = ("지방세법 제129조(이전등록 때 일할계산)", "https:/
 SRC_LAW_131 = ("지방세법 제131조(체납 시 번호판 영치)", "https://www.law.go.kr/법령/지방세법/제131조")
 SRC_REG_26 = ("자동차등록령 제26조(이전등록 신청 기한)", "https://www.law.go.kr/법령/자동차등록령/제26조")
 SRC_CAR_MGMT_3 = ("자동차관리법 제3조(승용·승합·화물 구분)", "https://www.law.go.kr/법령/자동차관리법/제3조")
+SRC_CAR_MGMT_RULE_2 = ("자동차관리법 시행규칙 제2조(경형 등 규모 구분)", "https://www.law.go.kr/법령/자동차관리법시행규칙/제2조")
 SRC_BASIC_55 = ("지방세기본법 제55조(납부지연가산세)", "https://www.law.go.kr/법령/지방세기본법/제55조")
 SRC_SPECIAL_92_2 = ("지방세특례제한법 제92조의2(전자송달·자동납부 공제)",
                     "https://www.law.go.kr/법령/지방세특례제한법/제92조의2")
@@ -77,6 +84,7 @@ LATE_MONTHLY_MIN_KRW = 450_000
 LATE_MONTHLY_MAX_MONTHS = 60
 E_BILL_ONE = (250, 800)            # 지방세특례제한법 제92조의2 — 전자송달·자동납부 중 하나 (고지서 1장당, 조례로 정함)
 E_BILL_BOTH = (500, 1600)          # 둘 다
+LIGHT_CAR_RULE = "배기량 1,000cc 미만이면서 길이 3.6m·너비 1.6m·높이 2.0m 이하"  # 자동차관리법 시행규칙 제2조 경형
 TRANSFER_DEADLINE_DAYS = 15        # 자동차등록령 제26조 — 매매는 산 날부터 15일 안에 이전등록 신청
 
 URL_ETAX = "https://etax.seoul.go.kr"
@@ -659,8 +667,155 @@ def truck_van_guide(c):
     }
 
 
-BUILDERS = {"guide-prepay": prepay_guide, "guide-payment": payment_guide, "guide-aging": aging_guide,
-            "guide-used-car": used_car_guide, "guide-ev": ev_guide, "guide-truck-van": truck_van_guide}
+# ---------------------------------------------------------------- 배기량별
+def rep_car(c, cc):
+    """그 배기량의 대표 승용차 — 판매 중인 차를 먼저, 없으면 가장 최근에 단종된 차. 없으면 None."""
+    cands = [v for v in c.cat.vehicles if v.get("displacementCc") == cc
+             and v.get("vehicleClass", "passenger") == "passenger"]
+    if not cands:
+        return None
+    return min(cands, key=lambda v: (v.get("modelYearTo") is not None, -(v.get("modelYearTo") or 0), v["name"]))
+
+
+def by_cc_guide(c):
+    B, at = c.B, c.at
+    ages = (1, 5, 10)
+    rows = []
+    # 차일지 차종에 흔한 배기량과 익숙한 예시 차종 (없으면 그 배기량의 다른 차)
+    examples = {998: "morning-1.0", 1497: "tivoli-1.5t", 1598: "avante-1.6", 1999: "sonata-2.0",
+                2497: "grandeur-2.5", 2999: None, 3470: "grandeur-3.5"}
+    for cc, slug in examples.items():
+        v = c.by_slug.get(slug) if slug else None
+        v = v if v and v.get("displacementCc") == cc else rep_car(c, cc)
+        label = f"{cc:,}cc" + (f'<span class="age-sub"> · {c.link(v["slug"], short_name(v["name"]))}</span>' if v else "")
+        rows.append([label] + [B.won(c.tax(cc, a)["annual"]) for a in ages])
+    first, mid = c.brackets[0], c.brackets[1]
+    t = {cc: c.tax(cc)["annual"] for cc in (first["maxCc"], first["maxCc"] + 1, mid["maxCc"], mid["maxCc"] + 1)}
+    jump_small = t[first["maxCc"] + 1] - t[first["maxCc"]]
+    jump_mid = t[mid["maxCc"] + 1] - t[mid["maxCc"]]
+    same = [s for s in ("avante-1.6", "k5-1.6t", "tucson-hybrid", "xm3-1.6") if s in c.by_slug]
+    same_cc = c.v(same[0])["displacementCc"]
+    bmw, sonata = c.v("bmw-320i"), c.v("sonata-2.0")
+    t_bmw, t_son = c.tax(bmw["displacementCc"])["annual"], c.tax(sonata["displacementCc"])["annual"]
+    t2000 = c.tax(1999)
+    summary = (f"<strong>한눈에</strong> 승용차 자동차세는 배기량 × cc당 세액({first['wonPerCc']}·{mid['wonPerCc']}·"
+               f"{c.brackets[2]['wonPerCc']}원)에 지방교육세 {at['edu']}%를 더한 금액이에요. 신차 기준 1,598cc는 연 {c.tax(1598)['annual']:,}원, "
+               f"1,999cc는 연 {t2000['annual']:,}원이고, {at['start']}년차부터 해마다 줄어요.")
+    body = f"""<h2>계산은 이렇게 해요</h2>
+<p>본세는 '배기량 × cc당 세액'이고, 여기에 지방교육세 {at['edu']}%가 붙어요. cc당 세액은 배기량 구간마다 달라요.</p>
+{table(["배기량", "cc당 세액"], c.bracket_rows())}
+<p>{at['start']}년차부터는 차령 경감으로 해마다 원래 세금의 {at['per']}%씩, 최대 {at['max']}%까지 줄어요
+(<a href="guide-aging.html">차령 경감</a>). 아래 표는 이 계산을 그대로 한 금액이에요.</p>
+<h2>자주 보는 배기량별 자동차세</h2>
+<p>비영업용 승용차, 1년치(연세액) 기준이에요. 차종 이름을 누르면 연식별 표를 볼 수 있어요.</p>
+{table(["배기량", "신차", f"{ages[1]}년차", f"{ages[2]}년차"], rows)}
+<p>1월에 연납하면 여기서 약 {num(c.window_pct(c.jan), 1)}%를 더 아낄 수 있어요(<a href="guide-prepay.html">연납 가이드</a>).
+목록에 없는 배기량은 <a href="calculator.html">자동차세 계산기</a>에 넣으면 바로 나와요.</p>
+<h2>1cc 차이로 세금이 크게 달라지는 곳</h2>
+<p>cc당 세액이 구간마다 바뀌기 때문에 경계를 살짝 넘으면 세금이 확 뛰어요. 신차 기준으로 보면 이래요.</p>
+<ul>
+<li>{first['maxCc']:,}cc는 연 {t[first['maxCc']]:,}원, {first['maxCc'] + 1:,}cc는 연 {t[first['maxCc'] + 1]:,}원 — 1cc 차이로 {jump_small:,}원.</li>
+<li>{mid['maxCc']:,}cc는 연 {t[mid['maxCc']]:,}원, {mid['maxCc'] + 1:,}cc는 연 {t[mid['maxCc'] + 1]:,}원 — 1cc 차이로 {jump_mid:,}원.</li>
+</ul>
+<p>그래서 국산 준중형·중형차에는 1,600cc를 넘지 않는 1,598cc 엔진이 많아요. 하이브리드도 대부분 이 배기량이에요.</p>
+<h2>같은 배기량이면 세금도 같아요</h2>
+<p>자동차세는 차값·브랜드·연료와 관계없이 배기량과 차령으로만 정해져요. {"·".join(c.link(s, short_name(c.v(s)["name"])) for s in same)}처럼
+{same_cc:,}cc인 차는 가솔린이든 하이브리드든 신차 기준 모두 연 {c.tax(same_cc)['annual']:,}원이에요.</p>
+<p>수입차도 마찬가지예요. {c.link('bmw-320i', short_name(bmw['name']))}({bmw['displacementCc']:,}cc){B.josa(short_name(bmw['name']), '는', '은')} 연 {t_bmw:,}원,
+{c.link('sonata-2.0')}({sonata['displacementCc']:,}cc){B.josa(sonata['name'], '는', '은')} 연 {t_son:,}원으로 거의 같아요. 전기·수소차는 배기량이 없어서 연
+{c.ev['annualTotalKrw']:,}원 정액이에요(<a href="guide-ev.html">전기·수소차 자동차세</a>).</p>"""
+    t3000 = c.tax(2999)["annual"]
+    faqs = [
+        ("2000cc 자동차세는 얼마인가요?",
+         f"흔히 2.0이라고 부르는 1,999cc는 신차 기준 연 {t2000['annual']:,}원이에요. {ages[2]}년차에는 연 {c.tax(1999, ages[2])['annual']:,}원으로 줄어요."),
+        ("1600cc 자동차세는 얼마인가요?",
+         f"1.6 엔진(1,598cc)은 신차 기준 연 {c.tax(1598)['annual']:,}원이에요. 1,600cc까지는 cc당 {mid['wonPerCc']}원이라 2.0보다 훨씬 적어요."),
+        ("3000cc 자동차세는 얼마인가요?",
+         f"2,999cc는 신차 기준 연 {t3000:,}원이에요. 1,600cc를 넘으면 배기량과 관계없이 cc당 {c.brackets[2]['wonPerCc']}원이라 배기량에 비례해 늘어요."),
+        ("수입차는 자동차세를 더 내나요?",
+         "아니요. 자동차세는 배기량과 차령으로만 정해져서 같은 배기량이면 국산차와 수입차가 같아요. 차값은 자동차세와 관계없어요."),
+    ]
+    sources = [SRC_LAW_127, SRC_LAW_128]
+    return {
+        "h1": "배기량별 자동차세, 1000cc부터 3500cc까지 한눈에",
+        "title": "배기량별 자동차세 — 1000cc·1600cc·2000cc·3000cc 세금 정리",
+        "description": (f"배기량별 자동차세를 신차·{ages[1]}년차·{ages[2]}년차로 정리했어요. 1,598cc 연 {c.tax(1598)['annual']:,}원, "
+                        f"1,999cc 연 {t2000['annual']:,}원. 1cc 차이로 세금이 크게 달라지는 경계도 알려 드려요."),
+        "lede": "내 차 배기량이면 자동차세가 얼마일까요? 자주 보는 배기량별 금액과, 세금이 크게 달라지는 경계를 정리했어요.",
+        "summary": summary, "body": body, "faqs": faqs, "sources": sources,
+    }
+
+
+# ---------------------------------------------------------------- 경차
+def light_car_guide(c):
+    B, at = c.B, c.at
+    cars = [s for s in ("morning-1.0", "ray-1.0", "casper-1.0") if s in c.by_slug]
+    evs = [s for s in ("ray-ev", "casper-electric") if s in c.by_slug]
+    cc = c.v(cars[0])["displacementCc"]
+    first = c.brackets[0]
+    new = c.tax(cc)
+    full = c.tax(cc, at["fullAge"])
+    ev_total = c.ev["annualTotalKrw"]
+    ages = sorted({1, at["start"], 5, 10, at["fullAge"]})
+    rows = []
+    for a in ages:
+        label = f"{a}년차" + (" (신차)" if a == 1 else "") + (" 이상" if a == at["fullAge"] else "")
+        rows.append([label, B.won(c.tax(cc, a)["annual"]), B.won(ev_total)])
+    pp = c.prepay(new["annual"])
+    lump = ""
+    if c.th and new["base"] <= c.th:
+        lump = (f"<p>경차는 본세가 연 {new['base']:,}원이라 6월 일괄부과 기준에 해당해요. "
+                f"{B.esc(c.lump(who=False))} 1월 연납이 된다면 {pp['pay']:,}원({pp['discount']:,}원 할인){c.basis_paren}이에요.</p>")
+    names = "·".join(c.link(s, short_name(c.v(s)["name"])) for s in cars)
+    ev_names = "·".join(c.link(s) for s in evs)
+    ratio = num(ev_total / full["annual"], 1)
+    ev_man = f"{ev_total // 10000}만원" if ev_total % 10000 == 0 else f"{ev_total:,}원"
+    summary = (f"<strong>한눈에</strong> 모닝·레이·캐스퍼 같은 {cc:,}cc 경차는 신차 기준 연 {new['annual']:,}원이고, "
+               f"{at['fullAge']}년차부터는 연 {full['annual']:,}원까지 줄어요. 전기 경차는 연 {ev_total:,}원 정액이라 오히려 더 내요.")
+    body = f"""<h2>경차는 어떤 차인가요</h2>
+<p>자동차관리법은 {LIGHT_CAR_RULE}인 승용차를 경형, 흔히 말하는 경차로 나눠요. {names}{B.josa(short_name(c.v(cars[-1])['name']), '가', '이')} 대표적이에요.</p>
+<p>자동차세는 이 경차 구분이 아니라 배기량 구간으로 매겨요. 배기량 {first['maxCc']:,}cc 이하는 cc당 {first['wonPerCc']}원으로 가장 낮은 구간이라,
+경차는 자연스럽게 이 구간에 들어가요.</p>
+<h2>경차 자동차세는 얼마인가요</h2>
+<p>{cc:,}cc 경차라면 {cc:,} × {first['wonPerCc']}원 = {new['base']:,}원에 지방교육세 {new['edu']:,}원을 더해 신차 기준 연 {new['annual']:,}원이에요.
+경차도 일반 승용차처럼 {at['start']}년차부터 차령 경감을 받아요.</p>
+{table(["차령", f"{cc:,}cc 경차", "전기 경차"], rows)}
+{lump}
+<h2>전기 경차는 오히려 더 내요</h2>
+<p>{ev_names}처럼 경차 크기의 전기차도 경차로 분류되지만, 자동차세는 배기량이 없는 '그 밖의 승용자동차'로 매겨서 연 {ev_total:,}원 정액이에요.
+그래서 신차일 때도 가솔린 경차(연 {new['annual']:,}원)보다 많고, 차령 경감도 없어서 {at['fullAge']}년차가 되면 가솔린 경차의 약 {ratio}배예요.</p>
+<p>물론 전기차는 연료비가 적게 들어서 1년 유지비 전체로 보면 결과가 달라질 수 있어요. <a href="../tco.html">유지비 비교</a>에서 두 차를 나란히 비교해 볼 수 있어요.</p>
+<h2>알아 두면 좋은 점</h2>
+<ul>
+<li>자동차세 구간은 '{first['maxCc']:,}cc 이하'이고 경차 기준은 '1,000cc 미만'이라, 배기량이 딱 {first['maxCc']:,}cc인 차는 경차는 아니어도 세금은 같은 구간이에요.</li>
+<li>경차에는 자동차세 말고도 취득세 감면 같은 다른 혜택이 있지만, 이 글은 자동차세만 다뤄요. 다른 혜택은 해마다 바뀔 수 있어 정부 안내를 확인하세요.</li>
+<li>더 큰 차와 비교하고 싶다면 <a href="guide-by-cc.html">배기량별 자동차세</a> 글을 보세요.</li>
+</ul>"""
+    faqs = [
+        ("모닝 자동차세는 얼마인가요?",
+         f"모닝 1.0({cc:,}cc)은 신차 기준 연 {new['annual']:,}원이에요. {at['start']}년차부터 줄어서 {at['fullAge']}년차부터는 연 {full['annual']:,}원이에요. "
+         "레이·캐스퍼도 배기량이 같아서 금액이 같아요."),
+        (f"레이 EV는 경차인데 왜 {ev_man}인가요?",
+         f"전기차는 배기량이 없어서 경차 구간이 아니라 전기·수소차 정액(연 {ev_total:,}원)으로 매기기 때문이에요. 차령 경감도 없어요."),
+        ("경차도 연납할 수 있나요?",
+         c.lump(who=False) if c.th and new["base"] <= c.th else "네. 1월 연납 기간에 신청하고 내면 할인받아요."),
+        ("경차도 오래 타면 자동차세가 줄어드나요?",
+         f"네. 가솔린·LPG 경차는 {at['start']}년차부터 해마다 원래 세금의 {at['per']}%씩, 최대 {at['max']}%까지 줄어요."),
+    ]
+    sources = [SRC_LAW_127, SRC_LAW_128, SRC_CAR_MGMT_RULE_2]
+    return {
+        "h1": "경차 자동차세는 얼마일까, 전기 경차가 더 내는 이유",
+        "title": "경차 자동차세 — 모닝·레이·캐스퍼 세금과 전기 경차 비교",
+        "description": (f"{cc:,}cc 경차 자동차세는 신차 기준 연 {new['annual']:,}원, {at['fullAge']}년차부터 연 {full['annual']:,}원이에요. "
+                        f"6월 일괄부과와 연납, 연 {ev_total:,}원 정액인 전기 경차와의 비교까지 정리했어요."),
+        "lede": "경차는 자동차세가 가장 적은 차예요. 얼마인지, 언제 내는지, 레이 EV 같은 전기 경차는 왜 더 내는지 정리했어요.",
+        "summary": summary, "body": body, "faqs": faqs, "sources": sources,
+    }
+
+
+BUILDERS = {"guide-prepay": prepay_guide, "guide-payment": payment_guide, "guide-by-cc": by_cc_guide,
+            "guide-aging": aging_guide, "guide-used-car": used_car_guide, "guide-light-car": light_car_guide,
+            "guide-ev": ev_guide, "guide-truck-van": truck_van_guide}
 
 
 def build_all(B, rates, cat, this_year):
