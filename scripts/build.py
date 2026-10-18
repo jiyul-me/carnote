@@ -816,6 +816,8 @@ def josa(word, no_batchim, with_batchim):
         return with_batchim if (ord(ch) - 0xAC00) % 28 else no_batchim
     if ch.isdigit():  # 영·일·삼·육·칠·팔은 받침 있음
         return with_batchim if ch in "0136 78".replace(" ", "") else no_batchim
+    if ch.upper() in "LMNR":  # 엘·엠·엔·알 — 영문은 읽는 소리로 ('아반떼 N' → 과)
+        return with_batchim
     return no_batchim
 
 
@@ -1218,6 +1220,7 @@ def nonpassenger_page(v, rates, site, this_year, cat, og=None):
 {table}
 {lump_sum_note(t["nonBusiness"], rates)}
 {notebook_cta(v)}
+{tax_points(v, cat, rates, this_year)}
 <h2>계산 방법</h2>
 {basis_desc}
 {flat_desc}
@@ -1257,6 +1260,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 {class_note_line(v)}{trim_compare_line(v, cat.vehicles, rates, this_year)}
 {lump_sum_note(ev["baseKrw"], rates)}
 {notebook_cta(v)}
+{tax_points(v, cat, rates, this_year)}
 <h2>계산 방법</h2>
 <p>{flat_basis_text(v)} 배기량 기준 대신 정액(본세 {won(ev["baseKrw"])} + 지방교육세 {won(ev["educationTaxKrw"])})이 적용돼요. 차령 경감도 적용되지 않아요.</p>
 {ad_slot(site, "taxArticle")}
@@ -1384,6 +1388,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 {table_img_script(v, site, rates, this_year)}
 {lump_note_toggle(cc, rates, d_row)}
 {notebook_cta(v)}
+{tax_points(v, cat, rates, this_year)}
 <h2>계산 방법</h2>
 <p>본세 = 배기량 × cc당 세액({new_tax["perCc"]}원/cc 구간) → 차령 {at["start"]}년차부터 (차령 − {at["start"] - 1}) × {at["per"]}% 경감(최대 {at["max"]}%) → 지방교육세 {at["edu"]}% 가산. 6월·12월에 절반씩 부과되며, 1월에 연납 신청하면 {prepay_months_label(rates)}의 {d_prepay["rate"]*100:.0f}%를 공제받아요{basis_paren}. 공제액은 날짜로 나눠 연세액 × {d_prepay["days"]}/{d_prepay["yearDays"]}({prepay_period_label(rates, this_year)} 일수 ÷ 그 해 일수) × {d_prepay["rate"]*100:.0f}%로 계산하고 10원 미만은 버려요.</p>
 <p>차령은 보통 올해 − 최초 등록 연도 + 1이에요. 7~12월에 처음 등록한 차는 6월에 내는 상반기분만 차령을 1년 적게 세서, 그해 세금이 표보다 조금 많을 수 있어요.</p>
@@ -1414,6 +1419,99 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 def pct(t):
     """tax_for 결과의 경감률 '35%'."""
     return f"{t['discountRate']*100:.0f}%"
+
+
+DOMESTIC_BRANDS = ("현대", "현대 N", "기아", "제네시스", "쉐보레", "르노코리아", "KGM")
+
+
+def tax_points(v, cat, rates, this_year):
+    """'{차종} 자동차세 포인트' — 이 차에만 해당하는 사실 몇 줄. 같은 세대 다른 엔진·연료와의 차이, 10년 합계 또는
+    단종 세대의 앞으로 세액, 연료·수입차 안내, 전기차는 같은 모델 내연기관과의 역전 시점. 템플릿 페이지끼리
+    문장이 거의 같아지는 것을 줄인다(애드센스 '가치가 별로 없는 콘텐츠' 대응). 숫자는 모두 tax_for·prepay로 계산."""
+    if v.get("vehicleClass", "passenger") != "passenger":
+        return ""  # 화물·승합은 비교 한 줄(같은 배기량 승용차)이 이미 차마다 다르다
+    name = v["name"]
+    at = aging_terms(rates)
+    fam = [p for p in cat.family(v) if p is not v]
+    pts = []
+    link = lambda p: f'<a href="{esc(p["slug"])}.html">{esc(p["name"])}</a>'
+    if v["fuelType"] == "ev":
+        ev_total = rates["displacement"]["ev"]["annualTotalKrw"]
+        ice = sorted((p for p in fam if is_ice_passenger(p)),
+                     key=lambda p: (p.get("modelYearTo") is not None, -(p.get("modelYearFrom") or 0), p["displacementCc"]))
+        if ice:
+            p = ice[0]
+            new = tax_for(p["displacementCc"], 1, rates)["annual"]
+            cross = next((a for a in range(1, at["fullAge"] + 1)
+                          if tax_for(p["displacementCc"], a, rates)["annual"] < ev_total), None)
+            if new > ev_total:
+                s = (f"같은 모델의 {link(p)}({p['displacementCc']:,}cc){josa(p['name'], '는', '은')} 신차 기준 연 {new:,}원이라, "
+                     f"이 차가 1년에 {new - ev_total:,}원 적게 내요.")
+                if cross:
+                    s += f" 다만 내연기관차는 해마다 줄어서 {cross}년차부터는 전기차인 이 차가 더 내요."
+                else:
+                    full = tax_for(p["displacementCc"], at["fullAge"], rates)["annual"]
+                    s += f" 내연기관차는 {at['fullAge']}년차가 돼도 연 {full:,}원이라 이 차보다 많아요."
+            else:
+                s = (f"같은 모델의 {link(p)}({p['displacementCc']:,}cc){josa(p['name'], '는', '은')} 신차 기준 연 {new:,}원이라, "
+                     f"배기량이 작은 이 모델은 전기차가 1년에 {ev_total - new:,}원 더 내요.")
+            pts.append(s)
+        pts.append(f"연식과 관계없이 정액이라 10년을 타면 자동차세는 모두 {ev_total * 10:,}원이에요. "
+                   "차령 경감이 없어서 오래 탈수록 비슷한 크기의 내연기관차와 차이가 줄어들어요.")
+    elif is_ice_passenger(v):
+        cc = v["displacementCc"]
+        g = gen_default(v, rates, this_year)
+        age = g["age"] if g else 1
+        cur = tax_for(cc, age, rates)["annual"]
+        when = f"같은 {age}년차 기준" if g else "신차 기준"
+        same_gen = [p for p in fam if is_ice_passenger(p) and gen_key(p) == gen_key(v)]
+        other_cc = sorted({p["displacementCc"]: p for p in same_gen if p["displacementCc"] != cc}.values(),
+                          key=lambda p: p["displacementCc"])
+        if other_cc:
+            picks = (other_cc[0], other_cc[-1]) if len(other_cc) > 1 else other_cc
+            parts = []
+            for i, p in enumerate(picks):
+                t = tax_for(p["displacementCc"], age, rates)["annual"]
+                last = i == len(picks) - 1
+                if t == cur:
+                    diff = "같아요" if last else "같고"
+                else:
+                    stem = "많" if t > cur else "적"
+                    diff = f"{abs(t - cur):,}원 {stem}{'아요' if stem == '많' else '어요'}" if last else f"{abs(t - cur):,}원 {stem}고"
+                parts.append(f"{link(p)}({p['displacementCc']:,}cc){josa(p['name'], '는', '은')} 연 {t:,}원으로 이 차보다 {diff}")
+            pts.append(f"같은 세대에서 " + ", ".join(parts) + f"({when}).")
+        same_cc = [p for p in same_gen if p["displacementCc"] == cc and p["fuelType"] != v["fuelType"]]
+        if same_cc:
+            pts.append(f"{'·'.join(link(p) for p in same_cc[:3])}도 배기량이 {cc:,}cc로 같아서 세금이 같아요. "
+                       "연료가 달라도 자동차세는 배기량으로만 정해져요.")
+        elif v["fuelType"] == "hybrid":
+            pts.append(f"하이브리드라도 엔진 배기량({cc:,}cc)으로 매겨서, 같은 배기량의 가솔린차와 세금이 같고 차령 경감도 똑같이 받아요.")
+        elif v["fuelType"] in ("diesel", "lpg"):
+            label = FUEL_LABELS.get(v["fuelType"], v["fuelType"])
+            pts.append(f"{label} 차라고 자동차세가 더 붙거나 덜 붙지 않아요. 같은 {cc:,}cc 가솔린차와 금액이 같아요.")
+        full = tax_for(cc, at["fullAge"], rates)["annual"]
+        if not g:
+            total = sum(tax_for(cc, a, rates)["annual"] for a in range(1, 11))
+            paid = sum(prepay(tax_for(cc, a, rates)["annual"], rates, this_year)["pay"] for a in range(1, 11))
+            pts.append(f"지금 세율이 그대로라면 신차로 사서 10년 타는 동안 자동차세는 모두 약 {total // 10000:,}만원이에요. "
+                       f"해마다 1월에 연납하면 그중 약 {total - paid:,}원을 아낄 수 있어요.")
+        elif age < at["fullAge"]:
+            pts.append(f"{g['year']}년에 등록한 차는 올해 {age}년차로 연 {cur:,}원이에요. 해마다 원래 세금의 {at['per']}%씩 줄어 "
+                       f"{this_year + at['fullAge'] - age}년({at['fullAge']}년차)부터는 연 {full:,}원으로 더 줄지 않아요.")
+        else:
+            pts.append(f"이 세대는 올해 모두 {at['fullAge']}년차 이상이라 최대 경감({at['max']}%)을 받아 연 {full:,}원이에요. "
+                       "세율이 바뀌지 않는 한 앞으로도 그대로예요.")
+        if v.get("brand") not in DOMESTIC_BRANDS:
+            peer = next((p for p in cat.vehicles if p.get("brand") in DOMESTIC_BRANDS and is_ice_passenger(p)
+                         and p["displacementCc"] == cc), None)
+            s = "수입차라고 자동차세가 더 붙지 않아요. 차값과 관계없이 배기량과 차령으로만 정해져요."
+            if peer:
+                s += f" 같은 {cc:,}cc인 {link(peer)}{josa(peer['name'], '와', '과')} 등록 연도가 같으면 금액도 같아요."
+            pts.append(s)
+    if not pts:
+        return ""
+    return (f"<h2>{esc(name)} 자동차세 포인트</h2>\n<ul class=\"tax-points\">"
+            + "".join(f"<li>{p}</li>" for p in pts) + "</ul>")
 
 
 def gen_summary_line(v, rates, this_year):
