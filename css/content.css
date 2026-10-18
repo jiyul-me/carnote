@@ -197,6 +197,10 @@ table.data tr.hl td:last-child { border-radius: 0 6px 6px 0; }
 .guide-body :where(li) { margin: 4px 0; }
 .guide-body .table-wrap { margin: 12px 0; }
 
+/* 차종 페이지 '자동차세 포인트' — 차마다 다른 사실 몇 줄 (build.py tax_points) */
+.tax-points { margin: 8px 0; padding-left: 20px; }
+.tax-points li { margin: 6px 0; }
+
 /* ---------- 자주 묻는 질문 — 질문 15px/500, 답 15px/400 (JSON-LD FAQPage와 같은 문답) ---------- */
 .faq-q { font-size: 15px; font-weight: 500; margin: 16px 0 4px; }
 .faq-a { margin: 0 0 8px; }
