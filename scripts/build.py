@@ -9,7 +9,8 @@
          og/*.png 공유 썸네일 · icons/*.png · favicon.ico (Pillow 필요 — scripts/images.py),
          ads.txt(site.json adsense.publisherId가 있을 때만 — 비면 지운다),
          손으로 쓴 루트 *.html의 마커 구간(<!-- adsense:head -->·<!-- adsense:slot 이름 -->·<!-- site:contact -->),
-         자동차세 가이드 tax/guide.html·tax/guide-*.html (글 내용은 scripts/guides.py)
+         자동차세 가이드 tax/guide.html·tax/guide-*.html (글 내용은 scripts/guides.py),
+         차 관리 가이드 care/index.html·care/{slug}.html (글 내용은 scripts/care_guides/)
 """
 import sys
 import json
@@ -22,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import images  # noqa: E402
 import guides  # noqa: E402  — 자동차세 가이드 글 (scripts/guides.py)
+import care_guides  # noqa: E402  — 차 관리 가이드 글 (scripts/care_guides/)
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "tax"
@@ -1948,13 +1950,103 @@ def guide_index_page(site, og=None):
 <h1>자동차세 가이드</h1>
 <p class="lede">자동차세를 이해하는 데 필요한 내용을 쉬운 말로 정리했어요. 글 속 금액은 차일지 차종 페이지·계산기와 같은 방식으로 계산해요.</p>
 {guide_rows()}
-<p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.</p>
+<p class="related-calc">내 차 금액은 <a href="index.html">차종별 자동차세</a>나 <a href="calculator.html">자동차세 계산기</a>에서 바로 확인할 수 있어요.
+엔진오일·타이어 같은 소모품과 자동차 검사는 <a href="../care/index.html">차 관리 가이드</a>에 정리했어요.</p>
 {breadcrumb_ld(site, parts, GUIDE_INDEX)}"""
     title = f"자동차세 가이드 — 연납·납부 기한·배기량별 세금·중고차 | {site['siteName']}"
     desc = ("자동차세 연납으로 아끼는 법, 납부 기한과 가산세, 배기량별 세금, 해마다 줄어드는 차령 경감, 중고차 정산, "
             "경차·전기·수소차와 화물·승합차 세금을 쉬운 말로 정리했어요.")
     return page(site, title, desc, body, canonical=page_canonical(site, f"tax/{GUIDE_INDEX}"), og=og,
                 head_extra=adsense_head(site))
+
+
+# ---------- 차 관리 가이드 care/ (글 내용은 scripts/care_guides/, 틀·구조화 데이터는 여기) ----------
+CARE_DIR = ROOT / "care"
+CARE_INDEX = f"{care_guides.INDEX_SLUG}.html"
+CARE_TITLE = "차 관리 가이드"
+
+
+def care_rows(gs, exclude=None):
+    """차 관리 가이드 목록 행 (guide_rows와 같은 목록 행 컴포넌트)."""
+    rows = "".join(
+        f'<li><a class="hub-row" href="{g["slug"]}.html"><span class="tool-text"><span>{esc(g["short"])}</span>'
+        f'<span class="spec-label">{esc(g["summary"])}</span></span>{CHEVRON_RIGHT}</a></li>'
+        for g in gs if g["slug"] != exclude)
+    return f'<ul class="hub-list tool-list">{rows}</ul>'
+
+
+def care_crumb_parts(g=None):
+    """'차 관리 가이드 › {글}' [(이름, care/ 기준 href | None)]. 목록 페이지는 '차 관리 가이드' 하나."""
+    parts = [(CARE_TITLE, CARE_INDEX if g else None)]
+    if g:
+        parts.append((g["short"], None))
+    return parts
+
+
+def care_breadcrumb_ld(site, parts, self_file):
+    """BreadcrumbList — position 1은 홈, 2부터 화면 크럼과 같은 이름·URL(care/ 기준)."""
+    base = site.get("baseUrl", "").rstrip("/")
+    items = [{"@type": "ListItem", "position": 1, "name": site["siteName"], "item": f"{base}/" if base else "/"}]
+    for i, (n, href) in enumerate(parts, start=2):
+        items.append({"@type": "ListItem", "position": i, "name": n, "item": f"{base}/care/{href or self_file}"})
+    data = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
+    return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
+
+
+def care_sources(art, parts_updated):
+    """글 끝 출처·기준 (.sources) — 글이 근거로 쓴 출처 + 수첩 기본값 안내."""
+    links = " · ".join(f'<a href="{esc(u)}" rel="noopener" target="_blank">{esc(lb)}</a>' for lb, u in art["sources"])
+    return ('<div class="sources"><p>근거·출처: ' + links + "</p>"
+            f"<p>글 속 교체 주기는 차일지 수첩의 기본값(소모품 데이터 갱신 {esc(parts_updated or '')})이에요. "
+            "차종과 운전 환경에 따라 달라서, 차량 설명서(매뉴얼)의 주기가 있으면 그것을 먼저 따르세요.</p></div>")
+
+
+def care_page(g, art, gs, site, parts_updated, og=None):
+    """차 관리 가이드 글. 순서는 자동차세 가이드 글(guide_page)과 같다: 크럼 → 제목 → 작성일 → 소개 → 한눈에 → 본문
+    → 자주 묻는 질문 → [광고 taxArticle] → 다른 가이드(안내 한 줄 + 목록) → 수첩·자동차세 안내 → 출처."""
+    url = page_canonical(site, f"care/{g['slug']}.html")
+    meta = f"{guides.date_ko(g['published'])} 작성"
+    if g["updated"] != g["published"]:
+        meta += f" · {guides.date_ko(g['updated'])} 수정"
+    parts = care_crumb_parts(g)
+    body = f"""{crumb_from_parts(parts)}
+<h1>{esc(art["h1"])}</h1>
+<p class="guide-meta">{meta}</p>
+<p class="lede">{esc(art["lede"])}</p>
+<p class="guide-summary">{art["summary"]}</p>
+<div class="guide-body">
+{art["body"]}
+</div>
+{faq_section(art["faqs"])}
+{ad_slot(site, "taxArticle")}
+<h2>다른 차 관리 가이드</h2>
+<p>차를 오래 잘 타는 데 도움이 되는 글을 더 읽어 보세요.</p>
+{care_rows(gs, exclude=g["slug"])}
+<p class="related-calc"><a href="../index.html">내 차 수첩</a>에 차를 등록하면 교체 시기와 검사 날짜를 챙겨 드려요.
+자동차세는 <a href="../tax/guide.html">자동차세 가이드</a>에 정리했어요.</p>
+{care_sources(art, parts_updated)}
+{faq_jsonld(art["faqs"])}
+{article_jsonld(site, g, art, url, og)}
+{care_breadcrumb_ld(site, parts, f"{g['slug']}.html")}"""
+    return page(site, f"{art['title']} | {site['siteName']}", art["description"], body, canonical=url, og=og,
+                active="notebook", head_extra=adsense_head(site, ("taxArticle",)), og_type="article")
+
+
+def care_index_page(gs, site, og=None):
+    """차 관리 가이드 목록 (care/index.html). 글 목록뿐이라 광고는 두지 않는다."""
+    parts = care_crumb_parts()
+    body = f"""{crumb_from_parts(parts)}
+<h1>{CARE_TITLE}</h1>
+<p class="lede">엔진오일·타이어·배터리 같은 소모품을 언제 바꾸면 되는지, 자동차 검사는 언제 받는지 쉬운 말로 정리했어요.
+글 속 교체 주기는 차일지 수첩의 기본값과 같아요.</p>
+{care_rows(gs)}
+<p class="related-calc"><a href="../index.html">내 차 수첩</a>에 차를 등록하면 교체 시기와 검사 날짜를 챙겨 드려요.
+자동차세는 <a href="../tax/guide.html">자동차세 가이드</a>에 정리했어요.</p>
+{care_breadcrumb_ld(site, parts, CARE_INDEX)}"""
+    title = f"{CARE_TITLE} — 소모품 교체 주기·자동차 검사 | {site['siteName']}"
+    desc = "엔진오일·타이어·브레이크·배터리 교체 시기, 자동차 검사 주기와 과태료, 실제 연비 계산까지 쉬운 말로 정리했어요."
+    return page(site, title, desc, body, canonical=page_canonical(site, f"care/{CARE_INDEX}"), og=og,
+                active="notebook", head_extra=adsense_head(site))
 
 
 def vehicle_og_spec(v, rates, this_year):
@@ -2034,11 +2126,16 @@ def build_images(renderer, vehicles, rates, this_year):
     add("guide-index", "og/guide/index.png",
         page_og_spec("자동차세 가이드", "연납 · 납부 기한 · 차령 경감 · 중고차", f"{this_year}년 세율 기준"))
     renderer.prune("og/guide", {f"{g['slug']}.png" for g in guides.GUIDES} | {"index.png"})
+    care = care_guides.guides()
+    for g in care:
+        add("care:" + g["slug"], f"og/care/{g['slug']}.png", page_og_spec(g["og_title"], g["og_lede"], CARE_TITLE))
+    add("care-index", "og/care/index.png", page_og_spec(CARE_TITLE, "소모품 교체 주기 · 자동차 검사 · 연비", "차일지 수첩 기준"))
+    renderer.prune("og/care", {f"{g['slug']}.png" for g in care} | {"index.png"})
     renderer.report()
     return og
 
 
-def build_sitemap(site, slugs, guide_files=()):
+def build_sitemap(site, slugs, guide_files=(), care_files=()):
     base = site.get("baseUrl", "").rstrip("/")
     if not base:
         print("· site.json baseUrl이 비어 있어 sitemap.xml 생성을 건너뜁니다 (도메인 확정 후 재실행)")
@@ -2052,7 +2149,8 @@ def build_sitemap(site, slugs, guide_files=()):
         f"{base}/about.html",
         f"{base}/tax/index.html",
         f"{base}/tax/calculator.html",
-    ] + [f"{base}/tax/{f}" for f in guide_files] + [f"{base}/tax/{s}.html" for s in slugs]
+    ] + [f"{base}/tax/{f}" for f in guide_files] + [f"{base}/care/{f}" for f in care_files] + \
+        [f"{base}/tax/{s}.html" for s in slugs]
     items = "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>" for u in urls)
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
     (ROOT / "sitemap.xml").write_text(xml, encoding="utf-8")
@@ -2124,7 +2222,23 @@ def main():
     for v in vehicles:
         kinds[v.get("vehicleClass", "passenger")] = kinds.get(v.get("vehicleClass", "passenger"), 0) + 1
     print("· 분류별: " + " / ".join(f"{k} {n}종" for k, n in kinds.items()))
-    build_sitemap(site, slugs, guide_files)
+    # 차 관리 가이드 (care/) — 교체 주기·비용은 data/parts.json(수첩과 같은 값)에서 만든다
+    CARE_DIR.mkdir(exist_ok=True)
+    care = care_guides.build_all(sys.modules[__name__], rates, site, cat, this_year)
+    care_gs = [g for g, _ in care]
+    parts_updated = load("parts.json").get("updatedAt")
+    care_files = [CARE_INDEX]
+    (CARE_DIR / CARE_INDEX).write_text(care_index_page(care_gs, site, og=og.get("care-index")), encoding="utf-8")
+    for g, art in care:
+        (CARE_DIR / f"{g['slug']}.html").write_text(
+            care_page(g, art, care_gs, site, parts_updated, og=og.get("care:" + g["slug"])), encoding="utf-8")
+        care_files.append(f"{g['slug']}.html")
+    for p in sorted(CARE_DIR.glob("*.html")):
+        if p.name not in care_files:
+            p.unlink()
+            print(f"· 더 이상 만들지 않는 페이지 삭제: care/{p.name}")
+    print(f"· care/ 차 관리 가이드 {len(care_gs)}개 + index 생성")
+    build_sitemap(site, slugs, guide_files, care_files)
     # 애드센스 ads.txt와 손으로 쓴 루트 페이지의 광고·문의 마커 (data/site.json adsense·contactEmail)
     sync_ads_txt(site)
     try:

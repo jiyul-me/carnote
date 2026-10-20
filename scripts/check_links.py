@@ -13,14 +13,14 @@
 3. 공통 크롬 — scripts/build.py(page()·topbar_nav()·footer_links())와 손으로 쓰는 루트 페이지가 같은 마크업을 쓰는 계약:
    - 상단 내비: <nav class="topbar-right topbar-nav" aria-label="주 메뉴"> 안 링크가 정확히
      [수첩, 자동차세, 유지비 비교](index.html·tax/index.html·tco.html)이고, 현재 위치(aria-current="page")는
-     수첩 화면=수첩, tax/ 페이지=자동차세, tco.html=유지비 비교에만 있다(privacy·terms·about은 없음).
+     수첩 화면·care/ 페이지=수첩, tax/ 페이지=자동차세, tco.html=유지비 비교에만 있다(privacy·terms·about은 없음).
    - 푸터 2번째 줄 링크가 [소개·문의, 개인정보처리방침, 이용약관](about.html·privacy.html·terms.html) 순서다.
    - 손 페이지(루트 *.html)의 head에 <!-- adsense:head --> … <!-- /adsense:head --> 마커가 있다
      (build.py가 site.json adsense.publisherId로 소유 확인 메타를 채우는 자리).
    - 손 페이지 광고·문의 마커 계약(HAND_MARKERS): tco.html에 <!-- adsense:slot tcoEnd -->,
      privacy·terms·about에 <!-- site:contact -->가 정확히 한 번 있고, 계약에 없는 페이지·이름의 마커는 없다.
      마커 이름 오타나 삭제는 build.py가 그 자리를 조용히 비우고 끝나 빌드 검사로는 안 잡히므로 여기서 잡는다.
-   대상은 루트와 tax/의 .html이고, 검색엔진 소유 확인 파일(naver….html·google….html)은 뺀다.
+   대상은 루트·tax/·care/의 .html이고, 검색엔진 소유 확인 파일(naver….html·google….html)은 뺀다.
    about.html(소개·문의)이 아직 없으면 공통 크롬 도입 전 저장소로 보고 위 넷은 '참고'로만 알린다(실패 아님) —
    about.html이 생기면 오류가 된다.
 
@@ -53,8 +53,8 @@ NAV_LABEL = "주 메뉴"
 NAV_LINKS = (("수첩", "index.html"), ("자동차세", "tax/index.html"), ("유지비 비교", "tco.html"))
 FOOT_LINKS = (("소개·문의", "about.html"), ("개인정보처리방침", "privacy.html"), ("이용약관", "terms.html"))
 # 현재 위치(aria-current="page")를 달 내비 항목 — 페이지 경로로 정한다. '/'로 끝나면 그 폴더 전부
-CURRENT_FOR = (("index.html", "수첩"), ("tco.html", "유지비 비교"), ("tax/", "자동차세"))
-CHROME_DIRS = ("", "tax")  # 공통 크롬을 보는 폴더 (루트·tax/)
+CURRENT_FOR = (("index.html", "수첩"), ("tco.html", "유지비 비교"), ("tax/", "자동차세"), ("care/", "수첩"))
+CHROME_DIRS = ("", "tax", "care")  # 공통 크롬을 보는 폴더 (루트·tax/·care/)
 CONTRACT_PAGE = "about.html"  # 이 페이지가 생기면 공통 크롬·마커 검사가 오류가 된다(그 전에는 참고)
 HEAD_OPEN, HEAD_CLOSE = "<!-- adsense:head -->", "<!-- /adsense:head -->"
 SLOT_CLOSE, CONTACT_OPEN, CONTACT_CLOSE = "<!-- /adsense:slot -->", "<!-- site:contact -->", "<!-- /site:contact -->"
@@ -461,7 +461,7 @@ def check_chrome(parsed, own_hosts):
             groups.setdefault(msg, []).append((rel, line))
     enforced = exists_exact(CONTRACT_PAGE) == "file"
     print("")
-    print("공통 크롬: 페이지 {}개(루트 {} + tax/ {})의 상단 내비·푸터 + 손 페이지 {}개의 광고·문의 마커".format(
+    print("공통 크롬: 페이지 {}개(루트 {} + tax/·care/ {})의 상단 내비·푸터 + 손 페이지 {}개의 광고·문의 마커".format(
         len(targets), len(hand), len(targets) - len(hand), len(hand)))
     if not groups:
         print("결과: 계약 마크업과 모두 같아요 — 통과")
@@ -490,7 +490,7 @@ def check_chrome(parsed, own_hosts):
     for label, markup in CONTRACT_MARKUP:
         print("    {}:".format(label))
         print("      " + markup)
-    print("  - 현재 위치 aria-current=\"page\": 수첩 화면은 '수첩', tax/ 페이지는 '자동차세', tco.html은 '유지비 비교'에만.")
+    print("  - 현재 위치 aria-current=\"page\": 수첩 화면·care/ 페이지는 '수첩', tax/ 페이지는 '자동차세', tco.html은 '유지비 비교'에만.")
     print("  - 광고·문의 마커는 위에 적힌 페이지에만 정확히 한 번 둬요(tco.html은 </main> 바로 앞, 나머지는 문의 문단).")
     print("    수첩·소개·개인정보처리방침·이용약관에는 광고 자리를 두지 않아요. 광고 자리를 늘리려면 privacy.html 4절의")
     print("    '광고가 게재되는 페이지' 문구, 이 파일의 HAND_MARKERS, scripts/validate_data.py HAND_SLOT_WHERE를 함께 고쳐요.")
