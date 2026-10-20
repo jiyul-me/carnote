@@ -4,10 +4,18 @@
 - 교체 주기·가혹 조건 권장값은 data/parts.json(c.part·c.interval_text) — 수첩과 같은 값. 가혹 조건 권장 km는
   parts.json engine-oil의 note에서 읽는다(수첩 항목 화면에 그대로 보이는 메모). 가격 값은 쓰지 않는다.
 - 아래 MANUAL_* 는 제조사 설명서에서 확인한 값(2026-10 조사)으로, 차일지 기본값과 견주는 문장에만 쓴다.
-- 데이터 차이(2026-10 조사): 수첩 기본값은 엔진 하나로 정했지만 현대 2026년식 설명서 통상 조건은 엔진에 따라
-  10,000~15,000km(12개월)였다. 가혹 조건은 parts.json note가 7,000km(기간 기준 없음)인데, 설명서는 엔진마다
-  5,000~10,000km에 기간 6개월이 붙었다(7,000km라는 값은 공식 자료에서 찾지 못함). 글은 수첩 기본값을 기준으로 쓰고
+- 데이터 차이(2026-10 조사): 수첩 기본값은 엔진 하나로 정했지만 2026년식 설명서 통상 조건은 엔진에 따라 달랐다 —
+  가솔린 기준 10,000~15,000km(12개월; 기아 MQ4 가솔린·현대 DN8 G2.0), 디젤 D2.2는 20,000km(12개월; SRC_KIA_MQ4,
+  2026-10-20 검토의 WebSearch 결과 — 이 수정에서 다시 검색하지는 않음). 그래서 본문 비교 문장(MANUAL_OIL_KM·
+  _vs_manual)은 '가솔린 엔진끼리도'로 범위를 밝히고 디젤 값은 화면에 쓰지 않는다(디젤은 '설명서의 디젤 엔진 칸 확인'으로
+  안내). 가혹 조건은 parts.json note가 7,000km(기간 기준 없음)인데, 설명서는 엔진마다 5,000~10,000km에 기간 6개월이
+  붙었다(7,000km라는 값은 공식 자료에서 찾지 못함). 글은 수첩 기본값을 기준으로 쓰고
   '차일지 권장값'이라 밝힌 뒤 설명서 표를 따르라고 안내한다.
+- 출처 정리(2026-10-20): 설명서 딥링크는 검색으로 URL·제목이 확인된 것만 남겼다(검토 반영 때 현대 NX4 2025
+  한국어판 '가혹 조건 점검 항목 및 주기'를 더해 7개 — 같은 날 WebSearch로 URL·제목 확인). 확인 못 한 링크(현대 GN7·MX5·QT,
+  기아 SP3·MQ4 2022, 영문 오일 수명·경고등 페이지)와 hyundaiusa·STLE는 뺐고, 그 링크에만 기대던 문장은 일반 표현으로 낮췄다.
+- 남은 한계: 검색으로는 페이지가 있다는 것만 확인했다. 오일이 내려오기까지 '약 15분'(현대 오일량 점검 페이지)과
+  오일 첨가제 경고(기아 MQ4)는 페이지 본문을 직접 열어 대조하지 못했다(WebFetch 불가). 경고등 페이지는 미국 영문판이다.
 """
 import re
 
@@ -19,42 +27,29 @@ GUIDE = {
     "summary": "수첩 기본 주기와 설명서가 다른 이유, 가혹 조건 체크리스트, 오일량 점검 순서, 경고등이 켜졌을 때 할 일",
 }
 
-# 글에서 링크하는 외부 출처 — 사실을 확인한 곳 (2026-10 확인)
-SRC_HY_MX5 = ("현대 취급설명서 — 정기 점검(MX5 2026)",
-              "https://ownersmanual.hyundai.com/full_webhelp/MX5/2026/ko_KR/id6b219dd157c.html")
-SRC_HY_DN8 = ("현대 취급설명서 — 통상 조건 점검·교체 주기(DN8 2026)",
+# 글에서 링크하는 외부 출처 — 2026-10-20 WebSearch로 같은 URL·문서 제목이 검색되는 것을 확인한 것만 둔다
+SRC_HY_DN8 = ("현대 취급설명서 — 통상 조건(쏘나타 DN8 2026)",
               "https://ownersmanual.hyundai.com/full_webhelp/DN8/2026/ko_KR/id6b219dd157c.html")
-SRC_HY_SEVERE = ("현대 취급설명서 — 가혹 조건(GN7 2023)",
-                 "https://ownersmanual.hyundai.com/full_webhelp/GN7/2023/ko_KR/id7b77f1c5ffe.html")
-SRC_KIA_MQ4 = ("기아 취급설명서 — 정기 점검(MQ4 2026)",
+SRC_KIA_MQ4 = ("기아 취급설명서 — 정기 점검(쏘렌토 MQ4 2026)",
                "https://ownersmanual.kia.com/full_webhelp/MQ4/2026/ko_KR/topics/chapter8_4.html")
-SRC_KIA_MQ4_SEVERE = ("기아 취급설명서 — 정기 점검·가혹 조건(MQ4 2022)",
-                      "https://ownersmanual.kia.com/full_webhelp/MQ4/2022/ko_KR/topics/t01030.html")
-SRC_KIA_SP3 = ("기아 취급설명서 — 정기 점검(SP3 2026)",
-               "https://ownersmanual.kia.com/full_webhelp/SP3/2026/ko_KR/topics/t00965.html")
-SRC_HY_OIL_CHECK = ("현대 취급설명서 — 엔진 오일량 점검 및 보충(MX5 2026)",
-                    "https://ownersmanual.hyundai.com/full_webhelp/MX5/2026/ko_KR/id16a3a154058.html")
-SRC_KIA_OIL_CHECK = ("Kia owner's manual — Checking the engine oil level (MQ4A 2025)",
-                     "https://ownersmanual.kia.com/full_webhelp/MQ4A/2025/en_US/topics/t00773.html")
-SRC_HY_DAILY = ("현대 취급설명서 — 일상 점검(QT 2026)",
-                "https://ownersmanual.hyundai.com/full_webhelp/QT/2026/ko_KR/id3531be8134a.html")
-SRC_KIA_WARN = ("Kia owner's manual — Warning lights (ON 2024)",
-                "https://ownersmanual.kia.com/full_webhelp/ON/2024/en_US/topics/t00204.html")
-SRC_KIA_OLM = ("Kia owner's manual — Scheduled maintenance service precaution (SG2 2026)",
-               "https://ownersmanual.kia.com/full_webhelp/SG2/2026/en_US/topics/chapter9_4_1.html")
-SRC_HY_OIL_EN = ("Hyundai owner's manual — Checking the engine oil and filter (NX4 2025)",
-                 "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/id8593bb7792c.html")
-SRC_HY_HEV = ("현대 취급설명서 — 정기 점검(쏘나타 하이브리드 DN8HEV 2026)",
-              "https://ownersmanual.hyundai.com/full_webhelp/DN8HEV/2026/ko_KR/id6b219dd157c.html")
-SRC_HY_EV = ("현대자동차 미국 — 전기차 안내(한국어)", "https://www.hyundaiusa.com/us/ko/hybrid-and-ev/electric")
-SRC_STLE = ("STLE(미국 윤활공학회) — Engine oil viscosity",
-            "https://www.stle.org/files/TLTArchives/2017/01_January/Worldwide.aspx")
+SRC_HY_SEVERE_KO = ("현대 취급설명서 — 가혹 조건 점검 항목 및 주기(투싼 NX4 2025)",
+                    "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id7b77f1c5ffe.html")
+SRC_HY_SEVERE = ("Hyundai owner's manual — Severe Usage Maintenance (Tucson NX4 2025)",
+                 "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_GN/id3d5d5abd51f.html")
+SRC_KIA_OIL_SPEC = ("기아 취급설명서 — 추천 오일 및 용량(쏘렌토 MQ4 2026)",
+                    "https://ownersmanual.kia.com/full_webhelp/MQ4/2026/ko_KR/topics/chapter9_5.html")
+SRC_HY_OIL_CHECK = ("현대 취급설명서 — 엔진 오일 점검 및 보충(쏘나타 하이브리드 DN8HEV 2026)",
+                    "https://ownersmanual.hyundai.com/full_webhelp/DN8HEV/2026/ko_KR/id16a3a154058.html")
+SRC_HY_WARN = ("Hyundai owner's manual — Warning and Indicator Lights (Palisade LX3 2026)",
+               "https://ownersmanual.hyundai.com/full_webhelp/LX3/2026/en_US/warning_indicator_lights.html")
 
 # 설명서 비교용 값 — parts.json 기본값과 견주는 문장에만 쓴다
-MANUAL_OIL_KM = (10000, 15000)    # 현대 2026년식 통상 조건 — 엔진에 따라 10,000km·15,000km (SRC_HY_DN8)
-MANUAL_OIL_MONTHS = 12            # 같은 표 — 기간은 12개월 (SRC_HY_DN8)
-MANUAL_SEVERE_KM = (5000, 10000)  # 가혹 조건 — 기아 G2.5 T-GDi 5,000km ~ 디젤 D2.2 10,000km (SRC_KIA_MQ4), 현대 GN7 7,500km
-MANUAL_SEVERE_MONTHS = 6          # 같은 표들 — 기간 6개월 (SRC_HY_SEVERE, SRC_KIA_MQ4)
+MANUAL_OIL_KM = (10000, 15000)    # 2026년식 통상 조건, 가솔린만 — 기아 MQ4 가솔린 10,000km (SRC_KIA_MQ4), 현대 DN8 G2.0 15,000km
+                                  # (SRC_HY_DN8). 디젤 D2.2는 20,000km(SRC_KIA_MQ4)라 범위에 넣지 않고, 본문은 '가솔린 엔진끼리도'로 쓴다
+MANUAL_OIL_MONTHS = 12            # 같은 표들 — 기간은 12개월 (SRC_KIA_MQ4, SRC_HY_DN8)
+MANUAL_SEVERE_KM = (5000, 10000)  # 가혹 조건 — 기아 MQ4 G2.5 T-GDi 5,000km ~ 디젤 D2.2 10,000km (SRC_KIA_MQ4)
+MANUAL_SEVERE_MONTHS = 6          # 같은 표 — 기간 6개월 (SRC_KIA_MQ4; 현대 NX4 2025 가혹 조건 표도 6개월 — 한국어판
+                                  # SRC_HY_SEVERE_KO는 검색 요약 기준, 영문 수출판 SRC_HY_SEVERE)
 
 KIND = {"replace": "교체", "inspect": "점검"}
 FUEL = {"gasoline": "가솔린", "diesel": "디젤", "lpg": "LPG", "hybrid": "하이브리드", "ev": "전기차"}
@@ -76,7 +71,7 @@ def _fuels(p):
 
 
 def _vs_manual(km):
-    """차일지 기본 km가 설명서 통상 조건 범위의 어디쯤인지."""
+    """차일지 기본 km가 설명서 통상 조건 범위(가솔린 엔진 — 본문이 범위를 밝힌다)의 어디쯤인지."""
     lo, hi = MANUAL_OIL_KM
     if km < lo:
         return "차일지 기본값은 이보다 짧아요. 그래서 수첩 알림이 설명서보다 일찍 와요."
@@ -86,9 +81,10 @@ def _vs_manual(km):
         return ("차일지 기본값은 이 사이에 있어요. 그래서 엔진에 따라 수첩 알림이 설명서보다 일찍 오기도 하고 "
                 "늦게 오기도 해요.")
     if km == hi:
-        return ("차일지 기본값은 이 가운데 긴 쪽과 같아요. 그래서 엔진에 따라 수첩 알림이 설명서보다 늦게 올 수 있으니, "
-                "설명서 주기를 꼭 확인하세요.")
-    return "차일지 기본값이 이보다 길어요. 그래서 수첩 알림이 설명서보다 늦게 오니, 설명서 주기를 꼭 따르세요."
+        return ("차일지 기본값은 이 가운데 긴 쪽과 같아요. 그래서 설명서 주기가 더 짧은 엔진이라면 수첩 알림이 "
+                "설명서보다 늦게 와요. 설명서 주기를 꼭 확인하세요.")
+    return ("차일지 기본값이 이보다 길어요. 그래서 가솔린 엔진이라면 수첩 알림이 설명서보다 늦게 오니, "
+            "설명서 주기를 꼭 따르세요.")
 
 
 def _months_first(c, km, mo):
@@ -162,8 +158,8 @@ def _kinds(c):
     plug = c.part("spark-plug")
     diesel_only = [p["name"] for p in c.parts.values() if p["appliesTo"] == ["diesel"] and p.get("defaultEnabled", True)]
     items = []
-    hev = ("모터와 함께 가솔린 엔진이 달려 있어서 엔진오일과 오일필터를 바꿔요. 설명서에 하이브리드 엔진의 "
-           "통상·가혹 조건 주기가 따로 있으니 그 칸을 보세요. 충전해서 쓰는 플러그인 하이브리드도 엔진이 있으니 마찬가지예요.")
+    hev = ("모터와 함께 가솔린 엔진이 달려 있어서 엔진오일과 오일필터를 바꿔요. 오일량 점검도 일반 엔진과 "
+           "같은 방식이에요. 주기는 내 차 설명서의 정기 점검표에서 엔진오일 칸을 보세요. 충전해서 쓰는 플러그인 하이브리드도 엔진이 있으니 마찬가지예요.")
     if "hybrid" in applies:
         hev += " 수첩에 하이브리드로 등록하면 엔진오일 항목이 켜져요."
     items.append(f"<li><strong>하이브리드</strong>: {B.esc(hev)}</li>")
@@ -201,7 +197,7 @@ def build(c):
 현대·기아 설명서(매뉴얼)도 같은 방식이에요. {B.esc(_months_first(c, km, mo))}</p>
 <h2>차일지 기본값과 설명서가 다른 이유</h2>
 <p>차일지 기본값은 여러 차에 두루 맞추려고 정한 숫자 하나예요. 제조사 설명서는 엔진마다 주기를 따로 적어요.
-현대 2026년식 설명서를 보니, 같은 차종 안에서도 엔진에 따라 통상 조건(보통의 운전 환경) 주기가 달랐어요.
+현대·기아 2026년식 설명서를 보니, 가솔린 엔진끼리도 통상 조건(보통의 운전 환경) 주기가 달랐어요.
 '{lo:,}km 또는 {MANUAL_OIL_MONTHS}개월'인 엔진도, '{hi:,}km 또는 {MANUAL_OIL_MONTHS}개월'인 엔진도 있었어요.
 {B.esc(_vs_manual(km))}</p>
 <p>설명서에는 보통 '통상 조건' 표와 '가혹 조건' 표가 따로 있어요. 가혹 조건은 차에 부담이 큰 운전 환경이고,
@@ -233,8 +229,8 @@ def build(c):
 <ol>
 <li>평평한 곳에 차를 세워요. 기울어진 곳에서는 양이 다르게 보여요.</li>
 <li>시동 직후가 아니라 한동안 달려서 엔진을 충분히 데운 뒤(정상 온도) 시동을 꺼요.</li>
-<li>오일이 엔진 아래쪽 통(오일 팬)으로 내려올 때까지 기다려요. 차일지가 살펴본 현대·기아 설명서에는 약 15분이라고
-적혀 있었는데, 차마다 다를 수 있어요.</li>
+<li>오일이 엔진 아래쪽 통(오일 팬)으로 내려올 때까지 기다려요. 차일지가 살펴본 현대 설명서에는 약 15분이라고
+적혀 있었는데, 차마다 다를 수 있으니 내 차 설명서에 적힌 시간을 따르세요.</li>
 <li>보닛을 열고 레벨 게이지를 뽑아 깨끗한 헝겊으로 닦아요. 엔진룸은 뜨거우니 다른 부품을 맨손으로 만지지 마세요.</li>
 <li>게이지를 끝까지 다시 꽂았다가 뽑아요.</li>
 <li>오일이 묻은 끝이 F(가득)선과 L(부족)선 사이에 있으면 괜찮아요.</li>
@@ -243,8 +239,8 @@ def build(c):
 넣으면서 다시 재요. 규격은 아래 '어떤 오일을 넣을지' 부분을 보세요. F선을 넘지 않게 넣고, F선을 넘겼다면 직접 빼려 하지 말고
 정비소에 물어보세요. 보충이 자신 없으면 정비소에 맡겨도 돼요.</p>
 <p>레벨 게이지 대신 계기판이나 화면 메뉴로 오일량을 보여 주는 차도 있어요. 이때는 설명서의 확인 방법을 따르세요.
-오일량을 볼 때 차를 세워 둔 바닥에 기름 자국이 있는지, 엔진룸에 오일이 샌 흔적이 있는지도 함께 봐 두세요.
-둘 다 현대 설명서의 일상 점검 항목에 들어 있어요. 오일이 유난히 빨리 줄어든다면 정비소에서 원인을 점검받으세요.</p>
+오일량을 볼 때마다 차를 세워 둔 바닥에 기름 자국이 있는지, 엔진룸에 오일이 샌 흔적이 있는지도 함께 봐 두세요.
+오일이 유난히 빨리 줄어든다면 정비소에서 원인을 점검받으세요.</p>
 <h2>엔진오일 경고등이 켜지면</h2>
 <p>계기판에는 기름 주전자 모양의 엔진오일 압력 경고등이 있어요. 시동을 걸 때 잠깐 켜졌다가 시동이 걸리면 꺼지는 건 정상이에요.
 그런데 달리는 중에 켜지면 엔진 안의 오일 압력이 낮다는 뜻이에요. 오일이 엔진 곳곳에 제대로 돌지 못하고 있을 수 있어요.
@@ -269,8 +265,8 @@ def build(c):
 적힌 점도와 등급에 맞추면 돼요. 정비소에서 바꿀 때는 설명서 규격으로 넣어 달라고 말하고, 넣은 오일의 점도·등급을
 정비 명세서에서 확인해 두세요. 수첩에 교체를 기록할 때 '메모' 칸에 적어 두면, 나중에 보충할 오일을 고르기 쉬워요.
 권장 오일이 아니면 앞에서 본 것처럼 가혹 조건 주기를 따라야 해요.</p>
-<p>따로 파는 오일 첨가제는 넣지 않는 게 좋아요. 현대 설명서는 첨가제가 오일의 성질을 바꿔 엔진 고장을 일으킬 수 있다며
-쓰지 말라고 해요. 다른 제조사 차라면 설명서를 확인하세요.</p>
+<p>따로 파는 오일 첨가제는 넣지 않는 게 좋아요. 기아 설명서에는 첨가제가 오일의 성질을 바꿔 엔진 고장을 일으킬 수 있다며
+쓰지 말라는 안내가 있어요. 다른 제조사 차라면 설명서를 확인하세요.</p>
 <h2>오일 바꿀 때 함께 보면 좋은 것</h2>
 <p>엔진오일 교체는 뜨거운 헌 오일을 빼내고 필터를 바꾸는 작업이에요. 장비가 필요하고 빼낸 오일도 따로 처리해야 해서,
 직접 하기보다 정비소에 맡기는 게 안전해요. 정비소에 간 김에 아래 항목도 때가 됐는지 함께 보면 좋아요.
@@ -309,9 +305,7 @@ def build(c):
          "아니요. 전기차는 엔진이 없어서 엔진오일·오일필터를 바꾸지 않아요. 다만 감속기 오일 같은 다른 오일은 있고, "
          "점검·교체 주기는 제조사마다 달라 내 차 설명서를 확인해야 해요. 하이브리드는 엔진이 있어서 엔진오일을 바꿔요."),
     ]
-    sources = [SRC_HY_MX5, SRC_HY_DN8, SRC_HY_SEVERE, SRC_KIA_MQ4, SRC_KIA_MQ4_SEVERE, SRC_KIA_SP3, SRC_HY_OIL_CHECK,
-               SRC_KIA_OIL_CHECK, SRC_HY_DAILY, SRC_KIA_WARN, SRC_KIA_OLM, SRC_HY_OIL_EN, SRC_HY_HEV, SRC_HY_EV,
-               SRC_STLE]
+    sources = [SRC_HY_DN8, SRC_KIA_MQ4, SRC_HY_SEVERE_KO, SRC_HY_SEVERE, SRC_KIA_OIL_SPEC, SRC_HY_OIL_CHECK, SRC_HY_WARN]
     return {
         "h1": "엔진오일, 언제 바꾸고 어떻게 확인할까",
         "title": "엔진오일 교체 주기 — 가혹 조건 판단·오일량 점검·경고등 대처",

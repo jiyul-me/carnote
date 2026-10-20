@@ -5,15 +5,31 @@
   — 수첩과 같은 값. 가격 값은 쓰지 않는다.
 - 아래 상수는 parts.json에 없는 제조사·규격 사실이라 출처와 함께 여기 둔다(바뀌면 고치고 GUIDE['updated']도).
 - 데이터 차이(2026-10 조사)
-  · 브레이크액: parts.json은 '40,000km 또는 24개월 중 먼저'(교체)인데, 현대 미국판 설명서(NE1N 2026, DN8 2025)는
-    48개월(또는 48,000mi) 교체, 브렘보는 제조사 권장 우선·보통 2~3년. 한국판 현대 설명서 표의 기간 조건은 확인하지 못해
-    인용하지 않는다. 글은 수첩 기본값을 기준으로 쓰고, 제조사 권장이 차종·시장마다 다르다고 밝힌다(_fluid_compare).
+  · 브레이크액: parts.json은 '40,000km 또는 24개월 중 먼저'(교체)인데, 현대 미국판 설명서(LX3 2026 정기 점검표)는
+    처음 점검 뒤 48,000mi 또는 48개월마다 교체. 한국판 현대 설명서 표의 기간 조건은 확인하지 못해 인용하지 않는다.
+    글은 수첩 기본값을 기준으로 쓰고, 제조사 권장이 차종·시장마다 다르다고 밝힌다(_fluid_compare).
   · 패드·디스크: parts.json은 km 값만 있는 '점검'(type=inspect) 항목. 제조사 설명서도 정해진 교체 거리가 아니라
     정기 점검 때 마모 상태로 바꾸는 항목으로 다룬다 — 글에서 '교체 주기'가 아니라 '점검 시점'으로 쓴다.
   · 하이브리드·전기차 패드가 몇 배·몇 km 더 간다는 수치, 앞·뒤 중 먼저 닳는 쪽, 브레이크액 수분 기준 퍼센트는
     공식 근거를 찾지 못해 쓰지 않는다.
   · 현대 취급설명서(QZ 2026) '라이닝 마모 감지 경보시스템'의 남은 양 % 단위 표시는 QZ가 승용차인지 상용차인지
     확인하지 못해(검토 때 출처 재확인 불가) 2026-10 고치기에서 본문·출처에서 뺐다.
+- 출처 정리(2026-10-20): 출처를 8개로 줄였다. 설명서 딥링크는 WebSearch 결과에 같은 URL이 나온 것만 남겼다.
+  · 현대 NE1N 2026·DN8 2025 점검표 링크는 확인하지 못해 빼고, 같은 내용(48개월)이 검색으로 확인된 LX3 2026 점검표로 바꿨다.
+  · 기아 NQ5 2024 브레이크액 점검(t00670)은 확인하지 못해 NQ5 2025 같은 항목(chapter8_8_1)으로 바꿨다.
+  · 현대 NX4 브레이크액 점검(idf5c979cd4b3)·CN7 경고등은 확인 못 했거나 다른 출처와 겹쳐 뺐다.
+  · 브렘보(보통 2~3년) 수치는 우선순위 밖 출처라 출처·본문에서 뺐다.
+  · 회생제동·뒤 브레이크 부식·디스크 휨 업계지(Brake & Front End, Tomorrow's Technician)는 해외 매체라 뺐다.
+    회생제동 차의 녹·캘리퍼 고착은 출처 없는 일반 원리로만, 단서를 달아 쓴다('뒤 브레이크에 잘 생긴다'는 뺐다).
+- 검토 반영(2026-10-20)
+  · 보쉬: 검토 때 bosch-mobility.com 한정 검색으로 확인된 것은 '센서가 패드와 함께 닳는다'·'경고등이 패드 교체 시점을
+    알린다'까지다. '패드를 바꿀 때 센서도 함께 바꾸기를 권한다'는 권고 문구는 확인되지 않아, 본문을 '센서도 패드와 함께
+    닳는다 → 센서도 바꿔야 하는지 정비소에 물어본다'로 낮췄다.
+  · ZF 저더: '업계 자료'로 뭉뚱그리지 않고 출처(ZF)를 밝혀 디스크 두께 차이(DTV)를 '주된 원인'으로 쓴다(ZF 표현).
+    녹·이물질이 끼는 곳은 '디스크와 바퀴'가 아니라 '디스크와 허브(바퀴를 다는 부분)'가 맞닿는 면으로 고쳤다.
+  · 현대 경고등·브레이크 두 갈래(대각선 계통) 문장은 출처인 투싼(NX4) 설명서를 문장에 밝혔다.
+- 남은 한계: 현대 NX4 경고등 페이지는 고유 ID 딥링크가 아니라 이번에 따로 검색 확인하지 않았다. 보쉬·ZF·기아 안내는
+  검토 때 검색 결과(요약)로만 봤다 — 기아는 PH판이 아니라 같은 안내의 MU판, ZF는 검색 요약. 기아 수치 문제는 KIA_PAD_MM 주석.
 """
 from care_guides import table
 
@@ -22,13 +38,15 @@ GUIDE = {"slug": "brake", "short": "브레이크 패드·브레이크액", "publ
          "summary": "패드·디스크·브레이크액 점검 시점, 소리·떨림·경고등 같은 이상 신호, 브레이크액을 기간으로 바꾸는 이유와 하이브리드·전기차 차이"}
 
 # 기아(Discover Kia) 안내 — 패드가 약 이 두께(mm)보다 얇으면 정비소 점검 권장 (차종별 사용 한계는 정비 지침)
+# 주의: 기아 원문(검토 때 검색으로 본 같은 안내 MU판)은 'less than 1/4-inch-thick (approx. 3 millimeters)'로 적어,
+# 1/4인치(약 6.4mm)와 3mm가 원문 안에서부터 서로 맞지 않는다. 본문은 mm 표기를 따르고 '대략적인 기준이며 차종별
+# 사용 한계는 정비소에서 확인'이라는 단서를 함께 단다(이 단서를 지우지 말 것). 같은 페이지의 '보통 50,000마일마다 교체'
+# 경험칙은 쓰지 않는다 — 글은 패드를 정해진 거리가 아니라 점검 때 닳은 정도로 바꾸는 부품으로 다룬다.
 KIA_PAD_MM = 3
 # 미국 연방 자동차 안전기준 FMVSS No. 116 — 브레이크액 최소 끓는점(℃): (규격, 새 액(건식), 수분을 머금은 액(습식))
 FMVSS_BOILING = (("DOT 3", 205, 140), ("DOT 4", 230, 155))
-# 현대 미국판 설명서(NE1N 2026, DN8 2025) — 브레이크액 교체 기간(개월, 주행거리와 먼저 오는 때)
+# 현대 미국판 설명서(LX3 2026 정기 점검표) — 브레이크액 교체 기간(개월, 주행거리와 먼저 오는 때)
 HY_US_FLUID_MONTHS = 48
-# 브렘보 — 제조사 권장을 우선하되 일반적으로 권하는 브레이크액 교체 주기(년)
-BREMBO_FLUID_YEARS = (2, 3)
 
 SRC_KIA_SQUEAK = ("Kia — When do brakes squeak",
                   "https://www.kia.com/ph/discover-kia/ask/when-do-brakes-squeak.html")
@@ -38,31 +56,14 @@ SRC_BOSCH_SENSOR = ("Bosch Mobility — Brake pad wear sensor",
                     "https://bosch-mobility.com/en/solutions/sensors/brake-pad-wear-sensor/")
 SRC_HY_WARN_NX4 = ("Hyundai owner's manual — Warning and indicator lights (NX4 2025)",
                    "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/warning_indicator_lights.html")
-SRC_HY_WARN_CN7 = ("Hyundai owner's manual — Warning and indicator lights (CN7 2026)",
-                   "https://ownersmanual.hyundai.com/full_webhelp/cn7/2026/en_us/warning_indicator_lights.html")
-SRC_HY_FLUID_CHECK = ("Hyundai owner's manual — Checking the brake/clutch fluid level (NX4 2025)",
-                      "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_GN/idf5c979cd4b3.html")
-SRC_KIA_FLUID_CHECK = ("Kia owner's manual — Checking the brake fluid level (NQ5 2024)",
-                       "https://ownersmanual.kia.com/full_webhelp/NQ5/2024/en_US/topics/t00670.html")
-SRC_BREMBO_FLUID = ("Brembo — 내 자동차에 적합한 브레이크 오일은?",
-                    "https://www.bremboparts.com/asiapacific/ko/support/h%EC%98%AC%EB%B0%94%EB%A5%B8-%EC%A0%9C%ED%92%88-"
-                    "%EC%84%A0%ED%83%9D-%EB%B0%A9%EB%B2%95/%EB%82%B4-%EC%9E%90%EB%8F%99%EC%B0%A8%EC%97%90-%EC%A0%81%ED%95%A9"
-                    "%ED%95%9C-%EB%B8%8C%EB%A0%88%EC%9D%B4%ED%81%AC-%EC%98%A4%EC%9D%BC%EC%9D%80-195105")
+SRC_KIA_FLUID_CHECK = ("Kia owner's manual — Checking the brake fluid level (NQ5 2025)",
+                       "https://ownersmanual.kia.com/full_webhelp/NQ5/2025/en_US/topics/chapter8_8_1.html")
 SRC_FMVSS = ("eCFR — 49 CFR 571.116 (FMVSS No. 116 Motor vehicle brake fluids)",
              "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-V/part-571/subpart-B/section-571.116")
-SRC_HY_US_NE1N = ("Hyundai owner's manual — Normal maintenance schedule (NE1N 2026)",
-                  "https://ownersmanual.hyundai.com/full_webhelp/NE1N/2026/en_US/idc415036e46f.html")
-SRC_HY_US_DN8 = ("Hyundai owner's manual — Normal maintenance schedule (DN8 2025)",
-                 "https://ownersmanual.hyundai.com/full_webhelp/DN8/2025/en_US/topic_ybb_1yh_lwb.html")
+SRC_HY_US_MAINT = ("Hyundai owner's manual — Normal Maintenance Schedule (LX3 2026, US)",
+                   "https://ownersmanual.hyundai.com/full_webhelp/LX3/2026/en_US/idf65ecf8f9d3.html")
 SRC_ZF_JUDDER = ("ZF Aftermarket — Brake judder",
                  "https://aftermarket.zf.com/en/aftermarket-portal/for-workshops/useful-tips/brakes/brake-judder/")
-SRC_BFE_WARPED = ("Brake & Front End — Warped Brake Rotors", "https://www.brakeandfrontend.com/?p=193449")
-SRC_BFE_REGEN = ("Brake & Front End — Regenerative Brakes: Basic Operation And Behavior",
-                 "https://www.brakeandfrontend.com/regenerative-brakes-basic-operation-and-behavior/")
-SRC_TT_REGEN = ("Tomorrow's Technician — Toyota Regenerative Braking",
-                "https://www.tomorrowstechnician.com/toyota-regenerative-braking/")
-SRC_BFE_RUST = ("Brake & Front End — How Regenerative Braking Contributes to Rear Brake Corrosion",
-                "https://www.brakeandfrontend.com/how-regenerative-braking-contributes-to-rear-brake-corrosion/")
 KIND = {"replace": "교체", "inspect": "점검"}
 MEANING = {"replace": "정해진 때에 바꿔요", "inspect": "닳은 정도를 보고 바꿀지 정해요"}
 PARTS = ("brake-pad-front", "brake-pad-rear", "brake-disc", "brake-fluid")
@@ -106,19 +107,18 @@ def _replace_note(c):
 
 
 def _fluid_compare(c):
-    """브레이크액 — 수첩 기본값(개월)과 현대 미국판·브렘보 권장의 차이."""
+    """브레이크액 — 수첩 기본값(개월)과 현대 미국판 설명서 권장의 차이."""
     mo = c.part("brake-fluid").get("intervalMonths")
-    lo, hi = BREMBO_FLUID_YEARS
     maker = (f"제조사 권장은 차종과 판매 지역마다 달라요. 현대의 미국판 설명서에는 {HY_US_FLUID_MONTHS}개월(또는 정해진 주행거리) "
-             f"중 먼저 오는 때에 바꾸라고 적힌 차종이 있고, 부품 회사 브렘보는 제조사 권장을 먼저 따르되 보통 {lo}~{hi}년을 권해요.")
+             "중 먼저 오는 때에 바꾸라고 적힌 차종도 있어요.")
     if not mo:
         return maker + " 수첩에는 기간 기준이 없으니 내 차 설명서의 기간도 함께 챙기세요."
-    if mo <= lo * 12:
-        tail = " 차일지 기본값은 이 가운데 짧은 쪽에 맞춰 일찍 잡은 값이에요."
-    elif mo < HY_US_FLUID_MONTHS:
-        tail = " 차일지 기본값은 이 사이에 있어요."
+    if mo < HY_US_FLUID_MONTHS:
+        tail = " 차일지 기본값은 이보다 짧게, 일찍 바꾸는 쪽으로 잡은 값이에요."
+    elif mo == HY_US_FLUID_MONTHS:
+        tail = " 차일지 기본값도 기간은 이와 같아요."
     else:
-        tail = " 차일지 기본값이 이보다 길 수 있으니 설명서 주기를 꼭 확인하세요."
+        tail = " 차일지 기본값이 이보다 기니 설명서 주기를 꼭 확인하세요."
     return maker + tail
 
 
@@ -178,12 +178,12 @@ def build(c):
 <h2>운전 중 이런 소리·떨림이 있으면</h2>
 <p>브레이크 이상은 소리·떨림·페달 느낌으로 먼저 나타나요. 아래 표는 짐작해 보는 용도예요. 정확한 원인은 정비소에서 확인해야 해요.</p>
 {table(["증상", "흔한 원인", "할 일"], signal_rows)}
-<p>제동할 때 떨림(저더)이 생기면 흔히 '디스크가 휘었다'고들 해요. 하지만 업계 자료는 디스크 두께가 고르지 않게 된 것을
-더 흔한 원인으로 꼽아요. 떨림은 휠 너트를 잘못 조였을 때, 디스크와 바퀴가 맞닿는 면에 녹이 끼었을 때, 캘리퍼가 잘 움직이지
-않을 때도 생겨요. 브레이크가 아닌 다른 부품이 원인일 때도 있어요. 떨림이 생기면 디스크 점검 알림을 기다리지 말고 바로 점검받으세요.</p>
+<p>제동할 때 떨림(저더)이 생기면 흔히 '디스크가 휘었다'고들 해요. 하지만 자동차 부품 회사 ZF는 디스크 두께가 고르지 않게
+된 것을 주된 원인으로 꼽아요. 떨림은 휠 너트를 잘못 조였을 때, 디스크와 허브(바퀴를 다는 부분)가 맞닿는 면에 녹이나 이물질이
+끼었을 때, 캘리퍼가 잘 움직이지 않을 때도 생겨요. 브레이크가 아닌 다른 부품이 원인일 때도 있어요. 떨림이 생기면 디스크 점검 알림을 기다리지 말고 바로 점검받으세요.</p>
 <h2>바로 정비소에 가야 할 때</h2>
 <p>쇠 긁는 소리나 물렁한 페달은 미루면 안 되는 신호예요. 경고등도 그래요.
-현대 설명서에 나오는 '주차 브레이크 &amp; 브레이크액' 경고등은 주차 브레이크를 걸었을 때 켜지는 게 정상이에요.
+현대 투싼(NX4) 설명서에 나오는 '주차 브레이크 &amp; 브레이크액' 경고등은 주차 브레이크를 걸었을 때 켜지는 게 정상이에요.
 주차 브레이크를 풀었는데도 켜져 있으면 브레이크액이 모자랄 수 있다는 뜻이에요. 경고등 모양과 뜻은 차마다 다르니 설명서로 확인해 두세요.</p>
 <p>운전 중에 이런 신호가 오면 이렇게 해요.</p>
 <ol>
@@ -191,11 +191,11 @@ def build(c):
 <li>차 밑 바닥에 액체가 샌 자국이 있는지 봐요.</li>
 <li>액이 새거나, 경고등이 꺼지지 않거나, 브레이크가 평소와 다르면 더 달리지 마세요. 견인을 불러 정비소로 가요.</li>
 </ol>
-<p>현대 설명서에 나오는 차는 브레이크가 대각선으로 마주 보는 바퀴끼리 묶인 두 갈래(계통)로 나뉘어 있어서, 한쪽이 고장 나도
+<p>같은 투싼(NX4) 설명서를 보면 브레이크가 대각선으로 마주 보는 바퀴끼리 묶인 두 갈래(계통)로 나뉘어 있어서, 한쪽이 고장 나도
 남은 두 바퀴로 설 수는 있어요. 대신 페달을 더 깊고 세게 밟아야 하고 서는 거리가 길어져요. 차가 선다고 해서 계속 달리면 위험해요.</p>
 <h2>브레이크액은 왜 기간으로 바꾸나요</h2>
 <p>브레이크액에는 DOT 3·DOT 4처럼 'DOT'로 시작하는 규격 이름이 붙어요. 흔히 쓰는 DOT 3·4·5.1은 공기 중의 수분을
-빨아들이는 성질이 있어요. 시간이 지나면 고무 호스와 부품 재질을 통해서도 수분이 아주 조금씩 스며들어요. 그래서 덜 달려도 기간이 지나면 바꿔요.</p>
+빨아들이는 성질이 있어요. 뚜껑을 잘 닫아 두어도 시간이 지나면 수분이 아주 조금씩 스며들 수 있어요. 그래서 덜 달려도 기간이 지나면 바꿔요.</p>
 <p>수분이 늘면 브레이크액이 끓는 온도가 낮아져요. 긴 내리막에서 브레이크를 오래 밟아 뜨거워지면 액이 끓어 기포가 생길 수 있어요.
 기포는 눌리면 줄어들어서 페달을 밟아도 힘이 제대로 전해지지 않아요. 이를 베이퍼록이라고 해요. 긴 내리막에서는 브레이크만
 오래 밟지 말고 낮은 기어(엔진 브레이크)를 함께 쓰세요. 낮은 기어로 바꾸는 법은 차마다 달라서 설명서에서 확인하세요.</p>
@@ -208,13 +208,13 @@ def build(c):
 패드가 닳으면 액이 조금씩 줄어드는 게 정상이라 두 선 사이면 괜찮아요. 자주 채워야 할 만큼 줄면 새는 곳이 있을 수 있으니
 점검받으세요. 보충과 교체도 정비소에 맡기세요. 차마다 맞는 규격이 정해져 있어서 설명서나 통 뚜껑에서 확인해야 해요.
 특히 이름이 비슷한 DOT 5(실리콘 계열)는 DOT 5.1과 다른 액이라 다른 브레이크액과 섞으면 안 돼요. 엔진오일 같은 다른 기름이
-몇 방울만 섞여도 부품이 상할 수 있어요. 엔진룸의 다른 액은 {c.link_care("fluids", "냉각수·미션오일·워셔액 점검")} 글에 모았어요.</p>
+조금만 섞여도 고무 부품이 상할 수 있어요. 엔진룸의 다른 액은 {c.link_care("fluids", "냉각수·미션오일·워셔액 점검")} 글에 모았어요.</p>
 <h2>하이브리드·전기차는 이렇게 달라요</h2>
 <p>하이브리드·전기차는 속도를 줄일 때 모터를 발전기처럼 돌려요. 전기를 만들면서 생기는 저항으로 먼저 차를 늦추는데,
 이를 회생제동이라고 해요. 그만큼 패드를 덜 써서 더 오래가는 편이에요.{regen_memo} 얼마나 더 가는지는 차와 운전 습관에 따라 달라서 숫자로 말하기 어려워요.
-급하게 서거나 아주 느린 속도에서 멈출 때는 여전히 패드와 디스크가 차를 세워요.</p>
-<p>덜 써서 생기는 문제도 있어요. 디스크에 녹이 끼거나 캘리퍼가 잘 움직이지 않게 될 수 있다는 업계 보고가 있어요.
-특히 뒤 브레이크에 잘 생기고, 제설제를 많이 뿌리는 겨울에 더 그렇다고 해요. 패드가 많이 남았어도 알림이 오면 정비소에서
+급정거처럼 회생제동만으로는 모자랄 때는 여전히 패드와 디스크가 차를 세워요. 언제 어느 쪽을 얼마나 쓰는지는 차마다 달라요.</p>
+<p>덜 써서 생길 수 있는 문제도 있어요. 브레이크를 세게 쓸 일이 적으면 디스크 표면의 녹이 잘 벗겨지지 않고, 캘리퍼처럼
+움직이는 부품이 뻑뻑해질 수 있어요. 습기가 많고 제설제를 뿌리는 겨울에는 녹이 더 생기기 쉬워요. 패드가 많이 남았어도 알림이 오면 정비소에서
 바퀴를 떼고 상태를 봐 달라고 하세요. 내 차 제조사의 권고는 설명서에서 확인하세요.
 겨울을 앞두고 챙길 것은 {c.link_care("winter", "겨울철 차 관리")} 글에 모았어요.</p>
 <p>브레이크액은 엔진차든 전기차든 똑같이 수분을 빨아들여서, 하이브리드·전기차도 정기적으로 바꿔요. 주기는 내 차 설명서를
@@ -223,7 +223,8 @@ def build(c):
 <h2>정비소에 맡길 때 확인할 것</h2>
 <ul>
 <li>앞·뒤 패드의 남은 두께와 디스크 두께·표면을 함께 봐 달라고 해요.</li>
-<li>마모 센서가 있는 차라면 센서도 바꿔야 하는지 물어봐요. 보쉬는 패드를 바꿀 때 센서도 함께 바꾸기를 권해요.</li>
+<li>마모 센서가 있는 차라면 패드를 바꿀 때 센서도 바꿔야 하는지 물어봐요. 자동차 부품 회사 보쉬의 설명으로는 이 센서도
+패드와 함께 닳는 부품이에요.</li>
 <li>버튼으로 거는 전자식 주차 브레이크(EPB) 차는 뒤 패드 작업 방법이 다를 수 있어요. 맡기기 전에 내 차 작업이 가능한지,
 시간이 얼마나 걸리는지 물어보세요.</li>
 <li>브레이크액을 바꿨다면 설명서 규격으로 넣었는지 정비 명세서에서 확인해요.</li>
@@ -249,10 +250,8 @@ def build(c):
          "캘리퍼가 잘 움직이지 않을 수 있어요. 브레이크액은 엔진차든 전기차든 똑같이 수분을 빨아들여서 정기적으로 바꿔요. "
          "주기는 내 차 설명서를 확인하세요."),
     ]
-    sources = [SRC_KIA_SQUEAK, SRC_KIA_REPLACE, SRC_BOSCH_SENSOR, SRC_ZF_JUDDER, SRC_BFE_WARPED,
-               SRC_HY_WARN_NX4, SRC_HY_WARN_CN7, SRC_HY_FLUID_CHECK, SRC_KIA_FLUID_CHECK,
-               SRC_BREMBO_FLUID, SRC_FMVSS, SRC_HY_US_NE1N, SRC_HY_US_DN8,
-               SRC_BFE_REGEN, SRC_TT_REGEN, SRC_BFE_RUST]
+    sources = [SRC_KIA_SQUEAK, SRC_KIA_REPLACE, SRC_BOSCH_SENSOR, SRC_ZF_JUDDER, SRC_HY_WARN_NX4,
+               SRC_KIA_FLUID_CHECK, SRC_FMVSS, SRC_HY_US_MAINT]
     return {
         "h1": "브레이크 패드·브레이크액, 언제 바꾸고 무엇을 살필까",
         "title": "브레이크 패드 교체 시기 — 브레이크액 교체 주기·이상 신호·하이브리드·전기차 차이",

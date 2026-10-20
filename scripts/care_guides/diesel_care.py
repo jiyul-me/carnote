@@ -6,16 +6,25 @@
   parts.json note의 숫자(요소수 '국산 승용은 대체로 N년 N월 이후', '통상 N~Nkm마다 보충', 엔진오일 가혹 조건 km)도
   공식 확인 전이라 문장에 옮기지 않는다.
 - 첫 검사·검사 주기·검사 기간은 data/inspection.json(c.inspection) — 수첩 D-day와 같은 값.
-  첫 검사 연수 옆에는 inspection·ev-care 글과 같이 2025년 시행규칙 개정(신조차 첫 검사 5년, SRC_RULE_REVISION)을
-  '~일 수 있어요'로만 밝히고 등록증·사이버검사소 확인으로 안내한다(_first_note). 데이터가 5년이 되면 문장이 바뀐다.
+  첫 검사 햇수는 firstInspectionAfterYears와 firstInspectionByRegistration(2025-01-01 이후 신규등록 5년)에서
+  _first_rules()로 꺼내 쓴다(숫자 직접 쓰기 금지). 항목이 둘 이상이 되면 빌드를 멈추니 문장을 고친다.
+  수첩(js/derive.js)이 등록 시기별 첫 검사와 '검사 기간 안의 검사 → 종전 만료일 + 주기'를 계산하므로 우회 안내는 없다.
   검사 기간(만료일 앞뒤 며칠)은 정기검사 기준으로만 말하고, 종합검사 대상은 예약할 때 기간을 확인하라고 안내한다
-  (종합검사 규칙의 기간은 아직 출처로 확인하지 않았다).
+  (종합검사 규칙의 기간은 아직 출처로 확인하지 않았다). 종합검사 대상은 공단 종합검사 안내대로 '대기관리권역 등 등록 +
+  일정 차령 경과' 두 조건으로 말하되, 차령 숫자는 data에 없어서 쓰지 않는다.
 
-조사 한계(2026-10-20 작성·같은 날 검토 반영) — 다음에 고칠 때 먼저 볼 것
-- 쓸 때와 고칠 때 모두 웹 검색 한도가 다 차서 요소수·DPF·연료필터·겨울 경유를 다룬 공식 자료(환경부·제조사 설명서 본문)를
-  직접 읽지 못했다. 그래서 이 주제들은 원리 수준으로만 쓰고, 동작·조건·수치는 '설명서·정비소 확인'으로 돌렸다.
-  출처로 넣은 것은 같은 날 다른 글 조사에서 검색 결과로 내용을 확인한 곳뿐이다(아래 SRC_*).
-  검색이 되면 요소수(SCR)·DPF 재생을 다룬 공식 자료(환경부·한국환경공단 또는 제조사 설명서의 해당 항목)를 하나 더 찾아 넣는다.
+출처 정리(2026-10-20) — sources는 8개 이하
+- 첫 검사 5년(2025-01-01 이후 신규등록)·수검 기간은 공단 정기검사 안내·생활법령 '자동차 검사받기'로 확인했다.
+  예전의 법제처 제·개정이유 링크와 '5년일 수 있어요' 단서는 정리했다. 법령 링크는 조문을 확인한 제43조(inspection.json)만 둔다.
+- 설명서 링크는 WebSearch 결과에 같은 URL·제목이 나온 것만 남겼다: 기아 MQ4 '정기 점검'(디젤 엔진 칸 확인),
+  현대 NX4 '디젤 엔진 매연 측정 및 관리 방법'(매연이 에어클리너·연료필터 등과 관련 있다는 내용 확인).
+  기아 NQ5 '터보차저 장착 차량 운행'은 검색으로 확인하지 못해 빼고, 터보 문단은 출처 없는 일반 원리('~로 알려져 있어요')로 낮췄다.
+  현대 '배기가스 저감을 위한 차량 관리'와 생활법령 '자동차 종합검사'는 같은 내용을 받치는 중복이라 뺐다.
+
+조사 한계 — 다음에 고칠 때 먼저 볼 것
+- 요소수·DPF·연료필터·겨울 경유를 다룬 공식 자료(환경부·제조사 설명서 본문)는 직접 읽지 못했다. 그래서 이 주제들은
+  원리 수준으로만 쓰고, 동작·조건·수치는 '설명서·정비소 확인'으로 돌렸다.
+  요소수(SCR)·DPF 재생을 다룬 공식 자료(환경부·한국환경공단 또는 제조사 설명서의 해당 항목)를 찾으면 하나 더 넣는다.
 - 단정하지 않는 것: 요소수가 떨어질 때의 동작(재시동 제한·출력 제한·경고 시작 거리), 요소수 보충 간격, 요소수 장착
   연식, 요소수가 어는 온도, DPF 재생 조건(속도·시간)과 경고등 대처, 연료필터 물 빼기 주기, 동절기 경유 공급 시기와
   유동점·필터막힘점, 엔진오일 규격(저회분 등), 첨가제 효과, 경유차 매연 검사 방법과 기준 수치.
@@ -29,26 +38,17 @@ GUIDE = {
     "summary": "요소수 확인·보충과 경고, 연료필터 교체 주기, 매연 필터(DPF) 관리, 겨울 경유, 자동차 검사 전 점검",
 }
 
-# 글에서 링크하는 외부 출처 — 같은 날 다른 글 조사의 검색 결과로 내용을 확인한 곳 (2026-10 확인)
+# 글에서 링크하는 외부 출처 (2026-10-20 WebSearch로 같은 URL·제목 확인 — 설명서 딥링크)
 SRC_KIA_MQ4 = ("기아 취급설명서 — 정기 점검(MQ4 2026)",
                "https://ownersmanual.kia.com/full_webhelp/MQ4/2026/ko_KR/topics/chapter8_4.html")
-SRC_KIA_TURBO = ("기아 취급설명서 — 터보차저 장착 차량 운행(NQ5 2026)",
-                 "https://ownersmanual.kia.com/full_webhelp/NQ5/2026/ko_KR/topics/chapter5_12.html")
 SRC_HY_SOOT = ("현대 취급설명서 — 디젤 엔진 매연 측정 및 관리 방법(NX4 2025)",
                "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id2fe3d388108.html")
-SRC_HY_EMISSION = ("현대 취급설명서 — 배기가스 저감을 위한 차량 관리(NX4 2025)",
-                   "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/maintenance_maint_emission_reduce.html")
+# 공공기관 — 종합검사(정기검사 + 배출가스 정밀검사), 첫 검사·수검 기간(정기검사 안내는 inspection.json sources)
 SRC_TS_COMPREHENSIVE = ("한국교통안전공단 — 종합검사", "https://main.kotsa.or.kr/portal/contents.do?menuCode=01010300")
-SRC_EASYLAW_COMPREHENSIVE = ("찾기쉬운 생활법령정보 — 자동차 종합검사",
-                             "https://easylaw.go.kr/CSP/CnpClsMainBtr.laf?popMenu=ov&csmSeq=1454&ccfNo=2&cciNo=1&cnpClsNo=1")
-# inspection 글과 같은 출처 — 2025년 시행규칙 개정(신조차 첫 검사 유효기간 5년)
-SRC_RULE_REVISION = ("국가법령정보센터 — 자동차관리법 시행규칙 제·개정이유(2024.12.17 개정)",
-                     "https://www.law.go.kr/LSW/lsRvsRsnListP.do?lsId=007928&chrClsCd=010102&lsRvsGubun=all")
+SRC_EASYLAW_CHECK = ("찾기쉬운 생활법령정보 — 자동차 검사받기",
+                     "https://easylaw.go.kr/CSP/CnpClsMainBtr.laf?popMenu=ov&csmSeq=675&ccfNo=2&cciNo=2&cnpClsNo=1")
 URL_CYBERTS = "https://www.cyberts.kr"
-# 자동차관리법 시행규칙 별표 15의2 (2024.12.17 개정, 2025.1.1 시행) — 신조 비사업용 승용차 최초 검사유효기간.
-# 적용 대상(부칙)은 확인하지 못해 inspection 글처럼 '~일 수 있어요'로만 쓴다.
-LAW_NEW_CAR_FIRST_YEARS = 5
-LAW_NEW_CAR_YEAR = 2025
+MAX_SOURCES = 8
 
 TYPE_WORD = {"replace": "교체", "inspect": "점검", "refill": "보충", "on-failure": "고장 나면 교체"}
 # 첫 표의 줄 — parts.json 항목과 '내가 할 일'
@@ -73,18 +73,35 @@ def _has_interval(p):
     return bool(p.get("intervalKm") or p.get("intervalMonths"))
 
 
-def _first_note(first):
-    """첫 검사 연수(inspection.json) 옆 괄호 — 2025년 개정(신조차 5년)과의 차이. inspection·ev-care 글과 같은 기준."""
-    where = f"자동차등록증이나 {ext(('TS 사이버검사소', URL_CYBERTS))}에서 확인하세요"
-    if first < LAW_NEW_CAR_FIRST_YEARS:
-        return f"({LAW_NEW_CAR_YEAR}년부터 새로 등록한 차는 {LAW_NEW_CAR_FIRST_YEARS}년일 수 있어요. {where})"
-    return f"({LAW_NEW_CAR_YEAR}년 전에 등록한 차는 더 빨랐을 수 있어요. {where})"
+def _first_rules(ri):
+    """(기본 첫 검사 연수, 바뀐 기준) — 바뀐 기준은 inspection.json firstInspectionByRegistration의 (날짜, 연수).
+    없거나 연수가 기본값과 같으면 None. 글은 '그 날짜 전 등록 / 그 날짜부터 등록' 두 갈래로만 말한다."""
+    first = ri["firstInspectionAfterYears"]
+    rules = sorted(ri.get("firstInspectionByRegistration") or [], key=lambda r: r["registeredOnOrAfter"])
+    if not rules or rules[-1]["years"] == first:
+        return first, None
+    if len(rules) > 1:
+        raise ValueError("inspection.json firstInspectionByRegistration가 둘 이상이에요 — care_guides/diesel_care.py 문장을 고치세요")
+    y, m, d = (int(x) for x in rules[0]["registeredOnOrAfter"].split("-"))
+    return first, (f"{y}년 {m}월 {d}일", rules[0]["years"])
+
+
+def _first_sentence(first, new, every):
+    """검사 문단 첫 문장 — 첫 검사 햇수(등록 시기별)와 주기, 확인 방법."""
+    where = f"자동차등록증의 검사 유효기간이나 {ext(('TS 사이버검사소', URL_CYBERTS))} 조회로 확인하세요"
+    if not new:
+        return (f"자가용 승용차는 새 차 등록 뒤 {first}년이 지나면 첫 검사를 받고, 그 뒤로는 {every}년마다 자동차 검사를 받아요. "
+                f"내 차 날짜는 {where}.")
+    day, years = new
+    return (f"자가용 승용차는 최초 등록일이 {day} 이후인 새 차라면 등록 뒤 {years}년, 그 전에 등록한 차라면 {first}년이 지나면 "
+            f"첫 검사를 받아요. 그 뒤로는 {every}년마다 자동차 검사를 받아요. 말소했다가 다시 등록한 차처럼 예외가 있을 수 있으니 "
+            f"내 차 날짜는 {where}.")
 
 
 def build(c):
     B = c.B
     ri = c.inspection["regularInspection"]
-    first, every = ri["firstInspectionAfterYears"], ri["intervalYears"]
+    (first, new), every = _first_rules(ri), ri["intervalYears"]
     before, after = ri["windowBeforeDays"], ri["windowAfterDays"]
     urea, ff = c.part("def-urea"), c.part("fuel-filter-diesel")
     ff_when = B.esc(c.interval_text("fuel-filter-diesel"))
@@ -193,10 +210,11 @@ SCR이라는 배기가스 정화 장치가 이 액체를 뿌려 오염 물질을
 </ul>
 <p>매연 필터와 함께 엔진도 아껴 주세요. 엔진오일은 설명서가 정한 규격으로 바꿔요. 수첩은 {oil_when} 교체하라고 알려 줘요.
 짧은 거리·정체 위주로 달리면 더 자주 바꾸는 게 좋아요. 자세한 건 {engine_oil}에 있어요.</p>
-<p>터보차저(배기가스 힘으로 엔진에 공기를 더 밀어 넣는 장치)가 달린 차라면, 디젤이든 가솔린이든 시동 직후 급가속을 피하세요.
-기아 설명서는 시동 직후에는 엔진오일이 아직 충분히 돌지 않는다고 안내해요. 이때 바로 급가속하거나 가속 페달을 세게 밟아
-엔진을 빠르게 돌리면 터보차저 부품이 상할 수 있어요.</p>
-<p>현대 투싼 설명서처럼 '디젤 엔진 매연 측정 및 관리 방법', '배기가스 저감을 위한 차량 관리' 항목을 따로 둔 설명서도 있어요.
+<p>터보차저(배기가스 힘으로 엔진에 공기를 더 밀어 넣는 장치)가 달린 차라면, 디젤이든 가솔린이든 시동 직후 급가속은 피하는 게
+좋다고 알려져 있어요. 시동 직후에는 엔진오일이 아직 엔진 구석구석까지 충분히 돌지 않았을 수 있어서예요.
+자세한 운전 요령은 내 차 설명서의 터보차저 항목을 보세요.</p>
+<p>설명서에 매연 관리 항목을 따로 둔 차도 있어요. 예를 들어 현대 투싼 설명서의 '디젤 엔진 매연 측정 및 관리 방법' 항목은
+매연이 에어클리너·연료필터 상태와도 관련이 깊다고 안내해요. 앞에서 본 연료필터 관리가 매연과도 이어지는 셈이에요.
 내 차 설명서에서도 비슷한 항목을 찾아 한 번 읽어 두세요.</p>
 <h2>겨울엔 경유와 요소수도 추위를 타요</h2>
 <p>경유에는 추우면 굳는 왁스 성분이 들어 있어요. 아주 추운 날 이 성분이 굳으면 연료필터를 막아, 시동이 안 걸리거나 달리다 힘이 빠질 수 있어요.
@@ -209,12 +227,13 @@ SCR이라는 배기가스 정화 장치가 이 액체를 뿌려 오염 물질을
 </ul>
 <p>배터리·냉각수·타이어 같은 겨울 준비는 {winter}에 모아 두었어요.</p>
 <h2>자동차 검사 전에 챙길 것</h2>
-<p>자가용 승용차는 새 차 등록 뒤 {first}년이 지나면 첫 검사를 받아요{_first_note(first)}. 그 뒤로는 {every}년마다 자동차 검사를 받아요.
-검사에서는 배출가스도 봐요. 수도권 같은 대기관리권역(공기 오염을 특별히 관리하는 지역) 등에 등록된 차는 정기검사 대신 종합검사를 받아요.
+<p>{_first_sentence(first, new, every)}
+검사에서는 배출가스도 봐요. 수도권 같은 대기관리권역(공기 오염을 특별히 관리하는 지역) 등에 등록돼 일정 차령(차의 나이)이 지난 차는 정기검사 대신 종합검사를 받아요.
 한국교통안전공단 안내를 보면 종합검사는 정기검사와 배출가스 정밀검사 등을 한 번에 묶은 검사예요.
 배출가스가 기준을 넘으면 부적합(불합격)이 나와요. 평소 디젤 관리가 검사 결과로 이어지는 셈이에요. 검사 전에는 이렇게 챙겨요.</p>
 <ol>
 <li>검사 기간을 확인해요. 정기검사 기준으로는 검사 유효기간이 끝나는 날 {before}일 전부터 {after}일 뒤까지 받을 수 있어요.
+이 기간 안에 받으면 다음 유효기간은 원래 만료일에서 이어지니, 일찍 받아도 손해가 없어요. {notebook}의 '최근 검사일' 칸에는 검사 받은 날을 그대로 넣으면 돼요.
 종합검사 대상이라면 예약할 때 기간을 함께 확인하세요.</li>
 <li>엔진 경고등이나 DPF 경고등이 켜져 있으면 검사 전에 정비소에서 먼저 점검받아요.</li>
 <li>연료필터·엔진오일 교체 시기가 지났다면 이참에 함께 챙겨요.</li>
@@ -239,8 +258,12 @@ SCR이라는 배기가스 정화 장치가 이 액체를 뿌려 오염 물질을
          "달렸는지도 함께 말해 주세요."),
     ]
     src_data = [(s["label"], s["url"]) for s in c.inspection.get("sources", []) if s.get("url", "").startswith("https://")]
-    sources = [SRC_KIA_MQ4, SRC_KIA_TURBO, SRC_HY_SOOT, SRC_HY_EMISSION, SRC_TS_COMPREHENSIVE,
-               SRC_EASYLAW_COMPREHENSIVE, SRC_RULE_REVISION] + src_data
+    sources = []
+    for s in [SRC_KIA_MQ4, SRC_HY_SOOT, SRC_TS_COMPREHENSIVE, SRC_EASYLAW_CHECK] + src_data:
+        if s[1] not in {u for _, u in sources}:
+            sources.append(s)
+    if len(sources) > MAX_SOURCES:
+        raise ValueError(f"diesel-care 출처가 {len(sources)}개예요 — {MAX_SOURCES}개 이하로 줄이세요")
     return {
         "h1": "디젤차 관리, 요소수와 연료필터부터 챙겨요",
         "title": "디젤차 관리 — 요소수 경고·연료필터 교체 주기·DPF(매연 필터) 관리",

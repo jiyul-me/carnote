@@ -6,17 +6,22 @@
 - 아래 MANUAL_* 는 제조사 설명서에서 확인한 값(2026-10 조사)으로, 차일지 기본값과 견주는 문장에만 쓴다
   (바뀌면 고치고 GUIDE['updated']도).
 - 데이터 차이(2026-10 조사)
-  · 미션오일(atf): 수첩은 주기 교체인데, 제조사 설명서는 정기 점검이 필요 없다는 취지이고 가혹 조건 표에서만
-    현대 일부 차종이 100,000km 교체다. 수첩 기본값이 더 이르다(보수적). 글은 '차일지 기본값'이라 밝히고, 어느 쪽이
+  · 미션오일(atf): 수첩은 주기 교체인데, 투싼 NX4 2025 통상 조건 표는 무점검·무교체이고 가혹 조건 표에서만
+    100,000km 교체다. 수첩 기본값이 더 이르다(보수적). 글은 '차일지 기본값'이라 밝히고, 어느 쪽이
     맞다고 단정하지 않고 운행 조건·설명서·정비소 상담으로 판단하라고 쓴다.
-  · 냉각수(coolant): 수첩은 '점검' 주기다(교체 아님). 현대 해외판 설명서는 장수명 냉각수 첫 교체를 200,000km/120개월로
-    잡고 그 뒤는 더 짧게 반복, 기아는 판·차종마다 첫 교체 시점이 달랐다(180,000~210,000km). 글에는 현대 예시 하나만,
-    설명서 확인 안내와 함께 쓴다.
-  · 4WD 오일(diff-oil-4wd): 수첩은 교체 주기인데 현대 일부 차종 표는 '점검'만, 트랜스퍼는 무점검·무교환인 표도 있다.
-    물에 잠겼을 때 교체 안내는 설명서 근거가 있다. 글은 차이를 밝힌다.
-- 현대 미국판 설명서(SRC_HY_SCHED_US)의 '10년 또는 100,000마일을 넘긴 차도 가혹 조건 표' 문장은 검토 때 원문을
-  다시 확인하지 못해, 숫자 없이 '오래 탄 차도 가혹 조건으로 보는 설명서가 있다'로만 쓴다.
-- 전기 장치 냉각수 문단은 아이오닉 5(NE1)·수소전기차(NH2) 설명서 근거라 '전기차와 수소전기차'로 쓴다(하이브리드는 확인 못 함).
+  · 냉각수(coolant): 수첩은 '점검' 주기다(교체 아님). 현대 해외판 설명서(쏘나타 DN8 호주판)는 장수명 냉각수 첫 교체를
+    200,000km/120개월로 잡고 그 뒤는 더 짧게 반복한다. 글에는 이 예시 하나만, 설명서 확인 안내와 함께 쓴다.
+  · 4WD 오일(diff-oil-4wd): 수첩은 교체 주기인데 투싼 NX4 2025 통상 조건 표는 리어 디퍼렌셜·트랜스퍼 오일을 '점검'으로만
+    둔다. 물에 잠겼을 때 바로 교체하라는 안내는 같은 설명서 '추천 오일 및 용량'에 있다. 글은 차이를 밝힌다.
+    같은 설명서 가혹 조건 표(SRC_HY_SEVERE_NX4)에도 리어 디퍼렌셜·트랜스퍼 오일 줄이 있다(2026-10-20 검색 결과로 확인,
+    매 120,000km). 다만 그 줄이 '교체'인지 '점검'인지는 검색 결과마다 달라 확인하지 못했으므로, 글에는 숫자·종류 없이
+    '가혹 조건 표에도 주기가 따로 있으니 함께 보라'로만 쓴다.
+- 출처 정리(2026-10-20): 설명서 딥링크는 검색 결과에 같은 URL·문서 제목이 나온 8개만 남겼다. 확인 못 한 링크
+  (기아·제네시스 설명서, 현대 미국판 정기 점검표, 겨울철·구동 모터 냉각수·워셔액 다른 판 등)는 빼고, 그 링크만
+  받치던 문장은 고치거나 지웠다 — '오래 탄 차도 가혹 조건' 문장, 기아 첫 교체 시점 비교, '트랜스퍼 무점검·무교환' 표,
+  냉각수가 도장을 상하게 한다는 문장, '맹물은 여름에만' 표현.
+- 남은 한계: 근거가 투싼 NX4·쏘나타 DN8·아이오닉 5 설명서라 '일부 차종'·'설명서도 있어요'로만 쓴다. 전기 장치 냉각수
+  문단은 아이오닉 5 영문판 근거라 수소전기차·하이브리드로 넓히지 않는다. 링크는 검색 결과로만 확인했다(본문 직접 열람 못 함).
 - 확인하지 못해 쓰지 않은 것: 누유 색깔별 원인 표, 워셔액 메탄올 함량 규제, 부동액 혼합 비율 숫자(차종마다 다름),
   '무교환은 실제로 10만km까지' 같은 언론·커뮤니티 주장, 엔진 과열 때의 세부 순서(설명서 확인으로 안내).
 """
@@ -28,57 +33,27 @@ GUIDE = {"slug": "fluids", "short": "냉각수·미션오일·워셔액 점검",
                     "워셔액 직접 채우기, 누유·과열·변속 충격 신호"}
 
 # 설명서 비교용 값 — parts.json 기본값과 견주는 문장에만 쓴다
-MANUAL_HY_COOLANT_FIRST_KM = 200000   # 현대 해외판 — 장수명 냉각수 첫 교체(일반 조건) (SRC_HY_SCHED_DN8 등)
+MANUAL_HY_COOLANT_FIRST_KM = 200000   # 현대 해외판 — 장수명 냉각수 첫 교체(일반 조건) (SRC_HY_SCHED_DN8)
 MANUAL_HY_COOLANT_FIRST_MONTHS = 120  # 같은 표 — 기간
-MANUAL_HY_ATF_SEVERE_KM = 100000      # 현대 일부 차종 가혹 조건 표 — 자동변속기 오일 교체 (SRC_HY_SEVERE_NX4)
+MANUAL_HY_ATF_SEVERE_KM = 100000      # 투싼 NX4 2025 가혹 조건 표 — 자동변속기 오일 교체 (SRC_HY_SEVERE_NX4)
 
-# 글에서 링크하는 외부 출처 — 사실을 확인한 곳 (2026-10 확인)
+# 글에서 링크하는 외부 출처 — 2026-10-20 검색으로 같은 URL·문서 제목이 나오는 것을 확인한 것만 둔다
 SRC_HY_COOLANT = ("현대 취급설명서 — 냉각수량 점검 및 보충(투싼 NX4 2025)",
                   "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id158b2569c27.html")
-SRC_KIA_COOLANT = ("기아 취급설명서 — 냉각수 점검(SP3 2026)",
-                   "https://ownersmanual.kia.com/full_webhelp/SP3/2026/ko_KR/topics/t00969.html")
-SRC_HY_COOLANT_EN = ("Hyundai owner's manual — Checking the coolant level (NX4 2025)",
+SRC_HY_COOLANT_EN = ("Hyundai owner's manual — Checking the coolant level (Tucson NX4 2025)",
                      "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/idcb22c2a0002.html")
-SRC_HY_COOLANT_LX3 = ("Hyundai owner's manual — Engine coolant (Palisade LX3 2026)",
-                      "https://ownersmanual.hyundai.com/full_webhelp/LX3/2026/en_US/topic_wtn_bvd_qcc.html")
-SRC_KIA_COOLANT_EN = ("Kia owner's manual — Checking the coolant level",
-                      "https://ownersmanual.kia.com/docview/webhelp/Kia/ca47032c-3999-43c4-830f-ed5607dfae9c/topics/t00667.html")
-SRC_HY_COOLANT_NE1 = ("현대 취급설명서 — 냉각수(아이오닉 5 NE1 2025)",
-                      "https://ownersmanual.hyundai.com/full_webhelp/NE1/2025/ko_KR/id244b585f671.html")
-SRC_HY_WINTER = ("Hyundai owner's manual — Winter precautions",
-                 "https://ownersmanual.hyundai.com/docview/webhelp/Hyundai/4235c092-6d41-4ced-9c20-8f810c9a43d1/idd28aaf786f8.html")
-SRC_HY_MOTOR_COOLANT = ("현대 취급설명서 — 구동 모터 냉각수 점검하기(수소전기차 NH2 2026)",
-                        "https://ownersmanual.hyundai.com/full_webhelp/NH2/2026/ko_KR/topic_f1d_qsm_y1c.html")
+SRC_HY_COOLANT_NE1 = ("Hyundai owner's manual — Coolant (IONIQ 5 NE1 2024)",
+                      "https://ownersmanual.hyundai.com/full_webhelp/NE1/2024/en_US/idd2ea9e34660.html")
 SRC_HY_SCHED_DN8 = ("Hyundai owner's manual — Normal maintenance schedule (Sonata DN8 2025, Australia)",
                     "https://ownersmanual.hyundai.com/full_webhelp/DN8/2025/en_AU/id212434cca84.html")
-SRC_HY_SCHED_MX5 = ("Hyundai owner's manual — Normal maintenance schedule (Santa Fe MX5a 2024)",
-                    "https://ownersmanual.hyundai.com/full_webhelp/MX5a/2024/en_US/topic_ybb_1yh_lwb.html")
-SRC_HY_SCHED_NX4 = ("Hyundai owner's manual — Normal maintenance schedule (Tucson NX4 2025)",
-                    "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/topic_ybb_1yh_lwb.html")
-SRC_HY_SCHED_DN8_27 = ("Hyundai owner's manual — Normal maintenance schedule (Sonata DN8 2027)",
-                       "https://ownersmanual.hyundai.com/full_webhelp/DN8/2027/en_US/topic_ybb_1yh_lwb.html")
-SRC_KIA_SCHED = ("Kia owner's manual — Scheduled maintenance service",
-                 "https://ownersmanual.kia.com/docview/webhelp/doc/f57a2858-3450-4dea-a006-736318b232bc/topics/chapter8_4.html")
-SRC_KIA_SCHED_CV1 = ("Kia owner's manual — Scheduled maintenance service (CV1 2024)",
-                     "https://ownersmanual.kia.com/full_webhelp/CV1/2024/en_GB/topics/chapter9_4.html")
-SRC_HY_SEVERE_NX4 = ("현대 취급설명서 — 가혹 조건 정기 점검(투싼 NX4 2026)",
-                     "https://ownersmanual.hyundai.com/full_webhelp/NX4/2026/ko_KR/id7b77f1c5ffe.html")
-SRC_HY_ATF = ("현대 취급설명서 — 자동변속기 오일 점검하기",
-              "https://ownersmanual.hyundai.com/docview/webhelp/Hyundai/0a0a3fce-8084-4812-b433-39b79b15ed46/topic_ksn_3r2_cbcQ.html")
-SRC_KIA_SEVERE = ("기아 취급설명서 — 정기 점검(가혹 조건)",
-                  "https://ownersmanual.kia.com/docview/webhelp/doc/60c239ff-44d3-4aa1-9269-d00f359f5df7/topics/chapter8_8.html")
-SRC_HY_SEVERE_QV = ("현대 취급설명서 — 가혹 조건(QV 2026)",
-                    "https://ownersmanual.hyundai.com/full_webhelp/QV/2026/ko_KR/topic_jtz_wks_s3c.html")
-SRC_HY_SCHED_US = ("Hyundai owner's manual — Scheduled maintenance services (Sonata DN8 2025)",
-                   "https://ownersmanual.hyundai.com/full_webhelp/DN8/2025/en_US/ide5b10be92ba.html")
-SRC_HY_WASHER_LX3 = ("Hyundai owner's manual — Washer fluid (Palisade LX3 2026)",
-                     "https://ownersmanual.hyundai.com/full_webhelp/LX3/2026/en_US/topic_tgg_sxd_qcc.html")
-SRC_HY_WASHER_NX4 = ("Hyundai owner's manual — Checking the washer fluid level (NX4 2025)",
+SRC_HY_NORMAL_NX4 = ("현대 취급설명서 — 가솔린 엔진 통상 조건 점검 및 교체 주기(투싼 NX4 2025)",
+                     "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id6b219dd157c.html")
+SRC_HY_SEVERE_NX4 = ("현대 취급설명서 — 가혹 조건 점검 항목 및 주기(투싼 NX4 2025)",
+                     "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id7b77f1c5ffe.html")
+SRC_HY_OIL_SPEC_NX4 = ("현대 취급설명서 — 가솔린 추천 오일 및 용량(투싼 NX4 2025)",
+                       "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id7e36eeada00.html")
+SRC_HY_WASHER_NX4 = ("Hyundai owner's manual — Checking the washer fluid level (Tucson NX4 2025)",
                      "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_GN/idc8b176bea31.html")
-SRC_GN_WASHER = ("Genesis owner's manual — Checking the washer fluid level (JX 2026)",
-                 "https://ownersmanual.genesis.com/full_webhelp/JX/2026/en_US/idab9017a4996.html")
-SRC_KIA_WASHER = ("Kia owner's manual — Checking the washer fluid level (CL4 2026)",
-                  "https://ownersmanual.kia.com/full_webhelp/CL4/2026/en_US/topics/t00763.html")
 
 KIND = {"replace": "교체", "inspect": "점검", "refill": "보충", "on-failure": "고장 시 교체"}
 
@@ -221,7 +196,7 @@ def build(c):
 <li>다 넣었으면 탱크 캡을 끝까지 꽉 잠가요. 덜 잠기면 달리는 동안 냉각수가 넘쳐 엔진이 과열될 수 있어요.</li>
 </ol>
 <p>가장 조심할 건 무엇을 넣느냐예요. 냉각수는 차마다 정해진 종류가 있고, 보충하는 방법도 차마다 달라요.
-제조사에 따라 물과 섞은 냉각수를 넣으라고도 하고, 물만 보태라고도 해요. 물은 증류수처럼 깨끗한 물을 쓰라는 안내도 있어요.
+설명서에 따라 물과 섞은 냉각수를 넣으라고도 하고, 물만 보태라고도 해요. 물은 증류수처럼 깨끗한 물을 쓰라는 안내도 있어요.
 설명서는 알코올이나 메탄올이 든 냉각수를 넣거나 섞지 말라고 해요. 냉각 장치가 크게 고장 날 수 있어요.
 종류를 모르는 냉각수를 섞어 넣지는 마세요. 라디에이터 캡은 직접 열지 말고, 확인은 보조 탱크로만 해요.</p>
 <p>보충하고 얼마 안 돼 또 줄어 있다면 어딘가 샐 수 있어요. 자주 채워야 한다면 점검을 받으세요.</p>
@@ -231,26 +206,26 @@ def build(c):
 그래서 언젠가는 정비소에서 바꿔야 해요.</p>
 <p>교체 시기는 차와 냉각수 종류에 따라 크게 달라요. 오래 쓰도록 만든 장수명 냉각수를 넣은 차는 첫 교체를 꽤 늦게 잡기도 해요.
 현대 해외판 설명서 중에는 처음 넣은 냉각수는 {first_km} 또는 {first_mo}개월({first_years}년) 중 먼저 오는 때 바꾸고,
-그 뒤로는 더 짧은 간격으로 바꾸라고 한 것이 있어요. 기아 설명서도 차종과 연식에 따라 첫 교체 시점이 달라요.
+그 뒤로는 더 짧은 간격으로 바꾸라고 한 것이 있어요. 같은 제조사라도 판매 지역·차종·연식에 따라 첫 교체 시점은 설명서마다 다를 수 있어요.
 그러니 수첩의 점검 알림이 오면 상태를 점검받고, 내 차 정기 점검표의 교체 시기와 견줘 정하세요.</p>
 <p>겨울이 오기 전에는 내가 사는 곳의 추위에도 냉각수가 얼지 않는지 점검받으세요. 겨울 준비는 {winter}에 모았어요.</p>
-<p>전기차와 수소전기차 중에는 배터리·모터 같은 전기 장치를 식히는 냉각수 탱크가 따로 있는 차가 있어요.
-여기에는 전기가 잘 통하지 않게 만든 전용 냉각수(저전도 냉각수)만 넣어야 하고, 일반 부동액이나 물을 넣으면 고장이 날 수 있어요.
+<p>전기차도 배터리·모터 같은 전기 장치를 냉각수로 식혀요. 아이오닉 5처럼 전기가 잘 통하지 않게 만든 전용 냉각수(저전도 냉각수)를
+쓰는 차는 그 냉각수만 넣어야 하고, 다른 부동액이나 물을 넣으면 고장이 날 수 있어요. 내 차에 맞는 냉각수는 설명서로 확인하세요.
 {B.esc(_ev_coolant_text(c))}자세한 건 {ev}에 있어요.</p>
 <h2>미션오일, 수첩 주기와 설명서가 다를 때</h2>
 <p>차일지 수첩 기본값은 미션오일을 {B.esc(atf_when)} 바꾸는 거예요.
-그런데 제조사 설명서 중에는 자동변속기 오일은 정기적으로 점검할 필요가 없고, 가혹 조건(짧은 거리 반복이나 잦은 정체처럼
-차에 부담이 큰 운전 환경)으로 달릴 때만 가혹 조건 점검표의 주기를 따르라는 것도 있어요.
-현대 일부 차종의 가혹 조건 표에는 '{severe_km}마다 교체'로 적혀 있어요. {B.esc(_atf_vs_manual(c))}</p>
-<p>어느 쪽이 맞다고 하나로 정하기는 어려워요. 정비소에 따라 이보다 일찍 교체를 권하기도 해요. 이렇게 판단해 보세요.</p>
+그런데 제조사 설명서 중에는 통상 조건 점검표에 자동변속기 오일을 '무점검·무교체'로 적고, 주로 가혹 조건(짧은 거리 반복이나
+잦은 정체처럼 차에 부담이 큰 운전 환경)으로 달렸다면 가혹 조건 점검표의 주기를 따르라는 것도 있어요.
+투싼(NX4) 같은 현대 일부 차종의 가혹 조건 표에는 '{severe_km}마다 교체'로 적혀 있어요. {B.esc(_atf_vs_manual(c))}</p>
+<p>어느 쪽이 맞다고 하나로 정하기는 어려워요. 이렇게 판단해 보세요.</p>
 <ol>
 <li>내 차 설명서의 정기 점검표와 가혹 조건 표에서 자동변속기 오일 줄을 찾아요.</li>
 <li>내 운전이 가혹 조건인지 따져 봐요. 짧은 거리 반복, 잦은 정체, 잦은 급가속·급제동, 험한 길·산길, 트레일러 끌기 같은
 것들이에요. 자세한 건 {severe_list}을 보세요.</li>
 <li>가혹 조건이라면 그 표의 주기를 따라요. 아니라면 수첩 알림이 올 때 상태를 점검받고 상담해요.</li>
 </ol>
-<p>가혹 조건 목록과 주기는 차종마다 달라요. 오래 탄 차도 가혹 조건으로 보는 설명서가 있으니, 연식이 오래됐거나
-많이 달린 차라면 이 부분을 꼭 확인하세요.</p>
+<p>가혹 조건 목록과 주기는 차종마다 달라요. 연식이 오래됐거나 많이 달린 차라면 설명서 표만 보지 말고
+정비소에서 오일 상태를 점검받아 함께 판단하세요.</p>
 <h2>워셔액은 직접 채워요</h2>
 <p>{B.esc(_washer_text(c))}
 뿌렸을 때 잘 나오지 않으면 양부터 확인하세요. 눈·비가 잦은 철이나 먼 길을 떠나기 전에 한 번씩 봐 두면 좋아요.</p>
@@ -261,10 +236,10 @@ def build(c):
 <li>뚜껑과 보닛을 닫고, 시동을 건 뒤 운전석에서 워셔액을 뿌려 잘 나오는지 봐요.</li>
 </ol>
 <ul>
-<li><strong>냉각수(부동액)는 워셔액 탱크에 넣지 마세요.</strong> 앞유리에 뿌려지면 앞이 잘 안 보여 사고로 이어질 수 있고,
-도장도 상할 수 있어요.</li>
+<li><strong>냉각수(부동액)는 워셔액 탱크에 넣지 마세요.</strong> 앞유리에 뿌려지면 앞이 잘 안 보여 사고로 이어질 수 있어요.</li>
 <li>워셔액에는 알코올이 들어 있어 불이 붙을 수 있어요. 담배나 불꽃 가까이에서 다루지 마세요.</li>
-<li>추운 철에는 얼지 않는 워셔액을 써요. 맹물은 여름에 워셔액이 없을 때만 잠깐 쓰고, 추워지기 전에 겨울용으로 채워 두세요.</li>
+<li>추운 철에는 얼지 않는 워셔액을 써요. 워셔액이 없을 때 맹물을 써도 된다는 설명서도 있지만, 맹물을 넣어 뒀다면
+추워지기 전에 겨울용으로 바꿔 채워 두세요.</li>
 <li>물에 섞어 쓰는 제품이라면 희석 방법과 사용 온도는 제품 표기를 따라요. 물을 많이 섞을수록 얼기 쉬워요.</li>
 </ul>
 <p>양이 충분한데도 잘 나오지 않으면 정비소에 물어보세요.</p>
@@ -285,8 +260,10 @@ def build(c):
 <h2>4WD라면 하나 더, 그리고 기록</h2>
 <p>네 바퀴를 모두 굴리는 4WD·AWD 차에는 앞뒤로 힘을 나누는 트랜스퍼와 뒤쪽 디퍼렌셜(좌우 바퀴로 힘을 나눠 주는 장치)에도
 오일이 들어 있어요. {B.esc(_diff_text(c))}</p>
-<p>다만 현대 일부 차종의 정기 점검표는 이 오일들을 '점검' 항목으로만 두고, 트랜스퍼 오일은 점검도 교체도 필요 없다고 적은
-표도 있어요. 대신 차가 물에 잠긴 적이 있다면 바꾸라고 해요. 내 차의 정기 점검표를 보고 정비소와 상담하세요.</p>
+<p>다만 투싼(NX4) 같은 현대 일부 차종의 통상 조건 정기 점검표는 이 오일들을 교체가 아닌 '점검' 항목으로 둬요.
+주로 가혹 조건으로 달렸다면 같은 설명서의 가혹 조건 표에도 이 오일들의 주기가 따로 있으니 함께 보세요.
+또 트랜스퍼나 디퍼렌셜이 물에 잠긴 적이 있다면 교체 주기와 상관없이 바로 오일을 바꾸라고 해요.
+내 차의 정기 점검표를 보고 정비소와 상담하세요.</p>
 <p>점검하거나 보충·교체했다면 날짜와 주행거리를 {notebook}에 기록해 두세요. 수첩이 그 기록을 바탕으로 다음 점검·교체 때를
 알려 줘요. 다른 소모품의 주기는 {schedule}에 모아 두었어요.</p>"""
 
@@ -297,7 +274,7 @@ def build(c):
          f"장수명 냉각수를 넣은 차는 첫 교체를 {first_km} 또는 {first_years}년 중 먼저 오는 때로 늦게 잡는 설명서도 있어요. "
          "점검 결과와 내 차 설명서의 정기 점검표를 보고 정비소에서 정하세요."),
         ("미션오일은 무교환이라는데 안 바꿔도 되나요?",
-         "'무교환'은 정해진 교체 시기가 없다는 뜻으로 쓰는 말이에요. 정기적으로 점검할 필요가 없다고 적은 제조사 설명서도 "
+         "'무교환'은 정해진 교체 시기가 없다는 뜻으로 쓰는 말이에요. 통상 조건 점검표에 '무점검·무교체'로 적은 제조사 설명서도 "
          "있지만, 짧은 거리 반복·잦은 정체·산길·트레일러 끌기 같은 가혹 조건으로 달리면 가혹 조건 표의 주기를 따르라고 해요. "
          f"차일지 수첩 기본값은 {atf_when} 교체예요. 운행 조건과 설명서를 보고 정비소와 상담해 정하세요."),
         ("냉각수가 부족하면 물을 넣어도 되나요?",
@@ -307,13 +284,11 @@ def build(c):
         ("겨울에 워셔액에 물을 섞어도 되나요?",
          "제품에 따라 달라요. 물에 섞어 쓰는 제품이라면 희석 방법과 사용 온도는 제품 표기를 따르세요. "
          "물을 많이 섞을수록 얼기 쉬우니 추운 철에는 특히 조심하세요. "
-         "맹물은 여름에 워셔액이 없을 때만 잠깐 쓰라는 제조사 안내가 있어요. 냉각수(부동액)는 워셔액 탱크에 절대 넣지 마세요."),
+         "워셔액이 없을 때 맹물을 써도 된다는 제조사 안내도 있지만, 추운 곳에서는 얼지 않는 워셔액을 쓰라고 해요. "
+         "냉각수(부동액)는 워셔액 탱크에 절대 넣지 마세요."),
     ]
-    sources = [SRC_HY_COOLANT, SRC_KIA_COOLANT, SRC_HY_COOLANT_EN, SRC_HY_COOLANT_LX3, SRC_KIA_COOLANT_EN,
-               SRC_HY_COOLANT_NE1, SRC_HY_WINTER, SRC_HY_MOTOR_COOLANT, SRC_HY_SCHED_DN8, SRC_HY_SCHED_MX5,
-               SRC_HY_SCHED_NX4, SRC_KIA_SCHED, SRC_KIA_SCHED_CV1, SRC_HY_SEVERE_NX4, SRC_HY_ATF, SRC_KIA_SEVERE,
-               SRC_HY_SEVERE_QV, SRC_HY_SCHED_US, SRC_HY_SCHED_DN8_27, SRC_HY_WASHER_LX3, SRC_HY_WASHER_NX4,
-               SRC_GN_WASHER, SRC_KIA_WASHER]
+    sources = [SRC_HY_COOLANT, SRC_HY_COOLANT_EN, SRC_HY_COOLANT_NE1, SRC_HY_SCHED_DN8, SRC_HY_NORMAL_NX4,
+               SRC_HY_SEVERE_NX4, SRC_HY_OIL_SPEC_NX4, SRC_HY_WASHER_NX4]
     return {
         "h1": "냉각수·미션오일·워셔액, 언제 어떻게 확인할까",
         "title": "냉각수·미션오일 점검과 교체 주기 — 워셔액 보충법과 이상 신호",

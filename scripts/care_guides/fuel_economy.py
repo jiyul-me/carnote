@@ -13,14 +13,21 @@
   · '가득 주유' 체크박스는 지난 주유가 가득이었으면 미리 켜짐(app.js lastFuel.isFullTank) → 부분 주유 때 확인하라고 안내.
   · 유지비 비교(js/tco.js)의 입력 칸 이름은 '공인연비', 기본 연간 주행거리는 site.json fuelCostBasisKm와 다를 수 있음.
 - 내 차 공인연비 확인처로 자동차등록증은 쓰지 않는다(연료소비율 칸이 서식·연식마다 있는지 확인하지 못함).
-- 단정하지 않는 것(2026-10 조사 — 이번 실행에서 웹 검색·가져오기가 막혀 공식 출처로 다시 확인하지 못함)
-  · 복합연비의 도심·고속 가중 비율, 5-cycle 보정, 신연비 시행 연도 → 숫자를 쓰지 않고 '정해진 시험 조건에서 잰 값'으로만.
-  · 공인연비와 실연비 차이(%), 공기압·짐·에어컨·급가속·공회전이 연비를 몇 % 떨어뜨리는지 → 방향만 쓴다.
-  · 공회전 제한 시간·과태료(시·도 조례) → 수치 없이 겨울철 글로 링크. 근거 법 조문은 winter.py와 같은 출처.
-  · 전기차 겨울 전비 감소 폭, 충전 손실률, 계기판 평균연비 오차 → 수치 없이 '차이 날 수 있어요'.
+- 출처 3개(2026-10-20 WebSearch로 확인 — 검색 결과에 같은 URL·문서 제목이 나옴)
+  · SRC_DOE_COLD: fueleconomy.gov 'Fuel Economy in Cold Weather' — 추위·난방이 연비·전비를 떨어뜨림, 공회전은 0mpg.
+  · SRC_DOE_FILTER: energy.gov Fact #568 — 요즘(연료분사식) 차는 막힌 에어필터를 바꿔도 연비는 그대로, 가속만 좋아짐.
+  · SRC_LAW_IDLE: 대기환경보전법 제59조(공회전의 제한) — 조문 번호·제목 확인(시·도 조례로 제한, 기준은 지자체마다 다름).
+  SRC_DOE_COLD는 winter.py와 같은 출처(같은 URL·같은 라벨)다. SRC_LAW_IDLE는 winter.py와 같은 조문이지만 winter.py는
+  법 전체 링크, 이 글은 제59조 조문 링크로 단다. SRC_DOE_FILTER(Fact #568)는 filters.py가 Fact #629로 바꿔서 지금은
+  이 글만 쓴다 — URL·제목은 2026-10-20 검토 단계 검색에서 다시 확인했다(요약: 요즘 연료분사식 엔진은 에어필터 교체로
+  연비 변화가 측정되지 않고 가속만 나아짐). 설명서 딥링크·블로그·해외 매체 출처는 쓰지 않는다.
+- 남은 한계(공식 출처로 확인하지 않음 → 숫자 없이 방향만 쓴다)
+  · 복합연비의 도심·고속 가중 비율, 5-cycle 보정, 신연비 시행 연도 → '정해진 시험 조건에서 잰 값'으로만.
+  · 공인연비와 실연비 차이(%), 공기압·짐·에어컨·급가속이 연비를 몇 % 떨어뜨리는지, 전기차 겨울 전비 감소 폭
+    (DOE 페이지의 % 수치는 미국 시험 조건이라 옮기지 않음), 충전 손실률, 계기판 평균연비 오차.
+  · 공회전 제한 시간·과태료(시·도 조례) → 수치 없이 겨울철 글로 링크.
   · 같은 차종의 휠 크기별 공인연비(문서 docs/fuel-economy-draft.md)는 출처 URL이 없어 숫자로 옮기지 않는다.
-- 출처는 다른 차 관리 글에서 이미 확인한 것 중 제목이 이 글의 주장과 바로 맞는 것만 다시 쓴다
-  (filters.py SRC_DOE, winter.py SRC_DOE_COLD·SRC_LAW_IDLE). 공식 연비 제도 출처를 확인하면 더하고 GUIDE['updated']를 고친다.
+  · 국내 공식 연비 제도 출처(에너지공단·국토부)는 아직 없다 — 확인하면 더하고 GUIDE['updated']를 고친다.
 """
 from care_guides import num, table
 
@@ -44,7 +51,7 @@ EX_EV_KWH = 50
 
 ENERGY_WORD = {"gasoline": "휘발유", "diesel": "경유", "lpg": "LPG", "electricity": "전기", "hydrogen": "수소"}
 
-SRC_DOE_COLD = ("U.S. DOE fueleconomy.gov — Fuel Economy in Cold Weather",
+SRC_DOE_COLD = ("미국 에너지부·환경보호청 fueleconomy.gov — Fuel Economy in Cold Weather",
                 "https://www.fueleconomy.gov/feg/coldweather.shtml")
 SRC_DOE_FILTER = ("미국 에너지부 Fact #568 — 요즘 차는 에어필터 교체로 성능은 좋아지지만 연비는 그대로",
                   "https://www.energy.gov/cmei/vehicles/fact-568-april-27-2009-modern-cars-replacing-air-filter-will-improve-performance-not")

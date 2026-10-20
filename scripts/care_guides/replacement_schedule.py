@@ -4,8 +4,16 @@
   (수첩과 같은 값). 가격 값은 쓰지 않는다(콘텐츠 페이지 노출 금지).
 - 제조사 설명서와 비교하는 문장은 아래 MANUAL_* 상수(출처 확인한 설명서 값)와 parts.json 값을 견주어 만든다 —
   parts.json 기본값이 바뀌면 '더 길다/짧다' 문장도 따라 바뀐다. 설명서 숫자 자체는 글에 쓰지 않는다.
+- 정기검사 첫 검사 햇수는 inspection.json regularInspection(firstInspectionAfterYears·firstInspectionByRegistration)
+  에서만 꺼낸다 — 수첩(js/derive.js)이 같은 값으로 만료일을 계산한다.
+- 출처 정리(2026-10): 설명서 딥링크는 검색 결과에 같은 URL이 나온 것만 남겼다. DN8 2024(점화플러그 엔진별 주기)·
+  NX4 2025·기아 MQ4 2026 링크는 확인하지 못해 뺐고, 점화플러그 줄은 관찰한 차이가 아니어서 '설명서와 다를 때'
+  목록에서 뺐다(엔진별 줄을 보라는 안내는 '내 차 설명서의 주기는 이렇게 찾아요' 3단계에 있다).
+  QZ 2026 정기 점검 일람표는 상용 디젤 트럭 설명서로 보여 뺐다 — '먼저 오는 때' 문장은 DN8 2026·TK1 2026이 받친다.
+  남은 한계: 설명서 비교값(MANUAL_*)은 페이지가 있는 것만 확인했고 표 안 수치는 이번 정리에서 다시 읽지 못했다.
+  변속기 오일은 설명서 표기를 그대로 옮기지 않고(따옴표 인용 없이) '통상 조건에 주기를 두지 않은 경우'로 풀어 썼다.
 """
-from care_guides import table, ext
+from care_guides import table, ext, date_ko
 
 GUIDE = {
     "slug": "replacement-schedule", "short": "소모품 교체 주기 한눈에", "published": "2026-10-20", "updated": "2026-10-20",
@@ -13,40 +21,27 @@ GUIDE = {
     "summary": "엔진오일·타이어·브레이크·배터리 등 소모품 전체의 교체·점검 주기를 분류별 표로",
 }
 
-# 글에서 링크하는 외부 출처 — 사실을 확인한 곳 (2026-10 확인)
-SRC_HY_QZ = ("현대 취급설명서 — 정기 점검 일람표(QZ 2026)",
-             "https://ownersmanual.hyundai.com/full_webhelp/QZ/2026/ko_KR/id5a786f5282b.html")
+# 글에서 링크하는 외부 출처 — 사실을 확인한 곳 (2026-10 확인 · 설명서 딥링크는 웹 검색 결과에 같은 URL이 나온 것만)
 SRC_HY_DN8_26 = ("현대 취급설명서 — 통상 조건 점검·교체 주기(DN8 2026)",
                  "https://ownersmanual.hyundai.com/full_webhelp/DN8/2026/ko_KR/id6b219dd157c.html")
-SRC_HY_DN8_24 = ("현대 취급설명서 — 통상 조건 점검·교체 주기(DN8 2024)",
-                 "https://ownersmanual.hyundai.com/full_webhelp/DN8/2024/ko_KR/id6b219dd157c.html")
-SRC_HY_NX4 = ("현대 취급설명서 — 가솔린 엔진 통상 조건 점검·교체 주기(NX4 2025)",
-              "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/ko_KR/id6b219dd157c.html")
 SRC_HY_SEVERE = ("현대 취급설명서 — 가혹 조건(GN7 2023)",
                  "https://ownersmanual.hyundai.com/full_webhelp/GN7/2023/ko_KR/id7b77f1c5ffe.html")
 SRC_KIA_TK1 = ("기아 취급설명서 — 정기 점검·통상 조건 점검 주기 안내(TK1 2026)",
                "https://ownersmanual.kia.com/full_webhelp/TK1/2026/ko_KR/topics/t00929.html")
-SRC_KIA_MQ4 = ("기아 취급설명서 — 정기 점검(MQ4 2026)",
-               "https://ownersmanual.kia.com/full_webhelp/MQ4/2026/ko_KR/topics/chapter8_4.html")
 SRC_KIA_SERVICE = ("기아 취급설명서 — 서비스 알림 모드(TK1 2026)",
                    "https://ownersmanual.kia.com/full_webhelp/TK1/2026/ko_KR/topics/t00435.html")
 SRC_TS_REGULAR = ("한국교통안전공단 — 정기검사", "https://main.kotsa.or.kr/portal/contents.do?menuCode=01010200")
-SRC_RULE_REVISION = ("국가법령정보센터 — 자동차관리법 시행규칙 제·개정이유(2024.12.17 개정)",
-                     "https://www.law.go.kr/LSW/lsRvsRsnListP.do?lsId=007928&chrClsCd=010102&lsRvsGubun=all")
+SRC_EASYLAW = ("찾기쉬운 생활법령정보 — 자동차 검사받기",
+               "https://easylaw.go.kr/CSP/CnpClsMainBtr.laf?popMenu=ov&csmSeq=675&ccfNo=2&cciNo=2&cnpClsNo=1")
+# 검사 유효기간은 시행규칙 별표에 있다 — 조문·별표 번호까지는 확인하지 못해 법령 이름 수준 링크로 둔다
+SRC_LAW_RULE = ("국가법령정보센터 — 자동차관리법 시행규칙", "https://www.law.go.kr/법령/자동차관리법시행규칙")
 URL_CYBERTS = "https://www.cyberts.kr"
 URL_HY_MANUAL = "https://ownersmanual.hyundai.com"
 URL_KIA_MANUAL = "https://ownersmanual.kia.com"
 
 # 설명서 비교용 값 — 글에 숫자로 쓰지 않고 parts.json 기본값과 견주기만 한다
 MANUAL_OIL_KM = (10000, 15000)        # 쏘나타 DN8 2026 통상 조건 — 엔진에 따라 10,000km·15,000km (SRC_HY_DN8_26)
-MANUAL_PLUG_KM = (70000, 165000)      # 쏘나타 DN8 2024 — 엔진에 따라 70,000km~165,000km (SRC_HY_DN8_24)
 MANUAL_CABIN_MONTHS = 12              # 쏘나타 DN8 2026 통상 조건 — 공조 장치용 에어필터 (SRC_HY_DN8_26)
-
-# 자동차관리법 시행규칙 별표 15의2 (2024.12.17 개정, 2025.1.1 시행) — 신조 비사업용 승용차 최초 검사유효기간
-# (SRC_RULE_REVISION). inspection.json에 없는 법령 사실이라 여기 둔다. 어느 차부터 적용되는지(부칙)는 확인하지 못해
-# inspection 글과 같이 '~일 수 있어요'로만 쓰고 등록증·사이버검사소 확인으로 안내한다.
-LAW_NEW_CAR_FIRST_YEARS = 5
-LAW_NEW_CAR_YEAR = 2025
 
 FUEL = {"gasoline": "가솔린", "diesel": "디젤", "lpg": "LPG", "hybrid": "하이브리드", "ev": "전기차"}
 TYPE_LABEL = {"replace": "주기 교체", "inspect": "주기 점검", "refill": "보충", "on-failure": "고장 시 교체"}
@@ -208,17 +203,17 @@ def _manual_diffs(c):
     """차일지 기본값과 설명서가 다른 예 — parts.json 값과 MANUAL_* 를 견주어 문장을 고른다."""
     items = []
     oil = c.part("engine-oil").get("intervalKm") or 0
-    plug = c.part("spark-plug").get("intervalKm") or 0
-    longer = oil < MANUAL_OIL_KM[1] and plug < MANUAL_PLUG_KM[1]
-    items.append("엔진오일·점화플러그: 같은 차종이라도 엔진에 따라 설명서 주기가 달랐고, "
-                 + ("차일지 기본값보다 주기가 긴 엔진도 있었어요." if longer else "차일지 기본값과 주기가 다른 엔진도 있었어요."))
+    items.append("엔진오일: 같은 차종이라도 엔진에 따라 설명서 주기가 달랐고, "
+                 + ("차일지 기본값보다 주기가 긴 엔진도 있었어요." if oil < MANUAL_OIL_KM[1]
+                    else "차일지 기본값과 주기가 다른 엔진도 있었어요."))
     cabin = c.part("cabin-filter").get("intervalMonths")
     if cabin and cabin < MANUAL_CABIN_MONTHS:
         items.append("에어컨·히터 필터: 설명서가 차일지 기본값보다 기간을 길게 잡은 경우가 있었어요. "
                      "차일지 기본값은 더 자주 바꾸는 쪽이에요.")
     atf = c.part("atf")
     if atf["type"] == "replace":
-        items.append(f"{atf['name']}: 설명서의 통상 조건 표에는 '무점검·무교체'로 적힌 경우가 많아요. "
+        items.append(f"{atf['name']}: 설명서의 통상 조건에는 따로 점검·교환 주기를 두지 않고, 가혹 조건으로 "
+                     "달릴 때만 주기에 맞춰 점검·교환하라고 안내하는 경우가 있어요. "
                      "차일지 기본값은 정비 현장에서 흔히 바꾸는 시기를 따랐어요. 설명서를 따르는 게 원칙이지만 "
                      "이 항목은 차를 쓰는 방식에 따라 판단이 갈려요. 수첩 알림이 오면 정비소에서 오일 상태를 함께 "
                      "봐 달라고 하세요.")
@@ -259,20 +254,23 @@ def _fuel_missing(c):
 
 
 def _inspection_note(c):
-    """첫 검사 연수(inspection.json)와 2025년 시행규칙 개정(신조차 첫 검사 5년)의 차이를 밝히는 문장 — inspection 글과 같은 기준."""
-    first = c.inspection["regularInspection"]["firstInspectionAfterYears"]
-    where = f"자동차등록증이나 {ext(('TS 사이버검사소', URL_CYBERTS))}에서 내 차 날짜를 확인하세요."
-    if first < LAW_NEW_CAR_FIRST_YEARS:
-        return (f"다만 {LAW_NEW_CAR_YEAR}년부터 새로 등록한 차는 첫 검사가 {LAW_NEW_CAR_FIRST_YEARS}년 뒤일 수 있으니, "
-                + where)
-    return f"이 기준은 {LAW_NEW_CAR_YEAR}년부터 바뀐 것이라, 그 전에 등록한 차는 첫 검사가 더 빨랐을 수 있어요. " + where
+    """정기검사 주기 문장 — 첫 검사 햇수는 inspection.json의 기본값과 등록일별 값(firstInspectionByRegistration)으로 만든다.
+    수첩도 같은 값으로 최초 등록일에 맞춰 첫 검사를 계산한다."""
+    ri = c.inspection["regularInspection"]
+    first = ri["firstInspectionAfterYears"]
+    out = [f"{c.B.esc(ri['vehicleClassLabel'])}차는 처음 등록한 날부터 {first}년 뒤에 첫 검사를 받아요."]
+    for r in sorted(ri.get("firstInspectionByRegistration") or [], key=lambda r: r["registeredOnOrAfter"]):
+        if r["years"] != first:
+            out.append(f"{date_ko(r['registeredOnOrAfter'])} 이후 새로 등록한 신차는 {r['years']}년 뒤예요.")
+    out.append(f"그 뒤로는 {ri['intervalYears']}년마다 받아요. 말소했다가 다시 등록한 차처럼 예외도 있으니, "
+               f"내 차 날짜는 자동차등록증이나 {ext(('TS 사이버검사소', URL_CYBERTS))}에서 확인하세요.")
+    return " ".join(out)
 
 
 def build(c):
     B = c.B
     n = len(c.parts)
     oil, rot, pad = c.part("engine-oil"), c.part("tire-rotation"), c.part("brake-pad-front")
-    ri = c.inspection["regularInspection"]
     notebook = c.link_notebook("내 차 수첩")
     ev_only = [p["name"] for p in c.parts.values() if p["appliesTo"] == ["ev"]]
     ev_count = sum(1 for p in c.parts.values() if "ev" in p["appliesTo"])
@@ -305,9 +303,9 @@ def build(c):
 <li>막히는 길에서 가다 서다를 자주 하거나, 시동을 켠 채 서 있는 공회전이 길어요.</li>
 <li>모래·먼지가 많은 길이나 비포장길을 자주 달려요.</li>
 </ul>
-<p>산길·트레일러·업무용 운행 같은 나머지 조건은 {c.link_care("engine-oil", "엔진오일 글의 가혹 조건 체크리스트")}에
-모아 두었어요. 하나씩 짚어 보고, 내 차 설명서의 가혹 조건 목록과도 견줘 보세요. 목록은 차종·연식마다 조금씩 달라요.
-짧은 출퇴근과 막히는 도심 운전이 대부분이라면 해당할 수 있어요. 얼마나 앞당길지도 차마다 달라서 설명서의 가혹 조건 표를
+<p>짧은 출퇴근과 막히는 도심 운전이 대부분이라면 가혹 조건에 해당할 수 있어요. 산길·트레일러·업무용 운행 같은 나머지
+조건은 {c.link_care("engine-oil", "엔진오일 글의 가혹 조건 체크리스트")}에 모아 두었어요. 하나씩 짚어 보고, 내 차 설명서의
+가혹 조건 목록과도 견줘 보세요. 목록은 차종·연식마다 조금씩 달라요. 얼마나 앞당길지도 차마다 달라서 설명서의 가혹 조건 표를
 따르는 게 가장 정확해요.</p>
 <p>차일지 수첩은 통상 조건 기본값 하나로 계산해요. 가혹 조건이라면 수첩 알림보다 일찍 챙기고, 설정의 '알림 기준'에서
 임박 표시가 더 일찍 뜨게 바꿔 두세요. 설명서가 권하지 않는 규격의 엔진오일을 넣었다면, 운전 환경과 상관없이 가혹 조건
@@ -342,9 +340,8 @@ def build(c):
 <li>때가 가까워지면 '임박', 지나면 '지남'으로 보여요. 일정을 폰 캘린더로 내보내면 알림도 받을 수 있어요.</li>
 </ol>
 <p>차에 따라 계기판의 '서비스 알림' 기능에 주기를 넣어 두면 차가 직접 알려 주기도 해요. 기능과 메뉴 이름은 차종마다 달라요.</p>
-<p>정기 자동차검사는 소모품 교체와 별개예요. {B.esc(ri['vehicleClassLabel'])}차는 처음 등록한 날부터
-{ri['firstInspectionAfterYears']}년 뒤에 첫 검사를 받고, 그 뒤로 {ri['intervalYears']}년마다 받아요. {_inspection_note(c)}
-수첩은 검사 만료일도 함께 챙겨요. 검사를 받을 수 있는 기간과 늦었을 때 내는 과태료는
+<p>정기 자동차검사는 소모품 교체와 별개예요. {_inspection_note(c)}
+수첩에 최초 등록일과 최근 검사일을 넣으면 다음 검사 만료일도 함께 챙겨 줘요. 검사를 받을 수 있는 기간과 늦었을 때 내는 과태료는
 {c.link_care("inspection", "자동차 검사 글")}에 정리했어요.</p>"""
 
     ev_tail = f"{'·'.join(ev_only)}처럼 전기차에만 있는 항목도 있어요. " if ev_only else ""
@@ -365,10 +362,8 @@ def build(c):
          f"{ev_tail}브레이크·타이어·12V 배터리·에어컨 필터는 똑같이 챙겨요. "
          "전기차는 제조사마다 주기 차이가 커서 내 차 설명서를 꼭 확인하세요."),
     ]
-    sources = [SRC_HY_QZ, SRC_HY_DN8_26, SRC_HY_DN8_24, SRC_HY_NX4, SRC_HY_SEVERE, SRC_KIA_TK1, SRC_KIA_MQ4,
-               SRC_KIA_SERVICE]
-    sources += [(s["label"], s["url"]) for s in c.inspection.get("sources", [])[:1]]
-    sources += [SRC_RULE_REVISION, SRC_TS_REGULAR]
+    sources = [SRC_HY_DN8_26, SRC_HY_SEVERE, SRC_KIA_TK1, SRC_KIA_SERVICE,
+               SRC_TS_REGULAR, SRC_EASYLAW, SRC_LAW_RULE]
     return {
         "h1": "자동차 소모품 교체 주기, 한눈에 보는 표",
         "title": "자동차 소모품 교체 주기표 — 엔진오일부터 와이퍼까지 한눈에",
