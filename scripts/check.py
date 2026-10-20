@@ -41,7 +41,7 @@ PASS, FAIL, SKIP = "통과", "실패", "건너뜀"
 
 # build.py가 쓰는 생성물. build.py가 og/tax/*.png·tax/*.html 중 더 이상 안 만드는 것을 지우므로
 # 지금 것을 복사해 둔 위에 빌드하면 남은 옛 파일이 '지워짐'으로 드러난다
-GEN_DIRS = ("tax", "og", "icons")
+GEN_DIRS = ("tax", "care", "og", "icons")
 # ads.txt는 site.json adsense.publisherId가 있을 때만 생긴다(비면 빌드가 지움) — 양쪽에 다 없으면 같다
 GEN_FILES = ("favicon.ico", "robots.txt", "sitemap.xml", "ads.txt")
 ADS_TXT = "ads.txt"
@@ -248,7 +248,7 @@ def _git_tracked(rel):
 def _git_add_line(changed, added, removed):
     """빌드 뒤 커밋할 경로 — 늘 있는 생성물 + 이번에 바뀐 루트 파일(ads.txt·손 페이지).
     없는 경로를 넣으면 git add 전체가 실패하므로, 지워질 파일은 git이 추적 중일 때만 넣는다."""
-    base = ["tax", "og", "icons", "favicon.ico", "robots.txt", "sitemap.xml"]
+    base = ["tax", "care", "og", "icons", "favicon.ico", "robots.txt", "sitemap.xml"]
     extra = {r for r in changed + added if "/" not in r and r not in base}
     extra |= {r for r in removed if "/" not in r and r not in base and _git_tracked(r)}
     return "git add " + " ".join(base + sorted(extra))

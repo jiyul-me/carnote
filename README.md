@@ -6,6 +6,7 @@
 - **차종별 자동차세**: 국산·수입 인기 차종(승용·화물·승합)의 연식별 자동차세·연납 할인 표 (지방세법 제127조 기준). 차종 목록은 `data/vehicles.json`.
 - **유지비 비교**: 두 차종의 월 유지비(자동차세+연료비+보험+감가)를 나란히 비교.
 - **자동차세 가이드**: 연납·납부 기한·배기량별 세금·차령 경감·중고차 정산·경차·전기·수소차·화물·승합차 세금을 쉬운 말로 풀어 쓴 글 (`tax/guide.html` 목록 + `tax/guide-*.html`).
+- **차 관리 가이드**: 소모품 교체 주기·자동차 검사·실제 연비 계산 같은 차 관리 글 (`care/index.html` 목록 + `care/*.html`).
 
 ## 개발
 
@@ -16,7 +17,7 @@ python3 -m http.server 8347        # 로컬 실행 → http://127.0.0.1:8347
 python3 scripts/build.py           # data/*.json 변경 시 tax/ 페이지·sitemap.xml·ads.txt·손 페이지 마커 재생성
 ```
 
-`tax/`는 빌드 전용 폴더예요. 빌드는 더 이상 만들지 않는 차종 페이지(차종 삭제·slug 변경·`sample` 전환·배기량 비움)를
+`tax/`와 `care/`는 빌드 전용 폴더예요. 빌드는 더 이상 만들지 않는 차종 페이지(차종 삭제·slug 변경·`sample` 전환·배기량 비움)를
 지우고 그 이름을 출력합니다(`tax/index.html`·`tax/calculator.html`은 빼고). 손으로 만든 페이지는 `tax/`에 두지 마세요.
 
 빌드는 공유 썸네일(`og/*.png`, 카카오톡·SNS 미리보기)과 홈 화면 아이콘(`icons/`, `favicon.ico`)도 함께 그립니다.
@@ -83,6 +84,18 @@ CI는 메인 job에서 위 검사를 단계별로 돌리고(빌드 최신 여부
 - 글을 추가하려면 `GUIDES`에 한 줄(slug는 `guide-`로 시작), 글을 만드는 함수 하나, `BUILDERS`에 한 줄을 더하면
   목록·'다른 가이드'·사이트맵·공유 썸네일(`og/guide/`)에 자동으로 들어가요. 차종 slug로는 `guide`·`guide-…`를 쓸 수 없어요
   (가이드 주소와 겹치지 않게 데이터 검사가 막아요).
+
+## 차 관리 가이드 글
+
+`care/index.html`(목록)과 `care/{slug}.html`(글)도 빌드가 만들어요. 글 하나가 `scripts/care_guides/`의 파일 하나예요
+(slug의 `-`를 `_`로 바꾼 이름, 예: `engine-oil` → `engine_oil.py`). 목록 순서는 `scripts/care_guides/__init__.py`의 `ORDER`.
+
+- 교체 주기는 `data/parts.json`에서 `c.interval_text('engine-oil')`처럼 가져와요 — 수첩이 알림을 계산하는 값과 같아야 하니까
+  숫자를 문장에 직접 쓰지 마세요. 검사 주기·과태료는 `data/inspection.json`.
+- `parts.json`의 가격(`priceKrw`)은 수첩 내부 참고용이라 글에 쓰지 않아요.
+- 글을 고치는 동안에는 `python3 scripts/render_care.py engine-oil`로 글자만 미리 보고 기본 규칙(출처·FAQ·링크·해요체)을 검사할 수 있어요.
+  다 고치면 빌드 → 검사 → 커밋. 사실(문장)을 고치면 그 글 `GUIDE`의 `updated` 날짜도 고치세요.
+- 새 글: 파일을 만들고(`GUIDE`와 `build(c)`), `ORDER`에 slug를 더해요. 목록·'다른 차 관리 가이드'·사이트맵·썸네일(`og/care/`)에 자동으로 들어가요.
 
 ## 애드센스 켜고 끄기
 

@@ -1,14 +1,21 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-04",
+  "updatedAt": "2026-10-20",
   "regularInspection": {
     "vehicleClass": "passenger-nonbusiness",
     "vehicleClassLabel": "비사업용 승용",
     "firstInspectionAfterYears": 4,
+    "firstInspectionByRegistration": [
+      {
+        "registeredOnOrAfter": "2025-01-01",
+        "years": 5,
+        "note": "2025-01-01 이후 신규등록한 비사업용 승용 신차는 첫 검사 유효기간 5년(자동차관리법 시행규칙 개정, 2024-12-31 이전 등록은 4년 그대로). 말소 뒤 다시 등록한 차 등 예외는 한국교통안전공단에서 확인"
+      }
+    ],
     "intervalYears": 2,
     "windowBeforeDays": 90,
     "windowAfterDays": 31,
-    "rule": "신차는 최초 등록일로부터 4년 후 첫 검사, 이후 2년마다. 유효기간 만료일 전 90일부터 후 31일까지 수검 가능(기간 내 적합판정 시 만료일에 받은 것으로 간주 — 2025-01-01 시행규칙 개정으로 앞쪽 기간 31일→90일 확대)",
+    "rule": "신차는 최초 등록일로부터 첫 검사까지 firstInspectionAfterYears년(2025-01-01 이후 신규등록은 firstInspectionByRegistration의 5년), 이후 2년마다. 유효기간 만료일 전 90일부터 후 31일까지 수검 가능 — 이 기간 안에 받으면 만료일에 받은 것으로 보아 다음 만료일은 종전 만료일 + 2년, 기간 밖에서 받으면 검사일 + 2년(2025-01-01 시행규칙 개정으로 앞쪽 기간 31일→90일 확대)",
     "note": "수도권 등 대기관리권역은 정기검사 대신 종합검사(배출가스 정밀검사 포함) 대상이나 주기는 동일. 전기차는 배출가스 검사 면제"
   },
   "penalty": {
@@ -26,6 +33,10 @@
     {
       "label": "한국교통안전공단 사이버검사소",
       "url": "https://www.cyberts.kr"
+    },
+    {
+      "label": "한국교통안전공단 — 정기검사(검사 유효기간·신조차 최초 5년)",
+      "url": "https://main.kotsa.or.kr/portal/contents.do?menuCode=01010200"
     }
   ]
 }
