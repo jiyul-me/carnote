@@ -1,0 +1,323 @@
+"""엔진오일 교체 주기 — care/engine-oil.html.
+
+숫자 출처
+- 교체 주기·가혹 조건 권장값은 data/parts.json(c.part·c.interval_text) — 수첩과 같은 값. 가혹 조건 권장 km는
+  parts.json engine-oil의 note에서 읽는다(수첩 항목 화면에 그대로 보이는 메모). 가격 값은 쓰지 않는다.
+- 아래 MANUAL_* 는 제조사 설명서에서 확인한 값(2026-10 조사)으로, 차일지 기본값과 견주는 문장에만 쓴다.
+- 데이터 차이(2026-10 조사): 수첩 기본값은 엔진 하나로 정했지만 현대 2026년식 설명서 통상 조건은 엔진에 따라
+  10,000~15,000km(12개월)였다. 가혹 조건은 parts.json note가 7,000km(기간 기준 없음)인데, 설명서는 엔진마다
+  5,000~10,000km에 기간 6개월이 붙었다(7,000km라는 값은 공식 자료에서 찾지 못함). 글은 수첩 기본값을 기준으로 쓰고
+  '차일지 권장값'이라 밝힌 뒤 설명서 표를 따르라고 안내한다.
+"""
+import re
+
+from care_guides import table
+
+GUIDE = {
+    "slug": "engine-oil", "short": "엔진오일 교체 주기", "published": "2026-10-20", "updated": "2026-10-20",
+    "og_title": "엔진오일 교체 주기", "og_lede": "내 운전에 맞는 주기와 오일량 점검법",
+    "summary": "수첩 기본 주기와 설명서가 다른 이유, 가혹 조건 체크리스트, 오일량 점검 순서, 경고등이 켜졌을 때 할 일",
+}
+
+# 글에서 링크하는 외부 출처 — 사실을 확인한 곳 (2026-10 확인)
+SRC_HY_MX5 = ("현대 취급설명서 — 정기 점검(MX5 2026)",
+              "https://ownersmanual.hyundai.com/full_webhelp/MX5/2026/ko_KR/id6b219dd157c.html")
+SRC_HY_DN8 = ("현대 취급설명서 — 통상 조건 점검·교체 주기(DN8 2026)",
+              "https://ownersmanual.hyundai.com/full_webhelp/DN8/2026/ko_KR/id6b219dd157c.html")
+SRC_HY_SEVERE = ("현대 취급설명서 — 가혹 조건(GN7 2023)",
+                 "https://ownersmanual.hyundai.com/full_webhelp/GN7/2023/ko_KR/id7b77f1c5ffe.html")
+SRC_KIA_MQ4 = ("기아 취급설명서 — 정기 점검(MQ4 2026)",
+               "https://ownersmanual.kia.com/full_webhelp/MQ4/2026/ko_KR/topics/chapter8_4.html")
+SRC_KIA_MQ4_SEVERE = ("기아 취급설명서 — 정기 점검·가혹 조건(MQ4 2022)",
+                      "https://ownersmanual.kia.com/full_webhelp/MQ4/2022/ko_KR/topics/t01030.html")
+SRC_KIA_SP3 = ("기아 취급설명서 — 정기 점검(SP3 2026)",
+               "https://ownersmanual.kia.com/full_webhelp/SP3/2026/ko_KR/topics/t00965.html")
+SRC_HY_OIL_CHECK = ("현대 취급설명서 — 엔진 오일량 점검 및 보충(MX5 2026)",
+                    "https://ownersmanual.hyundai.com/full_webhelp/MX5/2026/ko_KR/id16a3a154058.html")
+SRC_KIA_OIL_CHECK = ("Kia owner's manual — Checking the engine oil level (MQ4A 2025)",
+                     "https://ownersmanual.kia.com/full_webhelp/MQ4A/2025/en_US/topics/t00773.html")
+SRC_HY_DAILY = ("현대 취급설명서 — 일상 점검(QT 2026)",
+                "https://ownersmanual.hyundai.com/full_webhelp/QT/2026/ko_KR/id3531be8134a.html")
+SRC_KIA_WARN = ("Kia owner's manual — Warning lights (ON 2024)",
+                "https://ownersmanual.kia.com/full_webhelp/ON/2024/en_US/topics/t00204.html")
+SRC_KIA_OLM = ("Kia owner's manual — Scheduled maintenance service precaution (SG2 2026)",
+               "https://ownersmanual.kia.com/full_webhelp/SG2/2026/en_US/topics/chapter9_4_1.html")
+SRC_HY_OIL_EN = ("Hyundai owner's manual — Checking the engine oil and filter (NX4 2025)",
+                 "https://ownersmanual.hyundai.com/full_webhelp/NX4/2025/en_US/id8593bb7792c.html")
+SRC_HY_HEV = ("현대 취급설명서 — 정기 점검(쏘나타 하이브리드 DN8HEV 2026)",
+              "https://ownersmanual.hyundai.com/full_webhelp/DN8HEV/2026/ko_KR/id6b219dd157c.html")
+SRC_HY_EV = ("현대자동차 미국 — 전기차 안내(한국어)", "https://www.hyundaiusa.com/us/ko/hybrid-and-ev/electric")
+SRC_STLE = ("STLE(미국 윤활공학회) — Engine oil viscosity",
+            "https://www.stle.org/files/TLTArchives/2017/01_January/Worldwide.aspx")
+
+# 설명서 비교용 값 — parts.json 기본값과 견주는 문장에만 쓴다
+MANUAL_OIL_KM = (10000, 15000)    # 현대 2026년식 통상 조건 — 엔진에 따라 10,000km·15,000km (SRC_HY_DN8)
+MANUAL_OIL_MONTHS = 12            # 같은 표 — 기간은 12개월 (SRC_HY_DN8)
+MANUAL_SEVERE_KM = (5000, 10000)  # 가혹 조건 — 기아 G2.5 T-GDi 5,000km ~ 디젤 D2.2 10,000km (SRC_KIA_MQ4), 현대 GN7 7,500km
+MANUAL_SEVERE_MONTHS = 6          # 같은 표들 — 기간 6개월 (SRC_HY_SEVERE, SRC_KIA_MQ4)
+
+KIND = {"replace": "교체", "inspect": "점검"}
+FUEL = {"gasoline": "가솔린", "diesel": "디젤", "lpg": "LPG", "hybrid": "하이브리드", "ev": "전기차"}
+
+
+def _severe_km(c):
+    """parts.json engine-oil note의 가혹 조건 권장 km — 없으면 None."""
+    m = re.search(r"(\d[\d,]*)\s*km", c.part("engine-oil").get("note") or "")
+    return int(m.group(1).replace(",", "")) if m else None
+
+
+def _cycle(c, pid):
+    """표의 주기 칸 — '20,000km 또는 24개월'·'80,000km마다'."""
+    return c.interval_text(pid).replace(" 중 먼저 오는 때", "")
+
+
+def _fuels(p):
+    return "·".join(v for k, v in FUEL.items() if k in p["appliesTo"])
+
+
+def _vs_manual(km):
+    """차일지 기본 km가 설명서 통상 조건 범위의 어디쯤인지."""
+    lo, hi = MANUAL_OIL_KM
+    if km < lo:
+        return "차일지 기본값은 이보다 짧아요. 그래서 수첩 알림이 설명서보다 일찍 와요."
+    if km == lo:
+        return "차일지 기본값은 이 가운데 짧은 쪽과 같아요. 그래서 엔진에 따라 수첩 알림이 설명서보다 일찍 올 수 있어요."
+    if km < hi:
+        return ("차일지 기본값은 이 사이에 있어요. 그래서 엔진에 따라 수첩 알림이 설명서보다 일찍 오기도 하고 "
+                "늦게 오기도 해요.")
+    if km == hi:
+        return ("차일지 기본값은 이 가운데 긴 쪽과 같아요. 그래서 엔진에 따라 수첩 알림이 설명서보다 늦게 올 수 있으니, "
+                "설명서 주기를 꼭 확인하세요.")
+    return "차일지 기본값이 이보다 길어요. 그래서 수첩 알림이 설명서보다 늦게 오니, 설명서 주기를 꼭 따르세요."
+
+
+def _months_first(c, km, mo):
+    """적게 달리는 차는 기간이 먼저 온다는 예 — 1년 주행거리는 site.json 기준의 3분의 1."""
+    if not c.fuel_km:
+        return ""
+    annual = c.fuel_km // 3
+    if km / annual * 12 > mo:
+        return (f"예를 들어 1년에 {annual:,}km만 달리면 {km:,}km를 채우기 전에 {mo}개월이 먼저 지나요. "
+                "덜 달렸어도 그때가 바꿀 때예요.")
+    return ""
+
+
+def _severe_text(c, km, mo):
+    """가혹 조건 주기 — 차일지 권장값(note)과 설명서의 차이."""
+    sk = _severe_km(c)
+    if not sk:
+        return ("<p>얼마나 앞당길지는 엔진마다 달라요. 설명서의 가혹 조건 표는 주행거리가 더 짧고, "
+                f"기간도 {MANUAL_SEVERE_MONTHS}개월로 줄어드는 경우가 많았어요. 그 표를 따르세요.</p>")
+    lo, hi = MANUAL_SEVERE_KM
+    if lo < sk < hi:
+        diff = "이 값보다 짧은 것도 긴 것도 있었어요"
+    elif sk <= lo:
+        diff = "이 값보다 긴 경우가 많았어요"
+    else:
+        diff = "이 값보다 짧은 경우가 많았어요"
+    months = (f" 기간도 {MANUAL_SEVERE_MONTHS}개월로 짧아지는 경우가 많았어요. 차일지 권장값에는 기간 기준이 없으니, "
+              "적게 달렸어도 설명서에 적힌 기간이 지나면 바꾸세요."
+              if mo and MANUAL_SEVERE_MONTHS < mo else "")
+    out = (f"<p>가혹 조건이라면 차일지는 {sk:,}km쯤에 바꾸기를 권해요. 수첩의 엔진오일 항목을 열면 같은 메모가 보여요. "
+           f"다만 이건 차일지의 권장값이고 제조사 기준이 아니에요. 차일지가 살펴본 설명서들의 가혹 조건 주기는 "
+           f"엔진마다 달라서, {diff}.{months} 내 차 설명서에 가혹 조건 표가 있으면 그것을 따르세요.</p>")
+    if sk < km:
+        lead = km - sk
+        out += (f"<p>수첩은 가혹 조건이어도 기본 주기 하나로 계산해요. 더 일찍 알림을 받고 싶다면 수첩 설정의 "
+                f"'알림 기준'에서 '몇 km 전부터 임박 표시'를 늘려 두세요. {lead:,}km로 두면 교체한 뒤 "
+                f"{sk:,}km쯤 달렸을 때부터 '임박'으로 보여요. 다만 이 설정은 모든 항목에 함께 적용돼서, "
+                "다른 소모품도 그만큼 일찍 '임박'으로 보여요.</p>")
+    return out
+
+
+def _together(c):
+    """오일 바꿀 때 함께 보는 소모품 표 — 주기는 parts.json."""
+    B = c.B
+    oil, air = c.part("engine-oil"), c.part("air-filter")
+    cabin, plug = c.part("cabin-filter"), c.part("spark-plug")
+    ratio = ""
+    if air.get("intervalKm") and oil.get("intervalKm") and air["intervalKm"] % oil["intervalKm"] == 0:
+        n = air["intervalKm"] // oil["intervalKm"]
+        if n > 1:
+            ratio = f"엔진오일을 {n}번 바꿀 때 1번꼴이에요. "
+    rows = [
+        ["오일필터", "엔진오일과 함께",
+         B.esc(f"오일 속 찌꺼기를 걸러요. 수첩에서도 '{oil['name']}' 한 항목이에요.")],
+        [c.link_care("filters", air["name"]), B.esc(_cycle(c, "air-filter")),
+         B.esc(f"엔진이 빨아들이는 공기를 걸러요. {ratio}먼지 많은 길을 자주 달리면 더 자주 봐요.")],
+        [B.esc(cabin["name"]), B.esc(_cycle(c, "cabin-filter")),
+         B.esc("차 안으로 들어오는 공기를 걸러요. 에어클리너와는 다른 필터예요.")],
+        [B.esc(plug["name"]), B.esc(_cycle(c, "spark-plug")),
+         B.esc(f"{_fuels(plug)} 차에만 있어요. 플러그 종류와 엔진에 따라 주기 차이가 커요.")],
+    ]
+    return table(["항목", "차일지 기본 주기", "함께 볼 점"], rows)
+
+
+def _kinds(c):
+    """하이브리드·전기차·디젤 — appliesTo로 문장을 고른다."""
+    B = c.B
+    oil = c.part("engine-oil")
+    applies = set(oil["appliesTo"])
+    gear = c.part("reduction-gear-oil-ev")
+    plug = c.part("spark-plug")
+    diesel_only = [p["name"] for p in c.parts.values() if p["appliesTo"] == ["diesel"] and p.get("defaultEnabled", True)]
+    items = []
+    hev = ("모터와 함께 가솔린 엔진이 달려 있어서 엔진오일과 오일필터를 바꿔요. 설명서에 하이브리드 엔진의 "
+           "통상·가혹 조건 주기가 따로 있으니 그 칸을 보세요. 충전해서 쓰는 플러그인 하이브리드도 엔진이 있으니 마찬가지예요.")
+    if "hybrid" in applies:
+        hev += " 수첩에 하이브리드로 등록하면 엔진오일 항목이 켜져요."
+    items.append(f"<li><strong>하이브리드</strong>: {B.esc(hev)}</li>")
+    if "ev" not in applies:
+        ev = ("엔진이 없어서 엔진오일·오일필터를 바꾸지 않아요. 대신 모터의 힘을 바퀴로 전하는 감속기에 오일이 들어 있어요. "
+              f"차일지 수첩은 '{gear['name']}'을 {KIND.get(gear['type'], '관리')} 항목으로 두는데, "
+              "바꿔야 하는지와 주기는 제조사마다 달라요.")
+        items.append(f"<li><strong>전기차</strong>: {B.esc(ev)} 자세한 건 {c.link_care('ev-care', '전기차 관리 글')}에 정리했어요.</li>")
+    diesel = ("디젤차도 엔진오일을 바꿔요. 같은 차종이라도 디젤 엔진은 주기가 따로 적혀 있으니, "
+              "설명서의 디젤 엔진 칸에서 주기와 권장 오일을 확인하세요.")
+    if "diesel" not in plug["appliesTo"]:
+        diesel += f" 디젤차에는 {plug['name']}가 없어요."
+        if diesel_only:
+            diesel += f" 대신 수첩에는 {'·'.join(diesel_only)} 같은 디젤 전용 항목이 있어요."
+    items.append(f"<li><strong>디젤</strong>: {B.esc(diesel)} {c.link_care('diesel-care', '디젤차 관리 글')}도 함께 보세요.</li>")
+    return "<ul>\n" + "\n".join(items) + "\n</ul>"
+
+
+def build(c):
+    B = c.B
+    oil = c.part("engine-oil")
+    km, mo = oil["intervalKm"], oil["intervalMonths"]
+    when = c.interval_text("engine-oil")
+    lo, hi = MANUAL_OIL_KM
+    notebook = c.link_notebook("차일지 수첩")
+
+    summary = (f"<strong>한눈에</strong> 차일지 수첩 기본값은 {B.esc(when)}예요. 다만 주기는 엔진마다 달라서 "
+               "내 차 설명서가 먼저예요. 짧은 거리·막히는 길 위주(가혹 조건)라면 더 일찍 바꾸고, 달리는 중에 "
+               "기름 주전자 모양의 오일 압력 경고등이 켜지면 안전한 곳에 세워 시동부터 끄세요.")
+
+    body = f"""<h2>엔진오일은 왜, 언제 바꾸나요</h2>
+<p>엔진오일은 엔진 안에서 쇠로 된 부품들이 서로 부드럽게 움직이게 해 줘요(윤활). 열을 식히고, 엔진 안의 때를 씻어 내고,
+녹이 슬지 않게 막는 일도 해요. 쓰다 보면 이런 성능이 조금씩 떨어져서, 때가 되면 새것으로 바꿔요.</p>
+<p>{notebook} 기본값은 <strong>{B.esc(when)}</strong>예요. 주행거리와 기간 중 먼저 오는 쪽이 기준이고,
+현대·기아 설명서(매뉴얼)도 같은 방식이에요. {B.esc(_months_first(c, km, mo))}</p>
+<h2>차일지 기본값과 설명서가 다른 이유</h2>
+<p>차일지 기본값은 여러 차에 두루 맞추려고 정한 숫자 하나예요. 제조사 설명서는 엔진마다 주기를 따로 적어요.
+현대 2026년식 설명서를 보니, 같은 차종 안에서도 엔진에 따라 통상 조건(보통의 운전 환경) 주기가 달랐어요.
+'{lo:,}km 또는 {MANUAL_OIL_MONTHS}개월'인 엔진도, '{hi:,}km 또는 {MANUAL_OIL_MONTHS}개월'인 엔진도 있었어요.
+{B.esc(_vs_manual(km))}</p>
+<p>설명서에는 보통 '통상 조건' 표와 '가혹 조건' 표가 따로 있어요. 가혹 조건은 차에 부담이 큰 운전 환경이고,
+이때는 더 자주 바꾸라고 해요. 또 현대·기아 설명서는 권장 오일을 넣지 않았다면 운전 환경과 상관없이 가혹 조건 주기로
+바꾸라고 해요. 주기가 권장 오일을 기준으로 정해졌기 때문이에요.</p>
+<p>그래서 내 차 설명서의 정기 점검표에서 내 엔진 칸을 찾아 그 주기를 따르는 게 가장 정확해요. 수첩 알림이 설명서보다
+일찍 오면 '이제 준비할 때'라는 신호로 쓰면 돼요. 설명서 찾는 법은 {c.link_care("replacement-schedule", "소모품 교체 주기 글")}에
+정리했어요.</p>
+<h2>내 운전이 가혹 조건인지 확인해 보세요</h2>
+<p>현대·기아 설명서에 나오는 가혹 조건은 대표적으로 이런 것들이에요. 내 운전에 자주 있는 일인지 하나씩 짚어 보세요.</p>
+<ul>
+<li>한 번에 짧은 거리만 달리는 일을 자주 반복해요.</li>
+<li>막히는 길에서 가다 서다를 자주 반복해요.</li>
+<li>시동을 켠 채 서 있는 공회전이 길어요.</li>
+<li>모래·먼지가 많은 길이나 비포장길을 자주 달려요.</li>
+<li>오르막·내리막이 많은 산길을 자주 달려요.</li>
+<li>급가속·급제동이 잦아요.</li>
+<li>소금기처럼 쇠를 녹슬게 하는 물질이 많은 길이나, 추운 지역을 자주 달려요.</li>
+<li>트레일러를 자주 끌고 달려요.</li>
+<li>택시·경찰차처럼 영업·업무용으로 많이 써요.</li>
+</ul>
+<p>정확한 목록과 문구는 차종·연식마다 달라요. 내 차 설명서의 가혹 조건 목록과 견줘 보세요. 집과 회사가 가까워 짧게 달리고
+출퇴근길이 늘 막힌다면, 평범한 도심 운전이라도 해당할 수 있어요.</p>
+{_severe_text(c, km, mo)}
+<h2>오일량 직접 확인하는 순서</h2>
+<p>엔진오일은 달리는 동안 조금씩 줄어드는 게 정상이에요. 그래서 설명서는 교체 사이에도 오일량을 정기적으로 확인하라고 해요.
+새 차는 길들이는 동안 조금 더 많이 줄어들 수 있다고 적은 설명서도 있어요. 확인은 엔진에 꽂힌 막대(오일 레벨 게이지,
+흔히 '딥스틱')로 해요. 어디에 꽂혀 있는지는 설명서의 엔진룸 그림에서 찾을 수 있어요.</p>
+<ol>
+<li>평평한 곳에 차를 세워요. 기울어진 곳에서는 양이 다르게 보여요.</li>
+<li>시동 직후가 아니라 한동안 달려서 엔진을 충분히 데운 뒤(정상 온도) 시동을 꺼요.</li>
+<li>오일이 엔진 아래쪽 통(오일 팬)으로 내려올 때까지 기다려요. 차일지가 살펴본 현대·기아 설명서에는 약 15분이라고
+적혀 있었는데, 차마다 다를 수 있어요.</li>
+<li>보닛을 열고 레벨 게이지를 뽑아 깨끗한 헝겊으로 닦아요. 엔진룸은 뜨거우니 다른 부품을 맨손으로 만지지 마세요.</li>
+<li>게이지를 끝까지 다시 꽂았다가 뽑아요.</li>
+<li>오일이 묻은 끝이 F(가득)선과 L(부족)선 사이에 있으면 괜찮아요.</li>
+</ol>
+<p>L선 아래라면 보충해요. 엔진 위의 오일 주입구(오일을 넣는 구멍) 뚜껑을 열고, 설명서에 적힌 규격의 오일을 조금씩
+넣으면서 다시 재요. 규격은 아래 '어떤 오일을 넣을지' 부분을 보세요. F선을 넘지 않게 넣고, F선을 넘겼다면 직접 빼려 하지 말고
+정비소에 물어보세요. 보충이 자신 없으면 정비소에 맡겨도 돼요.</p>
+<p>레벨 게이지 대신 계기판이나 화면 메뉴로 오일량을 보여 주는 차도 있어요. 이때는 설명서의 확인 방법을 따르세요.
+오일량을 볼 때 차를 세워 둔 바닥에 기름 자국이 있는지, 엔진룸에 오일이 샌 흔적이 있는지도 함께 봐 두세요.
+둘 다 현대 설명서의 일상 점검 항목에 들어 있어요. 오일이 유난히 빨리 줄어든다면 정비소에서 원인을 점검받으세요.</p>
+<h2>엔진오일 경고등이 켜지면</h2>
+<p>계기판에는 기름 주전자 모양의 엔진오일 압력 경고등이 있어요. 시동을 걸 때 잠깐 켜졌다가 시동이 걸리면 꺼지는 건 정상이에요.
+그런데 달리는 중에 켜지면 엔진 안의 오일 압력이 낮다는 뜻이에요. 오일이 엔진 곳곳에 제대로 돌지 못하고 있을 수 있어요.
+켜진 채로 계속 달리면 엔진이 크게 망가질 수 있어요.</p>
+<ol>
+<li>비상등을 켜고 가장 가까운 안전한 곳에 차를 세운 뒤 시동을 꺼요.</li>
+<li>고속도로 갓길처럼 차가 빠르게 지나는 곳이라면 보닛을 열고 점검하지 마세요. 차에서 내려 안전한 곳으로 피한 뒤
+견인을 부르세요.</li>
+<li>점검해도 안전한 곳이라면, 오일이 내려올 때까지 기다린 뒤 위 순서로 오일량을 확인해요.</li>
+<li>모자라면 설명서에 적힌 규격의 오일을 보충해요.</li>
+<li>보충하고 시동을 다시 걸었는데도 경고등이 꺼지지 않거나, 오일이 충분한데도 켜졌다면 더 달리지 마세요.
+오일이 모자란데 넣을 오일이 없을 때도 마찬가지예요. 견인을 불러 정비소에서 점검받는 게 안전해요.</li>
+</ol>
+<p>엔진오일과 관련된 표시는 이것 말고도 있어요. 교체 때가 되면 알려 주는 서비스 알림이 있는 차도 있고,
+운전 습관으로 오일 수명을 따져 정해진 주기보다 먼저 교체 알림을 띄우는 차도 있어요. 표시의 모양·색과 뜻은 차마다 달라서,
+처음 보는 표시는 설명서의 경고등 설명에서 찾아보세요. 뜻을 모르겠다면 안전한 곳에 세우고 정비소에 물어보세요.</p>
+<h2>어떤 오일을 넣을지는 설명서가 정해요</h2>
+<p>오일 통에는 '0W-20'처럼 점도 표시가 있어요. 점도는 오일이 얼마나 끈적한지를 말해요. 앞의 숫자와 W(겨울, Winter)는
+추울 때의 등급이에요. 숫자가 작을수록 차가울 때도 잘 흘러요. 뒤의 숫자는 엔진이 뜨거울 때의 등급이에요.
+숫자가 클수록 뜨거울 때 더 걸쭉해요. 숫자는 정확한 값이 아니라 범위를 나눈 등급이에요.</p>
+<p>오일 통에는 점도 말고도 API·ACEA 같은 영문 약자와 함께 품질 등급이 적혀 있어요. 내 차 설명서의 권장 오일 항목에
+적힌 점도와 등급에 맞추면 돼요. 정비소에서 바꿀 때는 설명서 규격으로 넣어 달라고 말하고, 넣은 오일의 점도·등급을
+정비 명세서에서 확인해 두세요. 수첩에 교체를 기록할 때 '메모' 칸에 적어 두면, 나중에 보충할 오일을 고르기 쉬워요.
+권장 오일이 아니면 앞에서 본 것처럼 가혹 조건 주기를 따라야 해요.</p>
+<p>따로 파는 오일 첨가제는 넣지 않는 게 좋아요. 현대 설명서는 첨가제가 오일의 성질을 바꿔 엔진 고장을 일으킬 수 있다며
+쓰지 말라고 해요. 다른 제조사 차라면 설명서를 확인하세요.</p>
+<h2>오일 바꿀 때 함께 보면 좋은 것</h2>
+<p>엔진오일 교체는 뜨거운 헌 오일을 빼내고 필터를 바꾸는 작업이에요. 장비가 필요하고 빼낸 오일도 따로 처리해야 해서,
+직접 하기보다 정비소에 맡기는 게 안전해요. 정비소에 간 김에 아래 항목도 때가 됐는지 함께 보면 좋아요.
+주기는 차일지 기본값이고, 제조사 주기는 차종마다 달라요.</p>
+{_together(c)}
+<p>에어클리너와 에어컨·히터 필터를 직접 확인하는 법과 바꿀 때 주의할 점은
+{c.link_care("filters", "에어컨 필터·에어클리너 글")}에 정리했어요.
+정비소에서 다른 부품 교체를 권하면 설명서 주기나 수첩 기록과 견줘 보고, 급한 게 아니라면 다음에 해도 되는지 물어보세요.
+바꾼 뒤에는 정비 명세서에 적힌 날짜와 주행거리를 {notebook}에 기록하세요. 수첩이 그 날짜와 주행거리를 기준으로
+다음 교체 때를 다시 계산해 줘요.</p>
+<h2>하이브리드·전기차·디젤은 이렇게 달라요</h2>
+{_kinds(c)}"""
+
+    months_note = f" 덜 달렸어도 {mo}개월이 지나면 바꿀 때예요." if mo else ""
+    if km < hi:  # 수첩 알림이 설명서(긴 쪽)보다 일찍 올 수 있을 때만 맞는 질문
+        faq_gap = ("수첩 알림이 설명서 주기보다 일찍 와요. 바로 바꿔야 하나요?",
+                   "꼭 그렇지는 않아요. 내 차 설명서의 통상 조건 주기가 더 길다면 수첩 알림은 '이제 준비할 때'라는 "
+                   "신호로 쓰고, 설명서 주기에 맞춰 바꾸면 돼요. 다만 가혹 조건에 해당하거나 권장 오일이 아닌 오일을 "
+                   "넣었다면 설명서의 가혹 조건 주기를 따라야 해요.")
+    else:
+        faq_gap = ("수첩 기본값과 설명서 주기가 다르면 어느 쪽을 따르나요?",
+                   "내 차 설명서의 정기 점검표에 적힌 내 엔진 칸의 주기를 따르세요. 차일지 기본값은 여러 차에 두루 맞춘 "
+                   "숫자 하나라서, 엔진마다 다른 제조사 주기를 대신하지 못해요.")
+    faqs = [
+        ("엔진오일은 몇 km마다 바꿔야 하나요?",
+         f"차일지 수첩 기본값은 {when}예요.{months_note} 다만 제조사 설명서의 주기는 엔진마다 달라서, "
+         "내 차 설명서의 정기 점검표에서 내 엔진 칸을 확인하고 그 주기를 따르세요. "
+         "짧은 거리·막히는 길 위주로 달리면 가혹 조건 주기로 더 일찍 바꿔요."),
+        faq_gap,
+        ("달리는 중에 오일 경고등이 켜졌어요. 계속 가도 되나요?",
+         "아니요. 기름 주전자 모양의 오일 압력 경고등이 달리는 중에 켜지면 비상등을 켜고 가장 가까운 안전한 곳에 세운 뒤 "
+         "시동을 끄세요. 고속도로 갓길처럼 차가 빠르게 지나는 곳이라면 보닛을 열지 말고, 차에서 내려 안전한 곳으로 피한 뒤 "
+         "견인을 부르세요. 점검해도 안전한 곳이라면 오일량을 확인해 모자라면 보충하고, 보충해도 경고등이 꺼지지 않거나 "
+         "오일이 충분한데도 켜졌다면 더 달리지 말고 견인을 불러 정비소에서 점검받으세요."),
+        ("전기차도 엔진오일을 바꾸나요?",
+         "아니요. 전기차는 엔진이 없어서 엔진오일·오일필터를 바꾸지 않아요. 다만 감속기 오일 같은 다른 오일은 있고, "
+         "점검·교체 주기는 제조사마다 달라 내 차 설명서를 확인해야 해요. 하이브리드는 엔진이 있어서 엔진오일을 바꿔요."),
+    ]
+    sources = [SRC_HY_MX5, SRC_HY_DN8, SRC_HY_SEVERE, SRC_KIA_MQ4, SRC_KIA_MQ4_SEVERE, SRC_KIA_SP3, SRC_HY_OIL_CHECK,
+               SRC_KIA_OIL_CHECK, SRC_HY_DAILY, SRC_KIA_WARN, SRC_KIA_OLM, SRC_HY_OIL_EN, SRC_HY_HEV, SRC_HY_EV,
+               SRC_STLE]
+    return {
+        "h1": "엔진오일, 언제 바꾸고 어떻게 확인할까",
+        "title": "엔진오일 교체 주기 — 가혹 조건 판단·오일량 점검·경고등 대처",
+        "description": (f"엔진오일 교체 주기를 정리했어요. 차일지 기본값은 {when}이고, 설명서 주기는 엔진마다 달라요. "
+                        "가혹 조건 체크리스트, 오일량 점검 순서, 경고등이 켜졌을 때 할 일까지 담았어요."),
+        "lede": ("엔진오일은 차를 가지면 가장 자주 챙기는 소모품 중 하나예요. 그런데 몇 km마다 바꿔야 하는지는 말이 다 달라요. "
+                 "차일지 기본값과 설명서가 다른 이유, 내 운전에 맞는 주기 찾는 법, 오일량을 직접 재는 순서를 정리했어요."),
+        "summary": summary, "body": body, "faqs": faqs, "sources": sources,
+    }

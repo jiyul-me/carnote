@@ -25,7 +25,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import guides as _g  # noqa: E402  — table·num·ext·date_ko·short_name 재사용
 
-ORDER = ()
+ORDER = ("replacement-schedule", "inspection", "engine-oil", "tire", "brake", "battery", "filters", "fluids",
+         "winter", "ev-care", "diesel-care", "fuel-economy")
 INDEX_SLUG = "index"  # 목록 페이지 care/index.html
 
 table, num, ext, date_ko, short_name = _g.table, _g.num, _g.ext, _g.date_ko, _g.short_name
