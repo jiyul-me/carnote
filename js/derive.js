@@ -184,7 +184,32 @@
     return cls == null || cls === 'passenger';
   }
 
-  /* 만료일 추정: 최근 검사일이 있으면 +intervalYears, 없으면 최초등록일 +firstInspectionAfterYears.
+  /* 첫 검사까지 햇수 — 최초 등록일이 firstInspectionByRegistration의 기준일 이후면 그 값
+   * (2025-01-01 이후 신규등록 비사업용 승용 신차는 5년, 그 전 등록은 firstInspectionAfterYears=4). 날짜는 'YYYY-MM-DD' 문자열 비교 */
+  function firstInspectionYears(rules, firstRegisteredOn) {
+    var years = rules.firstInspectionAfterYears;
+    (rules.firstInspectionByRegistration || []).forEach(function (r) {
+      if (firstRegisteredOn >= r.registeredOnOrAfter) years = r.years;
+    });
+    return years;
+  }
+
+  /* 최근 검사일 다음 만료일. 법 규칙: 수검 기간(만료일 전 windowBeforeDays ~ 후 windowAfterDays) 안에 받으면 만료일에
+   * 받은 것으로 보아 '종전 만료일 + intervalYears', 기간 밖에서 받으면 '검사일 + intervalYears'.
+   * 종전 만료일은 최초 등록일부터 만든 회차(첫 만료일 + 2년씩)에서 검사일이 수검 기간에 드는 회차를 찾는다 —
+   * 예전에 기간 밖에서 받아 회차가 밀린 차는 회차를 못 찾아 검사일 기준이 된다(최대 기간 폭만큼 차이, 등록증 만료일이 우선). */
+  function nextExpiryAfterInspection(car, rules) {
+    var last = car.lastInspectionOn;
+    var e = addYears(car.firstRegisteredOn, firstInspectionYears(rules, car.firstRegisteredOn));
+    for (;;) {
+      if (diffDays(last, addDays(e, -rules.windowBeforeDays)) > 0) break;  // 이 회차부터는 수검 기간이 검사일보다 늦게 시작
+      if (diffDays(last, addDays(e, rules.windowAfterDays)) >= 0) return addYears(e, rules.intervalYears);  // 기간 안
+      e = addYears(e, rules.intervalYears);  // 이 회차 기간은 검사일 전에 끝남 → 다음 회차
+    }
+    return addYears(last, rules.intervalYears);
+  }
+
+  /* 만료일 추정: 최근 검사일이 있으면 nextExpiryAfterInspection, 없으면 최초등록일 + firstInspectionYears.
    * 과거로 밀린 만료일은 intervalYears씩 굴려 현재에 가장 가까운 회차를 잡는다
    * (기록이 없어도 과거 검사는 받았다고 가정 — UI에 '최근 검사일을 입력하면 정확해져요' 안내).
    * 유예(만료 후 windowAfterDays 이내)는 굴리지 않고 '지남'으로 보여준다. */
@@ -192,8 +217,8 @@
     if (!car.firstRegisteredOn) return null;
     var estimated = !car.lastInspectionOn;
     var expiry = estimated
-      ? addYears(car.firstRegisteredOn, rules.firstInspectionAfterYears)
-      : addYears(car.lastInspectionOn, rules.intervalYears);
+      ? addYears(car.firstRegisteredOn, firstInspectionYears(rules, car.firstRegisteredOn))
+      : nextExpiryAfterInspection(car, rules);
     if (estimated) {
       // 기록이 없을 때만 과거 회차를 굴린다. 실제 검사일이 입력돼 있으면
       // 연체(D+N)를 그대로 보여줘야 과태료 상태를 숨기지 않는다
@@ -544,7 +569,7 @@
     lastRecordFor: lastRecordFor, partStatus: partStatus,
     defaultEnabledPartIds: defaultEnabledPartIds, applicableParts: applicableParts,
     passengerInspectionApplies: passengerInspectionApplies,
-    inspectionStatus: inspectionStatus, insuranceStatus: insuranceStatus,
+    inspectionStatus: inspectionStatus, firstInspectionYears: firstInspectionYears, insuranceStatus: insuranceStatus,
     yearlySpend: yearlySpend,
     monthKey: monthKey, addMonthKey: addMonthKey,
     fuelLogCost: fuelLogCost, fuelLogAmount: fuelLogAmount,

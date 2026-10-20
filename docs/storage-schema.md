@@ -39,7 +39,7 @@ interface Car {
                                  // 예외 둘: ① 같은 날짜 재입력은 그 날짜 항목을 대체(대체 전 값은 prev에 보관)
                                  //   ② 기록 삭제 시 그 기록이 한 일만 되돌림(아래 OdometerEntry). 과거·미래 날짜는 append하지 않는다
   insuranceExpiresOn: string | null; // 보험 만기 알림용 (날짜만 저장 — 보험 정보는 그 이상 다루지 않음)
-  lastInspectionOn: string | null;   // 최근 자동차 검사일. null이면 firstRegisteredOn + 4년 규칙으로 첫 검사일 추정 (승용만 — 아래 파생 데이터 '검사 D-day')
+  lastInspectionOn: string | null;   // 최근 자동차 검사일. null이면 firstRegisteredOn + 첫 검사 햇수(4년, 2025-01-01 이후 등록은 5년)로 첫 검사일 추정 (승용만 — 아래 파생 데이터 '검사 D-day')
   enabledPartIds: string[];      // 이 차에서 추적하는 소모품 (parts.json의 defaultEnabled + appliesTo(fuelType)로 초기화, 사용자가 조정)
   createdAt: string;             // ISO 8601
   updatedAt: string;
@@ -128,6 +128,8 @@ interface Settings {
 - **소모품 D-day**: 항목별 마지막 `MaintenanceRecord` + `parts.json`의 `intervalKm`/`intervalMonths` → 도래 시점. 기록이 없는 항목은 "기록 없음"으로 표시하고 첫 기록을 유도 (등록 시점 주행거리를 소모품 기준으로 삼지 않는다 — 중고차는 이전 이력을 모름)
 - **월평균 주행거리**: `odometerLog`와 주유·정비 기록의 (주행거리, 날짜) 쌍에서 추정 → km 기반 주기를 날짜로 환산해 "약 N월경" 예측. 관측이 등록 시점 1개뿐이면 예측 대신 "주행거리를 한 번 더 입력하면 예측이 시작돼요" 안내
 - **검사 D-day**: `lastInspectionOn`(없으면 `firstRegisteredOn` + `inspection.json` 규칙) → 다음 유효기간 만료일. 수검 가능 기간은 `windowBeforeDays`/`windowAfterDays`로 계산
+  - 첫 검사 햇수는 `firstInspectionAfterYears`, 등록일이 `firstInspectionByRegistration[].registeredOnOrAfter` 이후면 그 `years`(2025-01-01 이후 신규등록 5년) — `derive.firstInspectionYears`
+  - 최근 검사일이 그 회차의 수검 기간 안이면 다음 만료일 = 종전 만료일 + `intervalYears`(만료일에 받은 것으로 봄), 기간 밖이면 검사일 + `intervalYears`. 종전 만료일은 최초 등록일부터 만든 회차에서 찾는다 — 예전에 기간 밖에서 받아 회차가 밀린 차는 검사일 기준이 된다
   - `inspection.json`은 비사업용 승용 규칙뿐이라 `vehicleId`로 찾은 `vehicles.json` 항목의 `vehicleClass`가 승용이 아니면(화물 `truck`·승합 `van`) 계산하지 않는다(`derive.passengerInspectionApplies`) — D-day·.ics 검사 일정 없이 "자동차등록증이나 검사 안내문의 유효기간을 확인" 안내만. `lastInspectionOn`이 있어도 승용 주기로 다음 날짜를 만들지 않는다. `vehicleId`가 없으면(차종 미매칭) 승용으로 본다
 - **실연비** (`fuelEconomy`): `isFullTank`인 주유 사이 구간 = (주행거리 차) ÷ (구간 주유량 합). 단위는 기록의 `unit` 그대로(km/L·km/kWh·km/kg)
   - 끝점은 **주행거리가 있는** 가득 주유. 주유량 합은 앞 끝점 *다음* 주유부터 뒤 끝점까지(앞 끝점의 양은 그 전 구간 몫)

@@ -26,7 +26,8 @@
     minRetention: 0.1,
     afterCurveYearlyDrop: 0.01
   };
-  var INSPECTION = { firstInspectionAfterYears: 4, intervalYears: 2, windowBeforeDays: 90, windowAfterDays: 31 };
+  var INSPECTION = { firstInspectionAfterYears: 4, intervalYears: 2, windowBeforeDays: 90, windowAfterDays: 31,
+    firstInspectionByRegistration: [{ registeredOnOrAfter: '2025-01-01', years: 5 }] };
   var SETTINGS = { reminderLeadDays: 30, reminderLeadKm: 1000 };
 
   // ---------- 날짜 ----------
@@ -145,6 +146,33 @@
   eq(insp5.expiryOn, '2026-01-10', '기록 있음 → 만료일 굴리지 않음');
   eq(insp5.dDay, -206, '기록 있음 → D+206 그대로');
   eq(insp5.estimated, false, '기록 있음 → 추정 아님');
+
+  // 2025-01-01 이후 신규등록 신차는 첫 검사 5년 (그 전 등록은 4년)
+  eq(D.firstInspectionYears(INSPECTION, '2024-12-31'), 4, '2024-12-31 등록 → 첫 검사 4년');
+  eq(D.firstInspectionYears(INSPECTION, '2025-01-01'), 5, '2025-01-01 등록 → 첫 검사 5년');
+  eq(D.firstInspectionYears({ firstInspectionAfterYears: 4 }, '2026-03-02'), 4, '예외 목록 없는 옛 데이터 → 기본값');
+  var insp6 = D.inspectionStatus({ id: 'c13', firstRegisteredOn: '2025-03-02', lastInspectionOn: null, odometerLog: [] }, INSPECTION, TODAY);
+  eq(insp6.expiryOn, '2030-03-02', '2025년 등록 → 첫 만료일 5년 뒤');
+  var insp7 = D.inspectionStatus({ id: 'c14', firstRegisteredOn: '2024-12-31', lastInspectionOn: null, odometerLog: [] }, INSPECTION, TODAY);
+  eq(insp7.expiryOn, '2028-12-31', '2024년 등록 → 첫 만료일 4년 뒤');
+
+  // 수검 기간 안에서 받은 검사는 만료일에 받은 것으로 본다 → 다음 만료일 = 종전 만료일 + 2년
+  // (2022-08-04 등록 → 첫 만료일 2026-08-04, 수검 기간 2026-05-06 ~ 2026-09-04)
+  var reg = '2022-08-04';
+  eq(D.inspectionStatus({ id: 'w1', firstRegisteredOn: reg, lastInspectionOn: '2026-05-06', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2028-08-04', '기간 첫날 검사 → 종전 만료일 + 2년');
+  eq(D.inspectionStatus({ id: 'w2', firstRegisteredOn: reg, lastInspectionOn: '2026-07-01', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2028-08-04', '만료 전 기간 안 검사 → 종전 만료일 + 2년 (검사일 + 2년 아님)');
+  eq(D.inspectionStatus({ id: 'w3', firstRegisteredOn: reg, lastInspectionOn: '2026-09-04', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2028-08-04', '만료 뒤 기간 끝날 검사 → 종전 만료일 + 2년 (늦게 잡혀 과태료 위험 방지)');
+  eq(D.inspectionStatus({ id: 'w4', firstRegisteredOn: reg, lastInspectionOn: '2026-05-05', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2028-05-05', '기간 시작 전날 검사 → 검사일 + 2년');
+  eq(D.inspectionStatus({ id: 'w5', firstRegisteredOn: reg, lastInspectionOn: '2026-09-05', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2028-09-05', '기간 끝난 다음 날 검사 → 검사일 + 2년');
+  eq(D.inspectionStatus({ id: 'w6', firstRegisteredOn: '2016-08-04', lastInspectionOn: '2024-07-20', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2026-08-04', '여러 회차 뒤 기간 안 검사 → 그 회차 만료일 + 2년');
+  eq(D.inspectionStatus({ id: 'w7', firstRegisteredOn: '2025-03-02', lastInspectionOn: '2030-01-10', odometerLog: [] }, INSPECTION, TODAY).expiryOn,
+    '2032-03-02', '5년 첫 검사 차도 기간 안이면 종전 만료일 기준');
 
   // 승용 검사 주기를 적용할지: vehicles.json 항목의 vehicleClass 기준. 화물·승합은 주기가 달라 계산하지 않는다
   eq(D.passengerInspectionApplies(null), true, '차종 미매칭(vehicleId 없음) → 기존대로 승용 규칙');
