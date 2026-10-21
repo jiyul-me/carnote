@@ -198,10 +198,10 @@ def short_name(name):
     return re.sub(r"\s*\([^()]*\)$", "", name)
 
 
-def table(head, rows):
+def table(head, rows, cls="data"):
     th = "".join(f"<th>{h}</th>" for h in head)
     body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
-    return f'<div class="table-wrap"><table class="data"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>'
+    return f'<div class="table-wrap"><table class="{cls}"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
 # ---------------------------------------------------------------- 연납

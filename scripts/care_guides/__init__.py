@@ -20,16 +20,29 @@ ORDER 순서가 목록·'다른 가이드' 순서다. 새 글은 모듈을 만�
 """
 import importlib
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import guides as _g  # noqa: E402  — table·num·ext·date_ko·short_name 재사용
+import guides as _g  # noqa: E402  — table·num·ext·date_ko·short_name 재사용 (table은 글자 표로 감싼다)
 
-ORDER = ("replacement-schedule", "inspection", "engine-oil", "tire", "brake", "battery", "filters", "fluids",
-         "winter", "ev-care", "diesel-care", "fuel-economy")
+ORDER = ("replacement-schedule", "inspection", "warning-lights", "engine-oil", "tire", "brake", "battery", "filters",
+         "fluids", "engine-parts", "winter", "summer", "ev-care", "diesel-care", "fuel-economy", "used-car-check",
+         "recall-warranty")
 INDEX_SLUG = "index"  # 목록 페이지 care/index.html
 
-table, num, ext, date_ko, short_name = _g.table, _g.num, _g.ext, _g.date_ko, _g.short_name
+num, ext, date_ko, short_name = _g.num, _g.ext, _g.date_ko, _g.short_name
+
+
+def _wbr(cell):
+    """가운뎃점 뒤에 줄바꿈 자리(<wbr>) — 태그 밖 글자만. '가솔린·LPG·디젤·하이브리드'가 한 낱말로 묶여 좁은 칸을 넘치지 않게."""
+    return re.sub(r"·(?![^<]*>)", "·<wbr>", str(cell))
+
+
+def table(head, rows):
+    """글자 표 — 자동차세 가이드 표(guides.table)와 같은 모양에 'text' 클래스.
+    차 관리 글의 표 칸에는 설명 문장이 들어가서, 숫자 표처럼 한 줄 고정·오른쪽 정렬이면 표가 옆으로 넘친다(css/content.css)."""
+    return _g.table([_wbr(h) for h in head], [[_wbr(x) for x in r] for r in rows], "data text")
 
 
 def module_name(slug):
