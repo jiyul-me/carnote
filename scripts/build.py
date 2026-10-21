@@ -1036,6 +1036,43 @@ def guide_links_line(v):
     return f'<p class="related-calc">가이드: {links} · <a href="{GUIDE_INDEX}">전체 보기</a></p>'
 
 
+# 차종 페이지 '차 관리 가이드' — 연료마다 먼저 볼 차 관리 글 2개(scripts/care_guides ORDER의 slug)와 안내 한 줄.
+# 그 뒤로 승용은 자동차 검사 글(비사업용 승용 기준 글이라 화물·승합은 경고등 글), 끝은 연식에 따라 중고차 점검(지금
+# 팔지 않는 트림 — modelYearTo가 올해 전) 또는 리콜·보증 글. 안내 문장은 연결한 글의 내용과 어긋나지 않게 쓴다
+CARE_PICKS = {
+    "gasoline": (("engine-oil", "engine-parts"), "가솔린차는 엔진오일·점화플러그처럼 주행거리에 맞춰 바꾸는 소모품부터 챙기세요."),
+    "diesel": (("diesel-care", "engine-oil"), "디젤차는 엔진오일 말고도 차에 따라 요소수·매연 필터(DPF)처럼 따로 챙길 게 있어요."),
+    "lpg": (("engine-oil", "engine-parts"), "LPG차도 엔진오일·점화플러그는 가솔린차처럼 챙겨요."),
+    "hybrid": (("engine-oil", "engine-parts"), "하이브리드도 엔진이 있어서 엔진오일과 점화플러그를 챙겨야 해요."),
+    "ev": (("ev-care", "tire"), "전기차는 엔진오일처럼 엔진에 딸린 소모품이 없는 대신, 무거운 차체 때문에 타이어가 빨리 닳을 수 있어요."),
+    "hydrogen": (("tire", "battery"), "수소전기차도 타이어와 12V 배터리는 다른 차처럼 챙겨요."),
+}
+CARE_NONPASSENGER_NOTE = " 화물·승합차는 자동차 검사 주기가 승용차와 달라서, 자동차등록증의 검사 유효기간을 확인하세요."
+
+
+def care_picks(v, this_year):
+    """(차 관리 글 slug 4개, 안내 문장) — CARE_PICKS 규칙. slug가 ORDER에 없으면 빌드를 멈춘다."""
+    kind = "hydrogen" if is_hydrogen(v) else v["fuelType"]
+    fuel_picks, lead = CARE_PICKS[kind]
+    passenger = v.get("vehicleClass", "passenger") == "passenger"
+    to = v.get("modelYearTo")
+    picks = fuel_picks + ("inspection" if passenger else "warning-lights",
+                          "used-car-check" if to and to < this_year else "recall-warranty")
+    missing = [s for s in picks if s not in care_guides.ORDER]
+    if missing:
+        raise ValueError(f"차종 페이지 차 관리 링크 {missing}가 scripts/care_guides ORDER에 없어요 — build.py CARE_PICKS를 고치세요")
+    return picks, lead + ("" if passenger else CARE_NONPASSENGER_NOTE)
+
+
+def care_block(v, this_year):
+    """차종 페이지 '차 관리 가이드' — 관련 차종 뒤(광고 자리에서 먼 쪽). 목록 행은 차 관리 가이드 목록과 같은 컴포넌트."""
+    picks, lead = care_picks(v, this_year)
+    by = {g["slug"]: g for g in care_guides.guides()}
+    return (f'<h2>{CARE_TITLE}</h2>\n<p>{esc(lead)}</p>\n'
+            f'{care_rows([by[s] for s in picks], prefix="../care/")}\n'
+            f'<p class="related-calc"><a href="../care/{CARE_INDEX}">차 관리 가이드 전체 보기</a></p>')
+
+
 def spec_box(v, site):
     """'한눈에' 미니 박스 (TASKS 개편 B). 연비·주행거리는 null이면 해당 줄 미노출 — 추정 금지."""
     rows = []
@@ -1205,7 +1242,7 @@ def nonpassenger_page(v, rates, site, this_year, cat, og=None):
                  f"적용되지 않고, 지방교육세 {at['edu']}%도 붙지 않아요. 그래서 신차든 10년차든 세액이 같아요.</p>")
     faqs = faq_items(v, rates, this_year)
 
-    # 순서: … 표 → primary CTA → h2 계산 방법(산문) → [광고 자리] → 자주 묻는 질문 → 관련 차종 → 기준일 캡션.
+    # 순서: … 표 → primary CTA → h2 계산 방법(산문) → [광고 자리] → 자주 묻는 질문 → 관련 차종 → 차 관리 가이드 → 기준일 캡션.
     # CTA 바로 뒤에 광고가 붙지 않도록 계산 방법 산문을 CTA와 광고 사이에 둔다
     body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
@@ -1229,6 +1266,7 @@ def nonpassenger_page(v, rates, site, this_year, cat, og=None):
 {ad_slot(site, "taxArticle")}
 {faq_section(faqs)}
 {related_block(v, cat, rates, this_year)}
+{care_block(v, this_year)}
 {sources_block(rates, this_year)}
 {faq_jsonld(faqs)}
 {breadcrumb_jsonld(v, cat, site)}"""
@@ -1251,7 +1289,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
         annual = ev["annualTotalKrw"]
         pp = prepay(annual, rates, this_year)
         faqs = faq_items(v, rates, this_year)
-        # 순서: … primary CTA → h2 계산 방법(산문) → [광고 자리] → 자주 묻는 질문 → 관련 차종 → 기준일 캡션
+        # 순서: … primary CTA → h2 계산 방법(산문) → [광고 자리] → 자주 묻는 질문 → 관련 차종 → 차 관리 가이드 → 기준일 캡션
         body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption">{esc(fuel_caption(v))} · 비영업용 승용 · 연식 무관 정액</p>
@@ -1268,6 +1306,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 {ad_slot(site, "taxArticle")}
 {faq_section(faqs)}
 {related_block(v, cat, rates, this_year)}
+{care_block(v, this_year)}
 {sources_block(rates, this_year)}
 {faq_jsonld(faqs)}
 {breadcrumb_jsonld(v, cat, site)}"""
@@ -1374,7 +1413,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
     faqs = faq_items(v, rates, this_year)
     # 순서: 브레드크럼 → 제목 → 히어로 금액 → 연납 한 줄(+ 신청 기간 안내 줄) → h2 연식별 → 연식 select → 표
     # → 표 이미지 저장 → 일괄부과 안내 → primary CTA → h2 계산 방법(산문) → [광고 자리] → 자주 묻는 질문
-    # → 관련 차종 → 기준일 캡션(.sources, 맨 끝). 광고 자리는 CTA·select·표와 떨어지게 계산 방법 산문 뒤
+    # → 관련 차종 → 차 관리 가이드 → 기준일 캡션(.sources, 맨 끝). 광고 자리는 CTA·select·표와 떨어지게 계산 방법 산문 뒤
     body = f"""{crumb}
 <h1>{esc(name)} 자동차세</h1>
 <p class="tax-caption" id="tax-caption">{esc(d_caption)}</p>
@@ -1397,6 +1436,7 @@ def vehicle_page(v, rates, site, this_year, cat, og=None):
 {ad_slot(site, "taxArticle")}
 {faq_section(faqs)}
 {related_block(v, cat, rates, this_year)}
+{care_block(v, this_year)}
 {sources_block(rates, this_year)}
 {faq_jsonld(faqs)}
 {breadcrumb_jsonld(v, cat, site)}"""
@@ -1966,10 +2006,10 @@ CARE_INDEX = f"{care_guides.INDEX_SLUG}.html"
 CARE_TITLE = "차 관리 가이드"
 
 
-def care_rows(gs, exclude=None):
-    """차 관리 가이드 목록 행 (guide_rows와 같은 목록 행 컴포넌트)."""
+def care_rows(gs, exclude=None, prefix=""):
+    """차 관리 가이드 목록 행 (guide_rows와 같은 목록 행 컴포넌트). prefix는 care/ 밖에서 쓸 때('../care/')."""
     rows = "".join(
-        f'<li><a class="hub-row" href="{g["slug"]}.html"><span class="tool-text"><span>{esc(g["short"])}</span>'
+        f'<li><a class="hub-row" href="{prefix}{g["slug"]}.html"><span class="tool-text"><span>{esc(g["short"])}</span>'
         f'<span class="spec-label">{esc(g["summary"])}</span></span>{CHEVRON_RIGHT}</a></li>'
         for g in gs if g["slug"] != exclude)
     return f'<ul class="hub-list tool-list">{rows}</ul>'

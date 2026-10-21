@@ -48,6 +48,11 @@ AD_SLOT_MARKER = re.compile(r"<!-- adsense:slot ([A-Za-z][A-Za-z0-9]*) -->")
 CONTACT_MARKER = "<!-- site:contact -->"
 PUB_ID_RE = re.compile(r"^pub-\d{16}$")
 AD_SLOT_RE = re.compile(r"^\d+$")
+# 유지비 비교(tco.html) 공통 조건의 정적 기본 주행거리 — JS가 꺼졌을 때·데이터가 오기 전에 보이는 값. site.json
+# fuelCostBasisKm(차종 페이지 연료비 줄·차 관리 글·js/tco.js 기본값)와 같아야 한다
+TCO_PAGE = "tco.html"
+TCO_KM_SPOTS = (("연간 주행거리 칸 value", re.compile(r'<input id="common-km"[^>]*\bvalue="(\d+)"')),
+                ("공통 조건 요약 줄", re.compile(r'id="common-summary">연 ([\d,]+)km')))
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
 CC_MIN, CC_MAX = 600, 8000
@@ -714,6 +719,29 @@ def check_site(site, report, text="", pages=None):
                         "주소가 있는데 손 페이지에 {} 마커가 하나도 없어 이메일이 어디에도 안 나와요.".format(CONTACT_MARKER),
                         "privacy.html·terms.html·about.html의 문의 문단에 <!-- site:contact --><!-- /site:contact -->를 "
                         "다시 넣고 빌드하세요.", key_line(text, "contactEmail"))
+    km = site.get("fuelCostBasisKm")
+    if not (isinstance(km, int) and not isinstance(km, bool) and 1000 <= km <= 100000):
+        report.error(file, "fuelCostBasisKm", "연간 주행거리 기준이 1,000~100,000 사이 정수가 아니에요 (지금: {}) — 차종 페이지 연료비 줄·"
+                     "차 관리 글·유지비 비교 기본값이 이 값을 써요.".format(show(km)), "예: 15000", key_line(text, "fuelCostBasisKm"))
+    else:
+        check_tco_default_km(km, text, report, pages)
+
+
+def check_tco_default_km(km, text, report, pages):
+    """유지비 비교(tco.html) 공통 조건의 정적 기본 주행거리가 fuelCostBasisKm와 같은지 — 다르면 차종 페이지 연료비와
+    유지비 비교 연료비가 다른 주행거리로 계산돼 같은 차의 연료비가 두 화면에서 달라 보인다."""
+    page = pages.get(TCO_PAGE)
+    if page is None:
+        return
+    for label, rx in TCO_KM_SPOTS:
+        m = rx.search(page)
+        if not m:
+            report.warn(TCO_PAGE, label, "기본 주행거리 자리를 찾지 못했어요 — 마크업을 바꿨다면 scripts/validate_data.py TCO_KM_SPOTS도 고쳐요.")
+        elif int(m.group(1).replace(",", "")) != km:
+            report.error(TCO_PAGE, label, "기본 주행거리가 {}km인데 data/site.json fuelCostBasisKm는 {:,}km예요 — 차종 페이지 연료비와 "
+                         "유지비 비교 연료비가 다른 주행거리로 계산돼요.".format(m.group(1), km),
+                         "tco.html의 연간 주행거리 칸 value와 공통 조건 요약 줄을 {:,}km로 맞추세요(js/tco.js는 site.json 값을 써요).".format(km),
+                         page.count("\n", 0, m.start()) + 1)
 
 
 def check_affiliate(data, part_ids, report):

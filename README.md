@@ -25,7 +25,9 @@ Pillow가 필요합니다: `pip3 install --user pillow`. 없으면 빌드는 그
 금액이 바뀌어 낡은 썸네일은 og:image에서 빠집니다. 폰트는 `scripts/fonts/`의 Pretendard(OFL)를 씁니다.
 썸네일 디자인을 바꾸면 `scripts/images.py`의 `RENDER_VERSION`을 올리세요 — 전부 다시 그려지고 URL의 `?v=`가 바뀌어 카톡 캐시도 갱신됩니다.
 
-손으로 쓰는 루트 페이지(`index.html`·`tco.html`·`privacy.html`·`terms.html`·`about.html`)는 빌드가 만들지 않아요.
+손으로 쓰는 루트 페이지(`index.html`·`tco.html`·`privacy.html`·`terms.html`·`about.html`·`404.html`)는 빌드가 만들지 않아요.
+`404.html`은 GitHub Pages가 없는 주소마다 그 주소 그대로 보여 주는 페이지라 링크·CSS·스크립트를 모두 `/`로 시작하는
+루트 기준 주소로 써요(상대 링크는 링크 검사가 잡아요). `noindex`이고 광고는 두지 않으며 sitemap에도 넣지 않아요.
 빌드는 그 안의 마커 구간만 `data/site.json` 값으로 채웁니다(아래 '손 페이지 마커 규칙').
 상단 내비·푸터는 생성 페이지와 같은 계약 마크업을 씁니다(DESIGN.md '상단바·내비'·'푸터').
 
@@ -54,7 +56,7 @@ python3 scripts/check.py data     # 하나만: data · tests · parity · build 
 | 데이터 (`scripts/validate_data.py`) | `data/*.json` 실수 — JSON 문법, slug·id 중복, 배기량·연비·연식 범위, 세율표 순서, 공제율 단위(5% → 0.05). `site.json`의 애드센스 값(`pub-`+16자리, `ca-pub-`으로 넣은 실수, 슬롯은 숫자만, 모르는 슬롯 이름·publisherId 없는 슬롯은 경고)과 `contactEmail` 형식. 손 페이지 광고 마커 이름(`<!-- adsense:slot tcoEnd -->`)이 계약에 없는 이름이면 오류(오타가 나면 광고가 소리 없이 빠져서), 슬롯 ID·`contactEmail`을 채웠는데 받을 마커가 없으면 경고 |
 | JS 테스트 (`node tests/run.js`) | `tests/*.test.js` 전부. node가 없으면 macOS jsc로 돌리고, 둘 다 없으면 건너뜀(CI에서는 돌아감) |
 | 세액 일치 (`scripts/check_tax_parity.py`) | 차종 페이지(`build.py`)와 계산기(`js/tax-calc.js`)의 세액이 모든 배기량·차령에서 1원까지 같은지 |
-| 빌드 최신 여부 (`check.py build`) | `data/*.json`이나 `build.py`를 바꾸고 빌드를 안 돌렸는지. 임시 폴더에서 빌드해 `tax/`·`og/`·`icons/`·`favicon.ico`·`robots.txt`·`sitemap.xml`·`ads.txt`, 그리고 손 페이지(루트 `*.html`)의 마커 구간과 비교해요(작업 중인 파일은 안 건드림). `site.json`의 `adsense`·`contactEmail`만 바꾸고 빌드를 안 돌리면 `[새로 생김] ads.txt`·`[바뀜] index.html` 등으로 잡혀요. `sitemap.xml`은 날짜(`lastmod`)만 빼고 비교해 차종 추가·삭제가 빠진 낡은 sitemap을 잡고, 빌드가 더 이상 만들지 않는 `tax/` 페이지·썸네일이 남아 있으면 '지워짐'으로 알려 줘요. 광고를 두지 않는 페이지 — 수첩(`index.html`)·소개(`about.html`)·개인정보처리방침(`privacy.html`)·이용약관(`terms.html`) — 에 광고 슬롯 마커나 광고 코드(`adsbygoogle`)가 있어도 실패해요 |
+| 빌드 최신 여부 (`check.py build`) | `data/*.json`이나 `build.py`를 바꾸고 빌드를 안 돌렸는지. 임시 폴더에서 빌드해 `tax/`·`og/`·`icons/`·`favicon.ico`·`robots.txt`·`sitemap.xml`·`ads.txt`, 그리고 손 페이지(루트 `*.html`)의 마커 구간과 비교해요(작업 중인 파일은 안 건드림). `site.json`의 `adsense`·`contactEmail`만 바꾸고 빌드를 안 돌리면 `[새로 생김] ads.txt`·`[바뀜] index.html` 등으로 잡혀요. `sitemap.xml`은 날짜(`lastmod`)만 빼고 비교해 차종 추가·삭제가 빠진 낡은 sitemap을 잡고, 빌드가 더 이상 만들지 않는 `tax/` 페이지·썸네일이 남아 있으면 '지워짐'으로 알려 줘요. 광고를 두지 않는 페이지 — 수첩(`index.html`)·소개(`about.html`)·개인정보처리방침(`privacy.html`)·이용약관(`terms.html`)·찾을 수 없는 페이지(`404.html`) — 에 광고 슬롯 마커나 광고 코드(`adsbygoogle`)가 있어도 실패해요 |
 | 링크·앵커·공통 크롬 (`scripts/check_links.py`) | 모든 페이지의 깨진 내부 링크(대소문자까지 — Mac에선 열려도 GitHub Pages에선 404). `#id` 링크(크럼의 `index.html#가족`, 허브 브랜드 칩)의 대상 id가 실제로 있는지(수첩의 `#settings` 같은 화면 경로는 제외). 루트·`tax/`의 모든 페이지에서 상단 내비가 정확히 [수첩, 자동차세, 유지비 비교]이고 현재 위치(`aria-current="page"`)가 맞는지, 푸터 2번째 줄이 [소개·문의, 개인정보처리방침, 이용약관] 순서인지, 손 페이지 head에 `<!-- adsense:head -->` 마커가 있는지. 손 페이지마다 있어야 할 광고·문의 마커(`tco.html`의 `adsense:slot tcoEnd`, `privacy`·`terms`·`about`의 `site:contact`)가 정확히 한 번 있고 다른 페이지에는 없는지(마커를 지우거나 이름에 오타가 나면 빌드는 그 자리를 조용히 비우고 통과하므로 여기서 잡아요). `about.html`이 아직 없던 시기(공통 크롬 도입 전)에는 크롬 불일치를 '참고'로만 보여요 |
 
 CI는 메인 job에서 위 검사를 단계별로 돌리고(빌드 최신 여부는 `check.py build`, 링크는 `check_links.py`), 사용자 Mac과 같은 Python 3.9로도 `scripts/check.py`를 한 번 더 돌려 3.10 이상 전용 문법이 섞이면 알려 줍니다.
@@ -66,7 +68,7 @@ CI는 메인 job에서 위 검사를 단계별로 돌리고(빌드 최신 여부
 - 데이터 오류 → 메시지에 파일·몇 번째 항목(id)·줄 번호·필드가 나와요. 배기량을 모르면 추정하지 말고 `null`로 두세요(경고만 뜨고 그 차종 페이지는 빠짐).
 - 공통 크롬 불일치 → `tax/` 페이지는 `scripts/build.py`의 `page()`·`topbar_nav()`·`footer_links()`를 고치고 빌드하세요. 손 페이지는 메시지에 나온 계약 마크업을 그대로 붙여 넣으세요.
 - 없는 `#id` → 링크를 만드는 쪽과 id를 만드는 쪽(허브의 slug 기반 id)이 어긋난 상태. 같은 함수로 맞추세요.
-- 광고 금지 페이지에 광고 → `index.html`·`about.html`·`privacy.html`·`terms.html`에서 그 줄을 지우세요(아래 '수첩에 광고를 넣지 않는 이유', 개인정보처리방침 4절).
+- 광고 금지 페이지에 광고 → `index.html`·`about.html`·`privacy.html`·`terms.html`·`404.html`에서 그 줄을 지우세요(아래 '수첩에 광고를 넣지 않는 이유', 개인정보처리방침 4절).
 - 광고·문의 마커가 없어요·계약에 없는 마커 → 마커를 지웠거나 이름에 오타(`tcoend`)가 난 상태. 메시지에 나온 빈 형태 마커를 그 페이지에 그대로 넣으세요.
 
 ## 자동차세 가이드 글

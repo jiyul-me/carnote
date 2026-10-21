@@ -231,6 +231,16 @@
       });
     });
     var insp = carInspection(car, today);
+    // 검사 받을 수 있는 기간의 첫날(만료일 windowBeforeDays일 전) — 만료일 알림만으로는 예약이 늦기 쉽다
+    if (insp && insp.windowStart >= today) {
+      events.push({
+        uid: car.id + '-inspection-window@chailji',
+        date: insp.windowStart,
+        summary: '차일지 — 자동차 검사 기간 시작',
+        description: '오늘부터 ' + fmtDate(insp.windowEnd) + '까지 검사를 받을 수 있어요 (만료일 ' + fmtDate(insp.expiryOn) + '). ' + desc,
+        url: siteUrl || undefined
+      });
+    }
     if (insp && insp.expiryOn >= today) {
       events.push({
         uid: car.id + '-inspection@chailji',
@@ -709,7 +719,7 @@
       '</ul>' +
       inspectionNotices(insp) +
       '<button type="button" class="btn secondary mt-12" data-action="export-ics">전체 일정을 폰 캘린더로 (.ics)</button>' +
-      '<p class="notice">교체 예정일·' + (inspectionApplies(car) ? '검사 만료일·' : '') +
+      '<p class="notice">교체 예정일·' + (inspectionApplies(car) ? '검사 기간 시작일·만료일·' : '') +
         '연납 시작일이 알림(7일 전, 당일 오전 9시)과 함께 등록돼요.</p>' +
     '</div>';
 

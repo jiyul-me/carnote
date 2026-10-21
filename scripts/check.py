@@ -12,7 +12,7 @@
           손으로 쓴 루트 페이지(index.html·tco.html·privacy.html 등)의 광고·문의 마커 구간이 똑같이 나오나
           (빌드가 더 이상 만들지 않는 tax/ 페이지·썸네일이 남아 있어도 '지워짐'으로 잡는다)
           + 광고를 두지 않는 페이지(수첩 index.html·소개 about.html·개인정보처리방침 privacy.html·
-            이용약관 terms.html)에 광고 슬롯 마커·광고 코드가 없나
+            이용약관 terms.html·찾을 수 없는 페이지 404.html)에 광고 슬롯 마커·광고 코드가 없나
   links   링크·앵커·공통 크롬 (scripts/check_links.py — 깨진 링크, #id, 상단 내비·푸터,
           손 페이지마다 있어야 할 광고·문의 마커)
 
@@ -53,10 +53,11 @@ HAND_PAGE_GLOB = "*.html"
 # 광고를 두지 않는 손 페이지 — 광고 슬롯 마커·광고 코드 금지. (파일, 이름)
 #  수첩: 입력·설정 화면 광고 금지 정책 (README '수첩에 광고를 넣지 않는 이유')
 #  소개·개인정보처리방침·이용약관: privacy.html 4절·about.html의 약속('…페이지에도 광고를 두지 않습니다')
+#  찾을 수 없는 페이지(404.html): 내용 없는 오류 화면 — 애드센스 정책상 광고를 두지 않는다
 # 광고를 둘 수 있는 페이지를 늘리려면 privacy.html 4절 문구부터 고친다
 NOTEBOOK_PAGE = "index.html"
 NO_AD_PAGES = ((NOTEBOOK_PAGE, "수첩 화면"), ("about.html", "소개"), ("privacy.html", "개인정보처리방침"),
-               ("terms.html", "이용약관"))
+               ("terms.html", "이용약관"), ("404.html", "찾을 수 없는 페이지"))
 NO_AD_SIGNS = ("adsense:slot", "adsbygoogle")
 # sitemap.xml은 <lastmod>에 빌드한 날짜가 들어가 매일 바뀐다 — 그 날짜만 지우고 비교
 SITEMAP = "sitemap.xml"
@@ -393,7 +394,7 @@ CHECKS = (
     ("data", "데이터 검사 (data/*.json)"),
     ("tests", "JS 테스트 (tests/*.test.js)"),
     ("parity", "세액 계산 일치 (build.py ↔ js/tax-calc.js)"),
-    ("build", "빌드 결과 최신 여부 (tax/·og/·sitemap.xml·ads.txt·손 페이지 마커) + 수첩·소개·방침·약관 광고 금지"),
+    ("build", "빌드 결과 최신 여부 (tax/·og/·sitemap.xml·ads.txt·손 페이지 마커) + 수첩·소개·방침·약관·404 광고 금지"),
     ("links", "링크·앵커·공통 크롬 (nav·푸터·광고·문의 마커)"),
 )
 

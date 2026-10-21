@@ -26,6 +26,9 @@
   // 기본 연료 단가는 data/site.json(fuelPrices)이 단일 출처 — 사용자가 화면에서 수정 가능
   var data = { vehicles: null, rates: null, dep: null, site: null };
   function sitePrices() { return (data.site && data.site.fuelPrices) || {}; }
+  // 연간 주행거리 기본값도 data/site.json(fuelCostBasisKm — 차종 페이지 연료비 줄·차 관리 글과 같은 값).
+  // tco.html의 정적 value는 같은 값이어야 한다(scripts/validate_data.py가 본다) — 데이터가 오기 전엔 그 값을 쓴다
+  function defaultKm() { return (data.site && data.site.fuelCostBasisKm) || num($('common-km').defaultValue); }
 
   function $(id) { return document.getElementById(id); }
   function num(v) {
@@ -108,7 +111,7 @@
       if (fuelPrices[k] !== (defaults[k] || null)) edited = true;
     });
     return {
-      kmPerYear: num($('common-km').value) || 12000,
+      kmPerYear: num($('common-km').value) || defaultKm(),
       holdYears: Math.min(15, Math.max(1, num($('common-years').value) || 5)),
       fuelPrices: fuelPrices,
       pricesEdited: edited
