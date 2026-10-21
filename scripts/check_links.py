@@ -7,6 +7,8 @@
    - 외부 사이트, data:, mailto:, tel:, javascript:, '#'만 있는 링크는 건너뛴다.
    - 대소문자까지 똑같아야 통과 — Mac에서는 Tax/Index.html도 열리지만 GitHub Pages에서는 404가 난다.
    - sitemap.xml·robots.txt의 우리 도메인 주소, manifest.webmanifest의 아이콘 경로도 같이 본다.
+   - 404.html은 GitHub Pages가 없는 주소마다 그 주소 그대로 보여 주는 페이지라(tax/없는차.html에서도 열림)
+     상대 링크(css/style.css)가 깨진다 — 이 페이지의 링크는 '/'로 시작하는 루트 기준 주소만 허용한다.
 2. 앵커: 같은 사이트 안 링크의 #조각(크럼의 index.html#가족, 브랜드 칩의 #브랜드 등)이 대상 페이지에
    id로 있는지 본다 — 없으면 페이지 맨 위가 열려 '바로가기'가 조용히 고장 난다. JSON-LD 속 우리 도메인
    주소의 #조각도 본다. 수첩(index.html)의 #settings·#car/new 같은 해시는 화면 이동 경로라 보지 않는다.
@@ -71,6 +73,7 @@ HAND_MARKERS = {
 }
 # 본문 마커(광고 자리·문의)의 여는 마커 — 형식이 build.py MARKER와 같은 것만. 형식이 어긋난 마커는 build.py가 멈춘다
 BODY_MARKER_RE = re.compile(r"<!-- (?:adsense:slot [A-Za-z][A-Za-z0-9]*|site:contact) -->")
+NOT_FOUND_PAGE = "404.html"  # 어느 깊이의 주소에서든 열리는 페이지 — 링크는 루트 기준(/…)만
 VERIFY_FILE = re.compile(r"^(naver|google)[0-9a-f]+\.html$")  # 검색엔진 소유 확인용 한 줄 파일
 HEAD_RE = re.compile(r"<head\b[^>]*>(.*?)</head\s*>", re.S | re.I)
 
@@ -398,6 +401,9 @@ def main():
         for line, url in p.links:
             seen.add(url)
             check(src_rel, line, url, page_dir)
+            if src_rel == NOT_FOUND_PAGE and url and not urlsplit(url).scheme and not url.startswith(("/", "#")):
+                broken.append((src_rel, line, url, "404 페이지는 없는 주소(tax/없는차.html 등) 어디서든 그대로 열려서 상대 링크가 "
+                                                   "깨져요 — '/'로 시작하는 루트 기준 주소로 써요 (예: /css/style.css)"))
         if base:  # JSON-LD·인라인 스크립트 속 우리 도메인 절대 주소
             for m in re.finditer(re.escape(base) + r"(/[^\s\"'<>\\)]*)?", text):
                 if m.group(0) not in seen:

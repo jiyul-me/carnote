@@ -11,7 +11,8 @@
   · 총 주행거리끼리 빼서 거리를 구함 → 트립 거리를 적으면 틀어진다(FAQ).
   · 양을 모르는 주유(금액만)가 낀 구간은 통째로 빠짐(addToAcc → acc.ok=false).
   · '가득 주유' 체크박스는 지난 주유가 가득이었으면 미리 켜짐(app.js lastFuel.isFullTank) → 부분 주유 때 확인하라고 안내.
-  · 유지비 비교(js/tco.js)의 입력 칸 이름은 '공인연비', 기본 연간 주행거리는 site.json fuelCostBasisKm와 다를 수 있음.
+  · 유지비 비교(js/tco.js)의 입력 칸 이름은 '공인연비', 기본 연간 주행거리는 site.json fuelCostBasisKm(이 글의 표와 같은 값 —
+    tco.html 정적 기본값이 다르면 scripts/validate_data.py가 잡는다).
 - 내 차 공인연비 확인처로 자동차등록증은 쓰지 않는다(연료소비율 칸이 서식·연식마다 있는지 확인하지 못함).
 - 출처 3개(2026-10-20 WebSearch로 확인 — 검색 결과에 같은 URL·문서 제목이 나옴)
   · SRC_DOE_COLD: fueleconomy.gov 'Fuel Economy in Cold Weather' — 추위·난방이 연비·전비를 떨어뜨림, 공회전은 0mpg.
@@ -31,7 +32,7 @@
 """
 from care_guides import num, table
 
-GUIDE = {"slug": "fuel-economy", "short": "실제 연비 계산", "published": "2026-10-20", "updated": "2026-10-20",
+GUIDE = {"slug": "fuel-economy", "short": "실제 연비 계산", "published": "2026-10-20", "updated": "2026-10-21",
          "og_title": "내 차 실제 연비 계산", "og_lede": "가득 주유 두 번이면 실연비가 나와요",
          "summary": "가득 주유법으로 실연비 재는 순서, 공인연비와 차이 나는 이유, 연비로 1년 연료비 계산, 연비 아끼는 습관"}
 
@@ -197,7 +198,7 @@ def build(c):
 예를 들어 직접 재 보니 실연비가 {num(w_real, 1)}km/{w_unit}였다면 약 {_man(w_cost_real)}이 돼요. 1년에 약 {_man(w_cost_real - w_cost)}을 더 쓰는 셈이에요.
 1km당 연료비('단가 ÷ 연비')로 보면 약 {per_km}원이 약 {per_km_real}원으로 늘어나요.</p>
 <p>두 차의 연료비를 비교하고 싶다면 {tco}를 써 보세요. '공인연비' 칸에 내가 잰 실연비를 넣을 수 있고, 1년 주행거리와
-연료 단가도 바꿀 수 있어요. 기본 주행거리가 이 표와 다를 수 있으니 내 사정에 맞게 고쳐 넣으세요. 연료비에 자동차세,
+연료 단가도 바꿀 수 있어요. 기본 주행거리는 이 표와 같은 연 {km:,}km라, 내 사정에 맞게 고쳐 넣으면 돼요. 연료비에 자동차세,
 직접 넣은 보험료, 감가(시간이 지나며 떨어지는 차값)까지 더해 한 달 유지비로 보여 줘요.</p>
 <h2>연비 아끼는 습관</h2>
 <p>아래 습관은 돈이 거의 들지 않고 오늘부터 할 수 있어요. 얼마나 아끼는지는 차와 길마다 달라요.</p>
