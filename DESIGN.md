@@ -123,6 +123,8 @@ CLAUDE.md·TASKS.md와 함께 읽는다. 아래에 정의된 토큰 외의 색·
   (320px에서도 표가 넘치지 않게).
 - 행: 0.5px `--border` 구분, padding 상하 10px, 숫자 우측 정렬.
 - "내 차" 행(`tr.hl`): `--accent-bg` 배경 + `--accent` 글자 + radius 6px — 배경만 바꾸고 padding은 그대로(선택할 때 열 폭이 흔들리지 않게).
+- 글자 표(`table.data.text`, 차 관리 가이드 — `care_guides.table()`): 칸에 설명 문장이 들어가는 표. 모든 칸 줄바꿈·왼쪽 정렬·위쪽 맞춤,
+  `word-break: keep-all`(한국어 낱말을 끊지 않음). 숫자 표의 한 줄 고정을 쓰면 375px에서 표가 옆으로 넘친다.
 
 ### 카드
 - 흰 배경 + 0.5px `--border` + radius 12px + padding 16~20px. 그림자 없음.

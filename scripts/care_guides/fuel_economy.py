@@ -87,9 +87,10 @@ def _example_rows(c):
         energy, unit, price = _energy(c, v)
         if not fe or not price:
             raise ValueError(f"연비 글 예시 '{slug}'의 공인연비나 단가가 비어 있어요 — scripts/care_guides/fuel_economy.py 예시를 고치세요")
-        fuel = ENERGY_WORD.get(energy, energy) + ("(하이브리드)" if v["fuelType"] == "hybrid" else "")
-        rows.append([link, fuel, f"{num(fe, 1)}km/{unit}", f"{price:,}원/{unit}",
-                     f"약 {_annual(c, fe, price):,}원"])
+        fuel = ENERGY_WORD.get(energy, energy) + (" 하이브리드" if v["fuelType"] == "hybrid" else "")
+        # 4열 — 연료는 차종 칸 꼬리, 연료비는 만원 단위(375px에서 표가 넘치지 않게)
+        rows.append([f'{link}<span class="age-sub"> · {c.B.esc(fuel)}</span>', f"{num(fe, 1)}km/{unit}",
+                     f"{price:,}원/{unit}", f"약 {_man(_annual(c, fe, price))}"])
     return rows
 
 
@@ -189,7 +190,7 @@ def build(c):
 <p>연비를 알면 1년 연료비를 어림할 수 있어요. 식은 간단해요.</p>
 <p><strong>1년 연료비 = 1년 주행거리 ÷ 연비 × 연료 단가</strong></p>
 <p>아래는 1년에 {km:,}km를 달린다고 보고 공인연비로 계산한 예시예요. 차일지 차종 페이지의 연료비 줄과 같은 계산이에요.</p>
-{table(["차종", "연료", "공인연비", "차일지 기준 단가", f"연 {km:,}km 연료비"], rows)}
+{table(["차종", "공인연비", "기준 단가", f"연 {km:,}km 연료비"], rows)}
 <p>표의 단가는 차일지가 계산에 쓰는 기본값(예시)이에요. 실제 단가는 지역·주유소·시기마다 달라요. 최근 주유 영수증의 단가로 바꿔 넣으면
 내 사정에 더 가까워져요.</p>
 <p>이번에는 공인연비 대신 실연비를 넣어 볼게요. {w_name}의 공인연비는 {num(w_fe, 1)}km/{w_unit}라서 연 {km:,}km면 약 {_man(w_cost)}이에요.
