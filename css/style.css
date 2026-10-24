@@ -309,6 +309,8 @@ a.btn { text-decoration: none; }
 /* content.css의 .content padding보다 우선하도록 두 클래스로 */
 .content.intro { padding-top: 0; }
 .content .section-title { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin: 0 0 4px; }
+/* 목록 바로 뒤의 둘째 묶음 제목('도구' 목록 뒤 '새로 올린 글')은 기본 .section-title처럼 위를 24px 띄운다 */
+.content .tool-list + .section-title { margin-top: 24px; }
 .tool-text { display: flex; flex-direction: column; min-width: 0; }
 .tool-text .spec-label { line-height: 1.5; }
 

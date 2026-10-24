@@ -57,7 +57,7 @@ python3 scripts/check.py data     # 하나만: data · tests · parity · build 
 | JS 테스트 (`node tests/run.js`) | `tests/*.test.js` 전부. node가 없으면 macOS jsc로 돌리고, 둘 다 없으면 건너뜀(CI에서는 돌아감) |
 | 세액 일치 (`scripts/check_tax_parity.py`) | 차종 페이지(`build.py`)와 계산기(`js/tax-calc.js`)의 세액이 모든 배기량·차령에서 1원까지 같은지 |
 | 빌드 최신 여부 (`check.py build`) | `data/*.json`이나 `build.py`를 바꾸고 빌드를 안 돌렸는지. 임시 폴더에서 빌드해 `tax/`·`og/`·`icons/`·`favicon.ico`·`robots.txt`·`sitemap.xml`·`ads.txt`, 그리고 손 페이지(루트 `*.html`)의 마커 구간과 비교해요(작업 중인 파일은 안 건드림). `site.json`의 `adsense`·`contactEmail`만 바꾸고 빌드를 안 돌리면 `[새로 생김] ads.txt`·`[바뀜] index.html` 등으로 잡혀요. `sitemap.xml`은 날짜(`lastmod`)만 빼고 비교해 차종 추가·삭제가 빠진 낡은 sitemap을 잡고, 빌드가 더 이상 만들지 않는 `tax/` 페이지·썸네일이 남아 있으면 '지워짐'으로 알려 줘요. 광고를 두지 않는 페이지 — 수첩(`index.html`)·소개(`about.html`)·개인정보처리방침(`privacy.html`)·이용약관(`terms.html`)·찾을 수 없는 페이지(`404.html`) — 에 광고 슬롯 마커나 광고 코드(`adsbygoogle`)가 있어도 실패해요 |
-| 링크·앵커·공통 크롬 (`scripts/check_links.py`) | 모든 페이지의 깨진 내부 링크(대소문자까지 — Mac에선 열려도 GitHub Pages에선 404). `#id` 링크(크럼의 `index.html#가족`, 허브 브랜드 칩)의 대상 id가 실제로 있는지(수첩의 `#settings` 같은 화면 경로는 제외). 루트·`tax/`의 모든 페이지에서 상단 내비가 정확히 [수첩, 자동차세, 유지비 비교]이고 현재 위치(`aria-current="page"`)가 맞는지, 푸터 2번째 줄이 [소개·문의, 개인정보처리방침, 이용약관] 순서인지, 손 페이지 head에 `<!-- adsense:head -->` 마커가 있는지. 손 페이지마다 있어야 할 광고·문의 마커(`tco.html`의 `adsense:slot tcoEnd`, `privacy`·`terms`·`about`의 `site:contact`)가 정확히 한 번 있고 다른 페이지에는 없는지(마커를 지우거나 이름에 오타가 나면 빌드는 그 자리를 조용히 비우고 통과하므로 여기서 잡아요). `about.html`이 아직 없던 시기(공통 크롬 도입 전)에는 크롬 불일치를 '참고'로만 보여요 |
+| 링크·앵커·공통 크롬 (`scripts/check_links.py`) | 모든 페이지의 깨진 내부 링크(대소문자까지 — Mac에선 열려도 GitHub Pages에선 404). `#id` 링크(크럼의 `index.html#가족`, 허브 브랜드 칩)의 대상 id가 실제로 있는지(수첩의 `#settings` 같은 화면 경로는 제외). 루트·`tax/`의 모든 페이지에서 상단 내비가 정확히 [수첩, 자동차세, 유지비 비교]이고 현재 위치(`aria-current="page"`)가 맞는지, 푸터 2번째 줄이 [소개·문의, 개인정보처리방침, 이용약관] 순서인지, 손 페이지 head에 `<!-- adsense:head -->` 마커가 있는지. 손 페이지마다 있어야 할 광고·문의·새 글 마커(`tco.html`의 `adsense:slot tcoEnd`, `privacy`·`terms`·`about`의 `site:contact`, `index.html`의 `site:latest`)가 정확히 한 번 있고 다른 페이지에는 없는지(마커를 지우거나 이름에 오타가 나면 빌드는 그 자리를 조용히 비우고 통과하므로 여기서 잡아요). `about.html`이 아직 없던 시기(공통 크롬 도입 전)에는 크롬 불일치를 '참고'로만 보여요 |
 
 CI는 메인 job에서 위 검사를 단계별로 돌리고(빌드 최신 여부는 `check.py build`, 링크는 `check_links.py`), 사용자 Mac과 같은 Python 3.9로도 `scripts/check.py`를 한 번 더 돌려 3.10 이상 전용 문법이 섞이면 알려 줍니다.
 
@@ -147,6 +147,7 @@ CI는 메인 job에서 위 검사를 단계별로 돌리고(빌드 최신 여부
 | `<!-- adsense:head --><!-- /adsense:head -->` | 모든 손 페이지의 `<head>` 안 (빠지면 링크 검사가 잡음) | 소유 확인 메타. 그 페이지에 채워진 슬롯이 있으면 `adsbygoogle.js`도 |
 | `<!-- adsense:slot tcoEnd --><!-- /adsense:slot -->` | 손 페이지의 광고 자리 (지금은 `tco.html`의 `</main>` 바로 앞. 빠지거나 이름이 틀리면 링크 검사가, 이름 오타는 데이터 검사도 잡음) | 광고 슬롯 마크업 (`slots.tcoEnd`가 있을 때) |
 | `<!-- site:contact --><!-- /site:contact -->` | `privacy.html`·`terms.html`·`about.html`의 문의 문단 (빠지면 링크 검사가 잡음) | `<p>이메일: <a href="mailto:…">…</a></p>` (`contactEmail`이 있을 때) |
+| `<!-- site:latest --><!-- /site:latest -->` | `index.html` 정적 소개의 '새로 올린 글' 제목 아래 (빠지면 링크 검사가 잡음) | 자동차세·차 관리 가이드 중 작성일이 늦은 글 6개 목록 행 (`scripts/build.py` `latest_html`) — 글을 더하고 빌드하면 바뀌어요 |
 
 - 빌드는 마커 **안쪽만** 바꾸고 바깥은 한 글자도 건드리지 않아요. 마커 안을 손으로 고치면 다음 빌드에 덮여요.
 - 닫는 마커가 없거나, 같은 마커가 두 번이거나, 마커가 겹치거나, 형식(띄어쓰기 한 칸)이 다르면 빌드가 파일 이름·줄을 알리고 멈춰요.
