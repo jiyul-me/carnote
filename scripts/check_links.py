@@ -20,7 +20,8 @@
    - 손 페이지(루트 *.html)의 head에 <!-- adsense:head --> … <!-- /adsense:head --> 마커가 있다
      (build.py가 site.json adsense.publisherId로 소유 확인 메타를 채우는 자리).
    - 손 페이지 광고·문의 마커 계약(HAND_MARKERS): tco.html에 <!-- adsense:slot tcoEnd -->,
-     privacy·terms·about에 <!-- site:contact -->가 정확히 한 번 있고, 계약에 없는 페이지·이름의 마커는 없다.
+     privacy·terms·about에 <!-- site:contact -->, 수첩(index.html)에 <!-- site:latest -->(새로 올린 글 목록)가
+     정확히 한 번 있고, 계약에 없는 페이지·이름의 마커는 없다.
      마커 이름 오타나 삭제는 build.py가 그 자리를 조용히 비우고 끝나 빌드 검사로는 안 잡히므로 여기서 잡는다.
    대상은 루트·tax/·care/의 .html이고, 검색엔진 소유 확인 파일(naver….html·google….html)은 뺀다.
    about.html(소개·문의)이 아직 없으면 공통 크롬 도입 전 저장소로 보고 위 넷은 '참고'로만 알린다(실패 아님) —
@@ -60,6 +61,7 @@ CHROME_DIRS = ("", "tax", "care")  # 공통 크롬을 보는 폴더 (루트·tax
 CONTRACT_PAGE = "about.html"  # 이 페이지가 생기면 공통 크롬·마커 검사가 오류가 된다(그 전에는 참고)
 HEAD_OPEN, HEAD_CLOSE = "<!-- adsense:head -->", "<!-- /adsense:head -->"
 SLOT_CLOSE, CONTACT_OPEN, CONTACT_CLOSE = "<!-- /adsense:slot -->", "<!-- site:contact -->", "<!-- /site:contact -->"
+LATEST_OPEN, LATEST_CLOSE = "<!-- site:latest -->", "<!-- /site:latest -->"
 # 손 페이지 광고·문의 마커 계약 — 어느 손 페이지에 어떤 마커(여는 것, 닫는 것)가 정확히 한 번 있어야 하는가
 # (plan.json adsense 계약·README '손 페이지 마커 규칙'). head 마커는 모든 손 페이지 공통이라 위에서 따로 본다.
 # 표에 없는 페이지에는 slot·contact 마커를 두지 않는다 — 수첩·소개·개인정보처리방침·이용약관에는 광고가 없고
@@ -70,9 +72,10 @@ HAND_MARKERS = {
     "privacy.html": ((CONTACT_OPEN, CONTACT_CLOSE),),
     "terms.html": ((CONTACT_OPEN, CONTACT_CLOSE),),
     "about.html": ((CONTACT_OPEN, CONTACT_CLOSE),),
+    "index.html": ((LATEST_OPEN, LATEST_CLOSE),),  # 광고가 아니라 '새로 올린 글' 목록 (build.py latest_html)
 }
 # 본문 마커(광고 자리·문의)의 여는 마커 — 형식이 build.py MARKER와 같은 것만. 형식이 어긋난 마커는 build.py가 멈춘다
-BODY_MARKER_RE = re.compile(r"<!-- (?:adsense:slot [A-Za-z][A-Za-z0-9]*|site:contact) -->")
+BODY_MARKER_RE = re.compile(r"<!-- (?:adsense:slot [A-Za-z][A-Za-z0-9]*|site:contact|site:latest) -->")
 NOT_FOUND_PAGE = "404.html"  # 어느 깊이의 주소에서든 열리는 페이지 — 링크는 루트 기준(/…)만
 VERIFY_FILE = re.compile(r"^(naver|google)[0-9a-f]+\.html$")  # 검색엔진 소유 확인용 한 줄 파일
 HEAD_RE = re.compile(r"<head\b[^>]*>(.*?)</head\s*>", re.S | re.I)
@@ -497,7 +500,7 @@ def check_chrome(parsed, own_hosts):
         print("    {}:".format(label))
         print("      " + markup)
     print("  - 현재 위치 aria-current=\"page\": 수첩 화면·care/ 페이지는 '수첩', tax/ 페이지는 '자동차세', tco.html은 '유지비 비교'에만.")
-    print("  - 광고·문의 마커는 위에 적힌 페이지에만 정확히 한 번 둬요(tco.html은 </main> 바로 앞, 나머지는 문의 문단).")
+    print("  - 광고·문의 마커는 위에 적힌 페이지에만 정확히 한 번 둬요(tco.html은 </main> 바로 앞, index.html은 도구 목록 뒤 '새로 올린 글', 나머지는 문의 문단).")
     print("    수첩·소개·개인정보처리방침·이용약관에는 광고 자리를 두지 않아요. 광고 자리를 늘리려면 privacy.html 4절의")
     print("    '광고가 게재되는 페이지' 문구, 이 파일의 HAND_MARKERS, scripts/validate_data.py HAND_SLOT_WHERE를 함께 고쳐요.")
     print("  - 다시 확인: python3 scripts/check_links.py")

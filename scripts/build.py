@@ -519,6 +519,22 @@ def contact_html(site):
     return f'<p>이메일: <a href="mailto:{esc(e)}">{esc(e)}</a></p>' if e else ""
 
 
+LATEST_COUNT = 6  # 수첩 첫 화면(index.html) '새로 올린 글' 행 수
+
+
+def latest_html():
+    """site:latest 마커 내용 — 자동차세·차 관리 가이드 중 최근에 올린 글 LATEST_COUNT개(작성일 늦은 순, 같은 날이면
+    목록 순서 그대로). 수첩 첫 화면의 정적 소개(크롤러·첫 방문자용)에서 새 글로 바로 가는 길. 손 페이지(루트) 기준 경로."""
+    items = ([(g, f"tax/{g['slug']}.html") for g in guides.GUIDES]
+             + [(g, f"care/{g['slug']}.html") for g in care_guides.guides()])
+    items.sort(key=lambda it: it[0]["published"], reverse=True)  # 안정 정렬 — 같은 날은 원래 순서
+    rows = "".join(
+        f'<li><a class="hub-row" href="{href}"><span class="tool-text"><span>{esc(g["short"])}</span>'
+        f'<span class="spec-label">{esc(g["summary"])}</span></span>{CHEVRON_RIGHT}</a></li>'
+        for g, href in items[:LATEST_COUNT])
+    return f'<ul class="hub-list tool-list">{rows}</ul>'
+
+
 def sync_ads_txt(site):
     """루트 ads.txt를 publisherId와 맞춘다. 비어 있으면 지우고 그 사실을 알린다(손으로 올린 파일이 소리 없이 사라지지 않게)."""
     pub, _ = adsense_conf(site)
@@ -541,8 +557,9 @@ class MarkerError(ValueError):
 #   <!-- adsense:head --><!-- /adsense:head -->
 #   <!-- adsense:slot tcoEnd --><!-- /adsense:slot -->
 #   <!-- site:contact --><!-- /site:contact -->
-MARKER_ANY = re.compile(r"<!--\s*/?\s*(?:adsense:|site:contact)[^>]*-->")
-MARKER = re.compile(r"<!-- (/?)(adsense:head|adsense:slot|site:contact)(?: ([A-Za-z][A-Za-z0-9]*))? -->")
+#   <!-- site:latest --><!-- /site:latest -->
+MARKER_ANY = re.compile(r"<!--\s*/?\s*(?:adsense:|site:contact|site:latest)[^>]*-->")
+MARKER = re.compile(r"<!-- (/?)(adsense:head|adsense:slot|site:contact|site:latest)(?: ([A-Za-z][A-Za-z0-9]*))? -->")
 
 
 def fill_markers(name, text, site):
@@ -588,6 +605,8 @@ def fill_markers(name, text, site):
             content = adsense_head(site, slot_names)
         elif kind == "adsense:slot":
             content = ad_slot(site, arg)
+        elif kind == "site:latest":
+            content = latest_html()
         else:
             content = contact_html(site)
         out.append(text[last:start])
@@ -608,7 +627,7 @@ def sync_hand_pages(site):
         if new != text:
             with path.open("w", encoding="utf-8", newline="") as f:
                 f.write(new)
-            print(f"· {path.name} 광고·문의 마커 갱신")
+            print(f"· {path.name} 광고·문의·새 글 마커 갱신")
 
 
 # 상단 내비 3항목 (키, 루트 기준 경로, 이름) — 손으로 쓴 페이지(index·tco·privacy·terms·about)와 같은 계약 마크업
@@ -1138,7 +1157,8 @@ def sources_block(rates, this_year):
     return (
         '<div class="sources"><p>근거 법령·출처: ' + links + "</p>"
         f"<p>{this_year}년 세율 기준{basis} · 최종 확인 {rates['lastVerified']}{checked}. "
-        "세액은 10원 미만 절사 기준으로 계산한 참고값이에요. 실제 고지서와 단수 차이가 있을 수 있어요.</p></div>"
+        "세액은 10원 미만 절사 기준으로 계산한 참고값이에요. 실제 고지서와 단수 차이가 있을 수 있어요.</p>"
+        '<p>세액이 고지서와 다르거나 배기량·연식이 틀렸으면 <a href="../about.html#contact">문의</a>로 알려 주세요.</p></div>'
     )
 
 
@@ -1940,6 +1960,11 @@ def article_jsonld(site, g, art, url, og):
     return '<script type="application/ld+json">' + json.dumps(data, ensure_ascii=False) + "</script>"
 
 
+# 글 끝 출처 블록의 오류 제보 한 줄 (tax/·care/ 기준 경로) — 소개 페이지 '글은 이렇게 써요'의 정정 약속과 같은 말
+REPORT_LINE = ('<p>틀린 내용이나 바뀐 기준을 발견하면 <a href="../about.html#contact">문의</a>로 알려 주세요. '
+               '확인해서 고치고 수정일을 적어 둘게요.</p>')
+
+
 def guide_sources(art, rates, this_year):
     """글 끝 출처·기준일 (.sources) — 글이 근거로 쓴 출처 + 세율 기준일."""
     links = " · ".join(f'<a href="{esc(u)}" rel="noopener" target="_blank">{esc(lb)}</a>' for lb, u in art["sources"])
@@ -1949,7 +1974,8 @@ def guide_sources(art, rates, this_year):
     checked = f" · 연납 기준 확인 {pv}" if pv and pv != rates["lastVerified"] else ""  # sources_block과 같은 표기
     return ('<div class="sources"><p>근거·출처: ' + links + "</p>"
             f"<p>글 속 금액은 {this_year}년 세율 기준{basis} · 세율 최종 확인 {rates['lastVerified']}{checked}. "
-            "계산 결과는 참고용이에요. 실제 고지 세액은 위택스·서울시 ETAX에서 확인하세요.</p></div>")
+            "계산 결과는 참고용이에요. 실제 고지 세액은 위택스·서울시 ETAX에서 확인하세요.</p>"
+            f"{REPORT_LINE}</div>")
 
 
 def guide_page(g, art, rates, site, this_year, og=None):
@@ -2038,7 +2064,8 @@ def care_sources(art, parts_updated):
     links = " · ".join(f'<a href="{esc(u)}" rel="noopener" target="_blank">{esc(lb)}</a>' for lb, u in art["sources"])
     return ('<div class="sources"><p>근거·출처: ' + links + "</p>"
             f"<p>글 속 교체 주기는 차일지 수첩의 기본값(소모품 데이터 갱신 {esc(parts_updated or '')})이에요. "
-            "차종과 운전 환경에 따라 달라서, 차량 설명서(매뉴얼)의 주기가 있으면 그것을 먼저 따르세요.</p></div>")
+            "차종과 운전 환경에 따라 달라서, 차량 설명서(매뉴얼)의 주기가 있으면 그것을 먼저 따르세요.</p>"
+            f"{REPORT_LINE}</div>")
 
 
 def care_page(g, art, gs, site, parts_updated, og=None):

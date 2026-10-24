@@ -359,7 +359,7 @@ def check_build_fresh():
             print("  ads.txt [{}]: data/site.json adsense.publisherId가 바뀌었어요.".format("새로 생김" if ADS_TXT in added else "바뀜"))
         hand = sorted(r for r in changed if "/" not in r and r.endswith(".html"))
         if hand:
-            print("  손 페이지 [바뀜] ({}): data/site.json의 adsense·contactEmail을 바꾸고 빌드를 안 돌렸어요.".format(", ".join(hand)))
+            print("  손 페이지 [바뀜] ({}): data/site.json의 adsense·contactEmail이나 가이드 글(수첩 첫 화면 '새로 올린 글')을 바꾸고 빌드를 안 돌렸어요.".format(", ".join(hand)))
             print("  빌드는 그 페이지의 마커 구간(<!-- adsense:head --> 등)만 채워요 — 마커 바깥은 그대로예요.")
         print("")
         print("고치는 법:")
